@@ -1,0 +1,122 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  vertical-align: center;
+  line-height: 100vh;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+
+.container {
+  display: flex;
+  width: 800px;
+  box-sizing: border-box;
+  height: 600px;
+  counter-reset: bright;
+}
+
+.box {
+  flex: 1;
+  overflow: hidden;
+  transition: .5s;
+  line-height: 0;
+  border: none;
+
+}
+      
+.box:hover {
+  flex: 1 1 80%;
+  width: 700px;
+  height: 100%;
+  background-position: center center;
+  border: hidden;
+}
+
+
+
+.i1{
+  background-image: url(../public/i.jpg);
+  background-size: cover;
+  filter: brightness(100%)
+}
+.i2{
+  background-image: url(../public/i.jpg);
+  background-position: -66.66px 0%;
+  background-size: cover;
+  filter: brightness(92%)
+}
+.i3{
+  background-image: url(../public/i.jpg);
+  background-position: -133.32px 0%;
+  background-size: cover;
+  filter: brightness(84%)
+}
+.i4{
+  background-image: url(../public/i.jpg);
+  background-position: -200px 0%;
+  background-size: cover;
+  filter: brightness(76%)
+}
+.i5{
+  background-image: url(../public/i.jpg);
+  background-position: -266.64px 0%;
+  background-size: cover;
+  filter: brightness(68%)
+}
+.i6{
+  background-image: url(../public/i.jpg);
+  background-position: -333.33px 0%;
+  background-size: cover;
+  filter: brightness(60%)
+}
+.i7{
+  background-image: url(../public/i.jpg);
+  background-position: -400px 0%;
+  background-size: cover;
+  filter: brightness(52%)
+}
+.i8{
+  background-image: url(../public/i.jpg);
+  background-position: -466.62px 0%;
+  background-size: cover;
+  filter: brightness(44%)
+}
+.i9{
+  background-image: url(../public/i.jpg);
+  background-position: -533.28px 0%;
+  background-size: cover;
+  filter: brightness(36%)
+}
+.i10{
+  background-image: url(../public/i.jpg);
+  background-position: -600px 0%;
+  background-size: cover;
+  filter: brightness(28%)
+}
+.i11{
+  background-image: url(../public/i.jpg);
+  background-position: -666.66px 0%;
+  background-size: cover;
+  filter: brightness(20%)
+}
+.i12{
+  background-image: url(../public/i.jpg);
+  background-position: -733.26px 0%;
+  background-size: cover;
+  filter: brightness(12%)
+}
