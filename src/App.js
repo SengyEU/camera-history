@@ -1,23 +1,13 @@
-import logo from './logo.svg';
 import './App.css';
-
-var items = [];
-for(var i = 1; i <= 12; i++){
-  items.push( <div key={i}class={"box i" + i}></div>)
-}
+import Box from './Box.js';
+import BoxSetStyle from './Box.js';
 
 function App() {
   return (
-    <div class="container">
-      {items}
-    </div>
+      <Box />
   );
 }
 
-document.querySelectorAll(".container > .box").forEach((box, index) => {
-  box.style.setProperty("--brightness", Math.pow(.8333, index));
-  box.style.setProperty("--bgpos", Math.pow(-66.666, index));
-})
-
+document.getElementById("body").onload = function() {BoxSetStyle()};
 
 export default App;

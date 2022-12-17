@@ -1,6 +1,5 @@
 :root{
-  --brightnes: 100%;
-  --bgpos: 0% 0%;
+  --bright: 100%;
 }
 
 body {
@@ -10,6 +9,14 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.wrapper{
   text-align: center;
   vertical-align: center;
   line-height: 100vh;
@@ -21,12 +28,6 @@ body {
   padding: 0;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-
 .container {
   display: flex;
   width: 800px;
@@ -36,79 +37,59 @@ code {
 }
 
 .box {
+  filter: brightness(var(--bright));
   flex: 1;
   overflow: hidden;
-  transition: .5s;
   line-height: 0;
   border: none;
-  filter: brightness(var(--brightness));
-  background-position: var(--bgpos);
-}
-      
-.box:hover {
-  flex: 1 1 80%;
-  width: 700px;
-  height: 100%;
-  background-position: center center;
-  border: hidden;
+  background-image: url(../public/i.jpg);
+  background-size: cover;
+} 
+
+.active{
+  border: 2px solid black;
 }
 
 
+.modal {
+  display: none;
+  position: fixed; 
+  z-index: 1; 
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%; 
+  height: 100%; 
+  overflow: auto; 
+  background-color: rgb(0,0,0); 
+  background-color: rgba(0,0,0,0.9);
+}
 
-.i1{
-  background-image: url(../public/i.jpg);
-  background-size: cover;
+.modal-img {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+  animation-name: zoom;
+  animation-duration: 0.6s;
 }
-.i2{
-  background-image: url(../public/i.jpg);
-  background-size: cover;
+
+@keyframes zoom {
+  from {transform:scale(0)}
+  to {transform:scale(1)}
 }
-.i3{
-  background-image: url(../public/i.jpg);
-  background-size: cover;
+
+.close {
+  position: absolute;
+  top: 15px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  transition: 0.3s;
 }
-.i4{
-  background-image: url(../public/i.jpg);
-  background-position: -200px 0%;
-  background-size: cover;
-}
-.i5{
-  background-image: url(../public/i.jpg);
-  background-position: -266.64px 0%;
-  background-size: cover;
-}
-.i6{
-  background-image: url(../public/i.jpg);
-  background-position: -333.33px 0%;
-  background-size: cover;
-}
-.i7{
-  background-image: url(../public/i.jpg);
-  background-position: -400px 0%;
-  background-size: cover;
-}
-.i8{
-  background-image: url(../public/i.jpg);
-  background-position: -466.62px 0%;
-  background-size: cover;
-}
-.i9{
-  background-image: url(../public/i.jpg);
-  background-position: -533.28px 0%;
-  background-size: cover;
-}
-.i10{
-  background-image: url(../public/i.jpg);
-  background-position: -600px 0%;
-  background-size: cover;
-}
-.i11{
-  background-image: url(../public/i.jpg);
-  background-position: -666.66px 0%;
-  background-size: cover;
-}
-.i12{
-  background-image: url(../public/i.jpg);
-  background-position: -733.26px 0%;
-  background-size: cover;
+.close:hover,.close:focus {
+  color: #bbb;
+  text-decoration: none;
+  cursor: pointer;
 }
