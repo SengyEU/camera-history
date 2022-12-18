@@ -4,7 +4,9 @@ import BoxSetStyle from './Box.js';
 
 function App() {
   return (
+    <>
       <Box />
+    </>
   );
 }
 

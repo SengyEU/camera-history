@@ -2,7 +2,11 @@ import React from "react";
 import { useState } from "react";
 
 
+
 function Box(){
+
+
+
 var items = [];
 
 for(var i = 1; i <= 12; i++){
@@ -11,7 +15,7 @@ for(var i = 1; i <= 12; i++){
 
 document.querySelectorAll(".box").forEach((box, index) => {
     box.style.backgroundPosition=(index * (-800 / items.length)) + "px 0%";
-    box.style.setProperty("--bright",(0.5 + 0.5 / (index + 1)));
+    box.style.setProperty("--bright",(0.2 + 0.8 / (index + 1)));
 })
 
 
@@ -34,7 +38,7 @@ document.querySelectorAll(".box").forEach((box, index) => {
   
 
 return (
-  <React.Fragment>
+  <>
     <div class="modal"><span class="close" onClick={modalClose}>&times;</span><img class="modal-img"/></div>
     <div class="wrapper">
     <div class="container">
@@ -43,7 +47,7 @@ return (
     ))}
     </div>
     </div>
-  </React.Fragment>
+  </>
 );
 }
 
