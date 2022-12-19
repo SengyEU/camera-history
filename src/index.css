@@ -47,6 +47,7 @@ code {
   background-size: cover;
   background-position: var(--bgpos);
   padding-top: 25px;
+  transition: 0.5s;
   color: black;
   font-size: 15px;
   text-shadow:
