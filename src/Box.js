@@ -33,7 +33,7 @@ return (
     <div class="wrapper">
     <div class="container">
     {items.map(item => (
-        <div key={item} className={`box ${openItem === item && IsOpen  ? 'active' : ''}`} onClick={() => {setOpenItem(item);toggleIsOpen();}}>{item}AM</div>
+        <div key={item} className={`box ${openItem === item && IsOpen  ? 'active' : ''}`} onClick={() => {setOpenItem(item);toggleIsOpen();}}>{item} AM</div>
     ))}
     </div>
     </div>
