@@ -1,10 +1,10 @@
 <?php
 namespace WebSocket;
 use \PDO;
+use \PDOException;
 
 require __DIR__.'/vendor/autoload.php';
 date_default_timezone_set("Europe/Dublin"); 
-
 
 $timestamp = time();
 $sql_timestamp = date("Y-m-d H:i:s",$timestamp);
@@ -17,10 +17,11 @@ $sunrise = $sun_info['sunrise'];
 $sunset = $sun_info['sunset'];
 
 if ($timestamp >= $sunrise && $timestamp <= $sunset){
-  try {
-    $client = new Client("wss://cam.kitesportcentre.com/gl-cam");
-    $message = $client->receive();
 
+  $client = new Client("wss://cam.kitesportcentre.com/gl-cam");
+  $message = $client->receive();
+
+  try {
     $connection = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
 
     $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
