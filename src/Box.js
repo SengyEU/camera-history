@@ -11,7 +11,7 @@ function Box(){
 
   const todayDate = new Date().toISOString().slice(0, 10);
 
-  var minDate = subtractDays(new Date(), 50).toISOString().slice(0, 10);
+  var minDate = subtractDays(new Date(), 365).toISOString().slice(0, 10);
 
   const [date,setDate] = useState(todayDate);
 
