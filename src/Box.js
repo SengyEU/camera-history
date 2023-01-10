@@ -3,19 +3,27 @@ import axios from "axios";
 
 function Box(){
 
+  //Funkce pro zjisteni dne pred urcitym poctem dnu
+
   function subtractDays(date, days){
     date.setDate(date.getDate() - days);
 
     return date;
   }
 
+  //Dnesni datum a datum rok zpatky
+
   const todayDate = new Date().toISOString().slice(0, 10);
 
   var minDate = subtractDays(new Date(), 365).toISOString().slice(0, 10);
 
+  //useState pro vybrani datumu a array obrazku
+
   const [date,setDate] = useState(todayDate);
 
   const [images,setImages] = useState([]);
+
+  //Pripojeni na databazi po kazde zmene datumu
 
   useEffect(() => {
 
@@ -39,12 +47,16 @@ function Box(){
 
   },[date]);
 
+  //Otevreni 1 hodiny z celeho dne
+
   const [IsOpen, setIsOpen] = useState(false);
   const [openItem, setOpenItem] = useState(null);
 
   const toggleIsOpen = () => {
     setIsOpen(current => !current);
   };
+
+  //Vysledne zobrazeni
 
   
 return (
