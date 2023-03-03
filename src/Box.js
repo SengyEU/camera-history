@@ -23,8 +23,6 @@ function Box(){
 
   const [images,setImages] = useState([]);
 
-  const [isok, setisok] = useState();
-
   //Pripojeni na databazi po kazde zmene datumu
 
   useEffect(() => {
@@ -60,31 +58,15 @@ function Box(){
 
   //Vysledne zobrazeni
 
-  function Isoktrue(){
-    return(
-    <div className="container">
-      {images.map((image, index) => (
-        <div key={image.id} className={`box ${openItem === image.id && IsOpen  ? 'active' : ''}`} onClick={() => {setOpenItem(image.id);toggleIsOpen();}} style={{backgroundImage:`url(${image.data})`,'--bgpos': (index * (-800 / images.length)) + "px 0%"}}>{image.timestamp.slice(11,16)}</div>
-      ))}
-    </div>
-    )
-  }
-
-  function Isokfalse(){
-    return(
-    <div className="container">
-      {images.map((image, index) => (
-        <div key={image.id} className={`box ${openItem === image.id && IsOpen  ? 'active' : ''}`} style={{backgroundImage:`url(${image.data})`,'--bgpos': (index * (-800 / images.length)) + "px 0%"}}>{image.timestamp.slice(11,16)}</div>
-      ))}
-    </div>
-    )
-  }
-
   
 return (
   <>
     <div className="wrapper">
-    {isok ? <Isoktrue /> : <Isokfalse />}
+    <div className="container">
+    {images.map((image, index) => (
+        <div key={image.id} className={`box ${openItem === image.id && IsOpen  ? 'active' : ''}`} onClick={() => {setOpenItem(image.id);toggleIsOpen();}} style={{backgroundImage:`url(${image.data})`,'--bgpos': (index * (-800 / images.length)) + "px 0%"}}>{image.timestamp.slice(11,16)}</div>
+    ))}
+    </div>
     <input className="calendar" type="date" onChange={(e)=>{setDate(e.target.value)}} defaultValue={todayDate} min={minDate} max={todayDate} />
     </div>
   </>
