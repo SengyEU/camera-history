@@ -22,33 +22,40 @@ $sun_info = date_sun_info($timestamp,$latitude,$longitude);
 $sunrise = $sun_info['sunrise'];
 $sunset = $sun_info['sunset'];
 
+$connection = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+
+$connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+$getstamp = $connection->prepare("SELECT timestamp FROM images ORDER BY id DESC LIMIT 1");
+$getstamp->execute();
+
+while ($getstampResult = $getstamp->fetch(PDO::FETCH_ASSOC)) {
+
+  $seconds = strtotime($timestamp) - strtotime($getstampResult['timestamp']);
+  $hours = $seconds / 60 / 60;
+
+
 //Pokud je den, napoj se na websocket, stáhni tam jeden obrázek a ulož ho do databáze společně s timestamp a id
 
-$true = "1";
-
-if ($true = "1"){
-
+if ($timestamp >= $sunrise && $timestamp <= $sunset){
+  if($hours >= 1){
   $client = new Client("wss://cam.kitesportcentre.com/gl-cam");
   $message = $client->receive();
 
-  try {
-    $connection = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
-
-    $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     $statement = $connection->prepare("INSERT INTO images (timestamp,data) 
         VALUES (?,?)");
 
     $statement->execute(array($sql_timestamp,$message));
 
-  } catch(PDOException $e) {
-    //
+    $conn = null;
+
+    $client->close();
   }
-$conn = null;
 }
 else{
     return;
 }
 
-$client->close();
+}
 ?>
