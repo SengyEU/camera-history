@@ -4,7 +4,7 @@ use \PDO;
 use \PDOException;
 
 require_once 'lib/Client.php';
-require('db.php');
+require 'db.php';
 
 date_default_timezone_set("Europe/Dublin"); 
 
@@ -24,7 +24,9 @@ $sunset = $sun_info['sunset'];
 
 //Pokud je den, napoj se na websocket, stáhni tam jeden obrázek a ulož ho do databáze společně s timestamp a id
 
-if ($timestamp >= $sunrise && $timestamp <= $sunset){
+$true = "1";
+
+if ($true = "1"){
 
   $client = new Client("wss://cam.kitesportcentre.com/gl-cam");
   $message = $client->receive();
