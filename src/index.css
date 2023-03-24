@@ -30,6 +30,7 @@ code {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
   margin: 0;
   padding: 0;
 }
@@ -63,7 +64,7 @@ code {
 
 .calendar {
   background-color: #f0642c;
-  margin-left: 10px;
+  margin-top: 20px;
   padding: 7.5px;
   font-family: "Roboto Mono",monospace;
   color: #ffffff;
