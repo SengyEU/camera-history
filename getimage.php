@@ -4,6 +4,7 @@ use \PDO;
 use \PDOException;
 
 require_once 'lib/Client.php';
+require('db.php');
 
 date_default_timezone_set("Europe/Dublin"); 
 
@@ -22,11 +23,6 @@ $sunrise = $sun_info['sunrise'];
 $sunset = $sun_info['sunset'];
 
 //Pokud je den, napoj se na websocket, stáhni tam jeden obrázek a ulož ho do databáze společně s timestamp a id
-
-$servername = "mysql.hostnow.cz";
-$dbname = "sql1317_cam";
-$username = "sql1317_cam";
-$password = "YEXLa6^o7y16 ";
 
 if ($timestamp >= $sunrise && $timestamp <= $sunset){
 
