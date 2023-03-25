@@ -26,19 +26,9 @@ $connection = new PDO("mysql:host=$servername;dbname=$dbname", $username, $passw
 
 $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$getstamp = $connection->prepare("SELECT timestamp FROM images ORDER BY id DESC LIMIT 1");
-$getstamp->execute();
-
-while ($getstampResult = $getstamp->fetch(PDO::FETCH_ASSOC)) {
-
-  $seconds = strtotime($timestamp) - strtotime($getstampResult['timestamp']);
-  $hours = $seconds / 60 / 60;
-
-
 //Pokud je den, napoj se na websocket, stáhni tam jeden obrázek a ulož ho do databáze společně s timestamp a id
 
 if ($timestamp >= $sunrise && $timestamp <= $sunset){
-  if($hours >= 1){
   $client = new Client("wss://cam.kitesportcentre.com/gl-cam");
   $message = $client->receive();
 
@@ -51,11 +41,9 @@ if ($timestamp >= $sunrise && $timestamp <= $sunset){
     $conn = null;
 
     $client->close();
-  }
 }
 else{
     return;
 }
 
-}
 ?>
