@@ -77,16 +77,10 @@ code {
 }
 
 ::-webkit-calendar-picker-indicator{
-  background: transparent;
-  bottom: 0;
-  color: transparent;
+  filter: invert(1);
+  padding: 5px;
   cursor: pointer;
-  height: auto;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: auto;
+  border-radius: 3px;
 }
 
 
