@@ -29,7 +29,7 @@ function Box(){
 
     const noImage = [{"id":"1","timestamp":"","data":"https://www.kitesportcentre.com/wp-content/uploads/camera_off.png"}];
 
-    axios.post('https://api.openhosting.tk',({
+    axios.post('https://web-xp6b3zn.hstnw.eu',({
       headers: {'Content-Type': 'application/json'},
       datum: date
     })).then(function (response) {
