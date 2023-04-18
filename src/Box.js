@@ -22,12 +22,12 @@ function Box(){
   const [date,setDate] = useState(todayDate);
 
   const [images,setImages] = useState([]);
+  const noImage = [{"id":"1","timestamp":"","data":"https://www.kitesportcentre.com/wp-content/uploads/camera_off.png"}];
 
   //Pripojeni na databazi po kazde zmene datumu
 
   useEffect(() => {
 
-    const noImage = [{"id":"1","timestamp":"","data":"https://www.kitesportcentre.com/wp-content/uploads/camera_off.png"}];
 
     axios.post('https://web-xp6b3zn.hstnw.eu',({
       headers: {'Content-Type': 'application/json'},
