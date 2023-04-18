@@ -24,22 +24,23 @@ code {
 
 .wrapper{
   text-align: center;
-  vertical-align: center;
+  vertical-align: middle;
   line-height: 100vh;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   margin: 0;
   padding: 0;
+  scale: fit-content
 }
 
 .container {
   display: flex;
-  width: 800px;
+  width: 60dvw;
   box-sizing: border-box;
-  height: 600px;
+  aspect-ratio: 4/ 3;
 }
 
 .box {
