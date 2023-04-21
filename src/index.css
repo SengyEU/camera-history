@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=PT+Sans&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
 
 :root{
   --bright: 100%;
@@ -14,12 +14,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding: 0;
-  font-family: 'PT Sans', Arial, Helvetica, sans-serif;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .wrapper{
@@ -37,9 +32,17 @@ code {
 
 .container {
   display: flex;
-  width: clamp(20dvw, 80dvw, 800px);
+  width: clamp(40dvw, 80dvw, 800px);
   box-sizing: border-box;
   aspect-ratio: 4/3;
+  height: auto;
+}
+
+@media all and (orientation:landscape) {
+  .container {
+    height: clamp(40dvw, 80dvw, 800px);
+    width: auto;
+  }
 }
 
 .box {
@@ -52,7 +55,7 @@ code {
   padding-top: 25px;
   transition: 0.5s;
   color: black;
-  font-size: 15px;
+  font-size: clamp(10px, 18px, 18px);
   text-shadow:
    -0.5px -0.5px 0 #fff,  
     0.5px -0.5px 0 #fff,
