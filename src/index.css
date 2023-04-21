@@ -33,14 +33,13 @@ code {
   flex-direction: column;
   margin: 0;
   padding: 0;
-  scale: fit-content
 }
 
 .container {
   display: flex;
-  width: 60dvw;
+  width: clamp(20dvw, 80dvw, 800px);
   box-sizing: border-box;
-  aspect-ratio: 4/ 3;
+  aspect-ratio: 4/3;
 }
 
 .box {
