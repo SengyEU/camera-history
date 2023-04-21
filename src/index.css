@@ -55,7 +55,7 @@ body {
   padding-top: 25px;
   transition: 0.5s;
   color: black;
-  font-size: clamp(10px, 18px, 18px);
+  font-size: clamp(10px, 15px, 15px);
   text-shadow:
    -0.5px -0.5px 0 #fff,  
     0.5px -0.5px 0 #fff,
