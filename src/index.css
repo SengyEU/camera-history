@@ -97,6 +97,7 @@ body {
     -0.5px 0.5px 0 #fff,
      0.5px 0.5px 0 #fff;
   user-select: none;
+  text-transform: lowercase;
 } 
 
 .calendar {

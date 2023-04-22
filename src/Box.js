@@ -121,10 +121,10 @@ return (
             </div>
           )}
           <div>
-            {new Date(image.timestamp).toLocaleString('en-US', {
+            {(new Date(image.timestamp).toLocaleString('en-US', {
             hour: 'numeric',
             hour12: true
-          })}
+          })).replace(/\s+/g, '')}
           </div>
 
         </div>
