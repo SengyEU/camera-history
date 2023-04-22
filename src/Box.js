@@ -57,6 +57,20 @@ function Box(){
   };
 
   //Vysledne zobrazeni
+
+  useEffect(() => {
+    const handleResize = () => {
+      forceUpdate();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const [, updateState] = useState();
+  const forceUpdate = () => updateState({});
+
   
 return (
 
