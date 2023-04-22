@@ -36,7 +36,43 @@ body {
   box-sizing: border-box;
   aspect-ratio: 4/3;
   height: auto;
+  position: relative;
 }
+
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: bold;
+  color: black;
+  transition: all 0.3s ease-in-out;
+}
+
+.arrow:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+}
+
+.arrow.left {
+  left: 20px;
+}
+
+.arrow.right {
+  left: auto;
+  right: 20px;
+}
+
+
 
 @media all and (orientation:landscape) {
   .container {

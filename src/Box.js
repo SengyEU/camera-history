@@ -59,17 +59,71 @@ function Box(){
   //Vysledne zobrazeni
   
 return (
+
   <>
-    <div className="wrapper">
+  <div className="wrapper">
     <div className="container">
-    {images.map((image, index) => (
-        <div key={image.id} className={`box ${openItem === image.id && IsOpen  ? 'active' : ''}`} onClick={() => {setOpenItem(image.id);toggleIsOpen();}} style={{backgroundImage:`url(${image.data})`,'--bgpos': (index * (-document.querySelector(".container").offsetWidth / images.length)) + "px 0%"}}>{image.timestamp.slice(11,16)}</div>
-    ))}
+      {images.map((image, index) => (
+        <div
+          key={image.id}
+          className={`box ${
+            openItem === image.id && IsOpen ? "active" : ""
+          }`}
+          onClick={() => {
+            setOpenItem(image.id);
+            toggleIsOpen();
+          }}
+          style={{
+            backgroundImage: `url(${image.data})`,
+            "--bgpos":
+              index * (-document.querySelector(".container").offsetWidth / images.length) +
+              "px 0%",
+          }}
+        >
+          {openItem === image.id && IsOpen && (
+            <div className="arrows">
+              {index > 0 && (
+                <div
+                  className="arrow left"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenItem(images[index - 1].id);
+                  }}
+                >
+                  {"<"}
+                </div>
+              )}
+              {index < images.length - 1 && (
+                <div
+                  className="arrow right"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenItem(images[index + 1].id);
+                  }}
+                >
+                  {">"}
+                </div>
+              )}
+            </div>
+          )}
+          {image.timestamp.slice(11, 16)}
+        </div>
+      ))}
     </div>
-    <input className="calendar" type="date" onChange={(e)=>{setDate(e.target.value)}} defaultValue={todayDate} min={minDate} max={todayDate} />
-    </div>
+    <input
+      className="calendar"
+      type="date"
+      onChange={(e) => {
+        setDate(e.target.value);
+      }}
+      defaultValue={todayDate}
+      min={minDate}
+      max={todayDate}
+    />
+  </div>
+
   </>
-);
+  );  
 }
 
 export default Box;
