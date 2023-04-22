@@ -3,7 +3,6 @@
 :root{
   --bright: 100%;
   --bgpos: 0% 0%;
-  --bgimg: url(../public/i.jpg);
 }
 
 body {
