@@ -120,7 +120,13 @@ return (
               )}
             </div>
           )}
-          {image.timestamp.slice(11, 16)}
+          <div>
+            {new Date(image.timestamp).toLocaleString('en-US', {
+            hour: 'numeric',
+            hour12: true
+          })}
+          </div>
+
         </div>
       ))}
     </div>

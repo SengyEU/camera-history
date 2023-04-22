@@ -90,7 +90,7 @@ body {
   padding-top: 25px;
   transition: 0.5s;
   color: black;
-  font-size: clamp(10px, 12.5px, 15px);
+  font-size: clamp(8px, 1.5dvw, 15px);
   text-shadow:
    -0.5px -0.5px 0 #fff,  
     0.5px -0.5px 0 #fff,
