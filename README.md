@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com//camera-history">
+  <a href="https://github.com/SengyEU/camera-history">
     <img src="https://sengyeu.github.io/camera-history/logo192.png" alt="Logo" width="80" height="80">
   </a>
 
