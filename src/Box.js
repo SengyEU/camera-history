@@ -13,6 +13,10 @@ function Box(){
 
   //Dnesni datum a datum rok zpatky
 
+  const queryParams = new URLSearchParams(window.location.search)
+
+  const URLDate = queryParams.get("date")
+
   const todayDate = new Date().toISOString().slice(0, 10);
 
   var minDate = subtractDays(new Date(), 365).toISOString().slice(0, 10);
@@ -25,6 +29,12 @@ function Box(){
   const noImage = [{"id":"1","timestamp":"","data":"https://www.kitesportcentre.com/wp-content/uploads/camera_off.png"}];
 
   //Pripojeni na databazi po kazde zmene datumu
+
+  useEffect(() => {
+    if(URLDate != null){
+      setDate(URLDate)
+    }
+  },[])
 
   useEffect(() => {
 
@@ -136,7 +146,7 @@ return (
       onChange={(e) => {
         setDate(e.target.value);
       }}
-      defaultValue={todayDate}
+      value={date}
       min={minDate}
       max={todayDate}
     />
