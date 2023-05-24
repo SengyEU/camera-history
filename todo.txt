@@ -1,0 +1,6 @@
+- Přidání loadnutí s určitym časem
+	- Pokud bude čas a nebude datum nic se nestane
+	- Upravení fetche + upravení image api
+- Obrázek v metadatech
+	- Udělat novou api https://url.cz?date=2023-05-23?hour=12 která vrátí danej obrázek
+- Přidání share buttonu
