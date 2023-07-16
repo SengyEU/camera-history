@@ -37,8 +37,8 @@ function Box(){
       setDate(URLDate)
     }
     
-    if(date && hour){
-      const apiUrl = "https://web-xp6b3zn.hstnw.eu/imageapi.php?date=${URLDate}&hour=${URLHour}";
+    if(URLDate && URLHour){
+      const apiUrl = 'https://web-xp6b3zn.hstnw.eu/imageapi.php?date=${URLDate}&hour=${URLHour}';
 
       const metaTags = [
         { property: 'og:image', content: apiUrl },
