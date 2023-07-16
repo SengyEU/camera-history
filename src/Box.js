@@ -16,8 +16,8 @@ function Box(){
 
   const queryParams = new URLSearchParams(window.location.search)
 
-  const URLDate = queryParams.get("date")
-  const URLHour = queryParams.get("hour")
+  const URLDate = queryParams.get("date");
+  const URLHour = queryParams.get("hour");
 
   const todayDate = new Date().toISOString().slice(0, 10);
 
@@ -35,6 +35,13 @@ function Box(){
   useEffect(() => {
     if(URLDate != null){
       setDate(URLDate)
+    }
+
+    if(URLHour){
+      const descriptionMetaTag = document.querySelector('meta[name="description"]');
+      if (descriptionMetaTag) {
+        descriptionMetaTag.setAttribute('content', `Hodina: ${URLHour}`);
+      }      
     }
   },[])
 
@@ -86,16 +93,6 @@ function Box(){
   
 return (
   <>
-      {(() => {
-        if (URLDate != null && URLHour != null) {
-
-          <Helmet>
-            <meta property="og:image" content={"https://web-xp6b3zn.hstnw.eu/imageapi.php?date=" + URLDate + "&hour=" + URLHour} />
-            {/* <meta property="twitter:image" content={"https://web-xp6b3zn.hstnw.eu/imageapi.php?date=" + URLDate + "&hour=" + URLHour} /> */}
-          </Helmet>
-        
-        }
-      })}
   <div className="wrapper">
     <div className="container">
       {images.map((image, index) => (
