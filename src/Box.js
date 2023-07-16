@@ -33,27 +33,45 @@ function Box(){
   //Pripojeni na databazi po kazde zmene datumu
 
   useEffect(() => {
-    if(URLDate != null){
-      setDate(URLDate)
+
+    async function func1(){
+      if(URLDate){
+        setDate(URLDate)
+      }
+      else{
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.set("date", todayDate);
+        const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+        window.history.replaceState(null, null, newUrl);
+        setDate(URLDate);
+      }
     }
-    
-    if(URLDate && URLHour){
-      const apiUrl = `https://web-xp6b3zn.hstnw.eu/imageapi.php?date=${URLDate}&hour=${URLHour}`;
 
-      const metaTags = [
-        { property: 'og:image', content: apiUrl },
-      ];
-
-      metaTags.forEach(tag => {
-        const metaTag = document.createElement('meta');
-        metaTag.setAttribute('property', tag.property);
-        metaTag.setAttribute('content', tag.content);
-        document.head.appendChild(metaTag);
-      });
-
-    }
+    func1();
 
   },[])
+
+  useEffect(() => {
+
+    async function func2(){
+      if (URLHour) {
+        if(URLDate == date){
+          const itemToOpen = images.find(
+            (image) =>
+              new Date(image.timestamp).getHours() === parseInt(URLHour, 10)
+          );
+    
+          if (itemToOpen) {
+            setOpenItem(itemToOpen.id);
+            setIsOpen(true);
+          }
+        }
+      }
+    }
+
+    func2();
+
+  }, [URLHour, images, URLDate]);
 
   useEffect(() => {
 
