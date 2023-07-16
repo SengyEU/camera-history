@@ -36,13 +36,23 @@ function Box(){
     if(URLDate != null){
       setDate(URLDate)
     }
+    
+    if(date && hour){
+      const apiUrl = "https://web-xp6b3zn.hstnw.eu/imageapi.php?date=${date}&hour=${hour}";
 
-    if(URLHour){
-      const descriptionMetaTag = document.querySelector('meta[name="description"]');
-      if (descriptionMetaTag) {
-        descriptionMetaTag.setAttribute('content', `Hodina: ${URLHour}`);
-      }      
+      const metaTags = [
+        { property: 'og:image', content: apiUrl },
+      ];
+
+      metaTags.forEach(tag => {
+        const metaTag = document.createElement('meta');
+        metaTag.setAttribute('property', tag.property);
+        metaTag.setAttribute('content', tag.content);
+        document.head.appendChild(metaTag);
+      });
+
     }
+
   },[])
 
   useEffect(() => {
