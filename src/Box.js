@@ -33,12 +33,34 @@ function Box(){
   //Pripojeni na databazi po kazde zmene datumu
 
   useEffect(() => {
+    // Function to handle URL parameters
+    function handleURLParameters() {
+      if (URLDate) {
+        setDate(URLDate);
+      } else {
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.set("date", todayDate);
+        const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+        window.history.replaceState(null, null, newUrl);
+        setDate(URLDate);
+      }
 
-    if(URLDate){
-      setDate(URLDate)
+      if (URLHour && images.length > 0) {
+        const itemToOpen = images.find(
+          (image) =>
+            new Date(image.timestamp).getHours() === parseInt(URLHour, 10)
+        );
+
+        if (itemToOpen) {
+          setOpenItem(itemToOpen.id);
+          setIsOpen(true);
+        }
+      }
     }
 
-  },[])
+    // Execute handleURLParameters on component mount and when URLDate/URLHour change
+    handleURLParameters();
+  }, [URLDate, URLHour]);
 
   useEffect(() => {
 
@@ -85,7 +107,31 @@ function Box(){
   const [, updateState] = useState();
   const forceUpdate = () => updateState({});
 
+  const [modalDateTime, setModalDateTime] = useState("");
+  const [url, setUrl] = useState("");
+
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = () => {
+    const input = document.getElementById("inputField");
+    input.select();
+    if (document.execCommand("copy")) {
+      setIsCopied(true);
+      setTimeout(() => {
+        window.getSelection().removeAllRanges();
+        setIsCopied(false);
+      }, 3000);
+    }
+  };
+
+  const [isOpenedModal, setIsOpenedModal] = useState(false);
+
+  const closeModal = () => {
+    document.querySelector(".popup").classList.remove("show");
+    setIsOpenedModal(false);
+  }
   
+
 return (
   <>
   <div className="wrapper">
@@ -108,6 +154,7 @@ return (
           }}
         >
           {openItem === image.id && IsOpen && (
+            <>
             <div className="arrows">
               {index > 0 && (
                 <div
@@ -132,6 +179,23 @@ return (
                 </div>
               )}
             </div>
+            <div className="share-button" 
+            onClick={(e) =>{
+              e.stopPropagation();
+
+              setModalDateTime(date.split("-").reverse().join(".") + " " + (new Date(image.timestamp).toLocaleString('en-US', {
+                hour: 'numeric',
+                hour12: true
+              })).replace(/\s+/g, ''));
+              document.querySelector(".popup").classList.add("show");
+              setUrl("https://sengyeu.github.io/camera-history/?date=" + date + "&hour=" + (new Date(image.timestamp).getHours()));
+              setIsOpenedModal(true);
+            
+            }}
+              >
+              <i className="fa fa-share-alt"></i>
+            </div>
+            </>
           )}
           <div>
             {(new Date(image.timestamp).toLocaleString('en-US', {
@@ -161,7 +225,28 @@ return (
       max={todayDate}
     />
   </div>
-
+  {isOpenedModal && <div className="overlay" onClick={() => {closeModal()}}></div>}
+    <div className="popup">
+      <header>
+        <span>{modalDateTime}</span>
+        <div className="close" onClick={() => {closeModal()}}><i className="uil uil-times"></i></div>
+      </header>
+      <div className="content">
+        <p>Share link to this image via</p>
+        <ul className="icons">
+          <a href={"https://www.facebook.com/sharer/sharer.php?u=" + url} target="_blank"><i className="fab fa-facebook-f"></i></a>
+          <a href={"https://twitter.com/intent/tweet?text=" + url} target="_blank"><i className="fab fa-twitter"></i></a>
+          <a href={"https://wa.me/?text=" + url} target="_blank"><i className="fab fa-whatsapp"></i></a>
+          <a href={"https://t.me/share/url?url=" + url}target="_blank"><i className="fab fa-telegram-plane"></i></a>
+        </ul>
+        <p>Or copy link</p>
+        <div className="field">
+          <i className="url-icon uil uil-link"></i>
+          <input id="inputField" type="text" readOnly value={url} />
+          <button onClick={handleCopy}>{isCopied ? "Copied" : "Copy"}</button>
+        </div>
+      </div>
+    </div>
   </>
   );  
 }
