@@ -181,8 +181,7 @@ button{
   padding: 25px;
   border-radius: 15px;
   top: 10%;
-  max-width: 380px;
-  width: 100%;
+  width: clamp(40dvw, 40dvw, 50dvw);
   opacity: 0;
   z-index: 19;
   pointer-events: none;
@@ -207,6 +206,9 @@ button{
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.icons {
+  padding-left: 0;
 }
 .popup header{
   padding-bottom: 15px;
@@ -330,4 +332,15 @@ header .close:hover{
   height: 100%;
   background-color: rgba(0, 0, 0, 0.4);
   z-index: 1;
+}
+
+/* Update the existing styles for smaller screens */
+@media (max-width: 620px) {
+
+  .popup .icons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Center the icons horizontally */
+  }
 }
