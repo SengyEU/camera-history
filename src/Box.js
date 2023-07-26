@@ -34,44 +34,11 @@ function Box(){
 
   useEffect(() => {
 
-    async function func1(){
-      if(URLDate){
-        setDate(URLDate)
-      }
-      else{
-        const searchParams = new URLSearchParams(window.location.search);
-        searchParams.set("date", todayDate);
-        const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
-        window.history.replaceState(null, null, newUrl);
-        setDate(URLDate);
-      }
+    if(URLDate){
+      setDate(URLDate)
     }
-
-    func1();
 
   },[])
-
-  useEffect(() => {
-
-    async function func2(){
-      if (URLHour) {
-        if(URLDate == date){
-          const itemToOpen = images.find(
-            (image) =>
-              new Date(image.timestamp).getHours() === parseInt(URLHour, 10)
-          );
-    
-          if (itemToOpen) {
-            setOpenItem(itemToOpen.id);
-            setIsOpen(true);
-          }
-        }
-      }
-    }
-
-    func2();
-
-  }, [URLHour, images, URLDate]);
 
   useEffect(() => {
 
@@ -180,7 +147,14 @@ return (
       className="calendar"
       type="date"
       onChange={(e) => {
-        setDate(e.target.value);
+        const selectedDate = e.target.value;
+        // Perform any validation if needed before updating the state
+        if (selectedDate >= minDate && selectedDate <= todayDate) {
+          setDate(selectedDate);
+        } else {
+          // Handle invalid date input here (e.g., show a warning message)
+          console.log("Invalid date input.");
+        }
       }}
       value={date}
       min={minDate}
