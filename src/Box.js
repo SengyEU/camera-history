@@ -154,10 +154,7 @@ return (
     {() => {
       if(URLDate && URLHour){
         <>
-        <meta name="description" content={date.split("-").reverse().join(".") + " " + (new Date(image.timestamp).toLocaleString('en-US', {
-          hour: 'numeric',
-          hour12: true
-        })).replace(/\s+/g, '')}/>
+        <meta name="description" content={modalDateTime}/>
         <meta property="twitter:image" content={"https://web-xp6b3zn.hstnw.eu/imageapi.php?date=" + date + "&hour=" + metaHour} />
         </>
       }
