@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Helmet } from "react-helmet";
 
 function Box(){
 
@@ -150,16 +149,6 @@ function Box(){
 
 return (
   <>
-  <Helmet>
-    {() => {
-      if(URLDate && URLHour){
-        <>
-        <meta name="description" content={modalDateTime}/>
-        <meta property="twitter:image" content={"https://web-xp6b3zn.hstnw.eu/imageapi.php?date=" + date + "&hour=" + metaHour} />
-        </>
-      }
-    }}
-  </Helmet>
   <div className="wrapper">
     <div className="container">
       {images.map((image, index) => (
