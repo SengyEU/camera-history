@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Helmet } from "react-helmet";
 
 function Box(){
 
@@ -123,6 +124,8 @@ function Box(){
   const [modalDateTime, setModalDateTime] = useState("");
   const [url, setUrl] = useState("");
 
+  const [metaHour, setMetaHour] = useState("");
+
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = () => {
@@ -147,6 +150,19 @@ function Box(){
 
 return (
   <>
+  <Helmet>
+    {() => {
+      if(URLDate && URLHour){
+        <>
+        <meta name="description" content={date.split("-").reverse().join(".") + " " + (new Date(image.timestamp).toLocaleString('en-US', {
+          hour: 'numeric',
+          hour12: true
+        })).replace(/\s+/g, '')}/>
+        <meta property="twitter:image" content={"https://web-xp6b3zn.hstnw.eu/imageapi.php?date=" + date + "&hour=" + metaHour} />
+        </>
+      }
+    }}
+  </Helmet>
   <div className="wrapper">
     <div className="container">
       {images.map((image, index) => (
@@ -202,6 +218,7 @@ return (
               })).replace(/\s+/g, ''));
               document.querySelector(".popup").classList.add("show");
               setUrl("https://sengyeu.github.io/camera-history/?date=" + date + "&hour=" + (new Date(image.timestamp).getHours()));
+              setMetaHour(new Date(image.timestamp).getHours());
               setIsOpenedModal(true);
             
             }}
