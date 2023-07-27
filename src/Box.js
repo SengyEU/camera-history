@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Helmet } from "react-helmet";
 
 function Box(){
 
@@ -39,13 +38,12 @@ function Box(){
         setDate(URLDate);
       } else {
         const searchParams = new URLSearchParams(window.location.search);
-        searchParams.set("date", todayDate);
+        searchParams.set("date", date); // Use todayDate instead of URLDate here
         const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
         window.history.replaceState(null, null, newUrl);
-        setDate(URLDate);
+        setDate(todayDate);
       }
 
-      if (URLHour && images.length > 0) {
         const itemToOpen = images.find(
           (image) =>
             new Date(image.timestamp).getHours() === parseInt(URLHour, 10)
@@ -54,13 +52,26 @@ function Box(){
         if (itemToOpen) {
           setOpenItem(itemToOpen.id);
           setIsOpen(true);
-        }
       }
     }
 
     // Execute handleURLParameters on component mount and when URLDate/URLHour change
     handleURLParameters();
   }, [URLDate, URLHour]);
+
+  useEffect(() => {
+  // Find and open the specified hour's image
+  if (URLHour && images.length > 0) {
+    const itemToOpen = images.find(
+      (image) => new Date(image.timestamp).getHours() === parseInt(URLHour, 10)
+    );
+      if (itemToOpen) {
+        setOpenItem(itemToOpen.id);
+        setIsOpen(true);
+      }
+
+  }
+}, [URLHour, images]);
 
   useEffect(() => {
 
@@ -71,10 +82,12 @@ function Box(){
     })).then(function (response) {
 
       if (response.data.length === 0) {
-        setImages(noImage)
+        setImages(noImage);
+        setIsOpen(false);
       }
       else{
-        setImages(response.data)
+        setImages(response.data);
+        setIsOpen(false);
       }
     })
     .catch(function (error) {
@@ -211,6 +224,11 @@ return (
       className="calendar"
       type="date"
       onChange={(e) => {
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.delete("hour");
+        searchParams.delete("date");
+        const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+        window.history.replaceState(null, null, newUrl);
         const selectedDate = e.target.value;
         // Perform any validation if needed before updating the state
         if (selectedDate >= minDate && selectedDate <= todayDate) {
