@@ -77,7 +77,10 @@ function Box(){
 
 
     axios.post('https://web-xp6b3zn.hstnw.eu',({
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': 'web-xp6b3zn.hstnw.eu'
+    },
       datum: date
     })).then(function (response) {
 
