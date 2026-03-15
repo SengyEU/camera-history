@@ -3,7 +3,7 @@ namespace WebSocket;
 use \PDO;
 use \PDOException;
 
-require_once 'lib/Client.php';
+require 'vendor/autoload.php';
 require 'db.php';
 
 date_default_timezone_set("Europe/Dublin"); 
