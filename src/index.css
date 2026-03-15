@@ -344,3 +344,40 @@ header .close:hover{
     justify-content: center; /* Center the icons horizontally */
   }
 }
+
+/* Kontejner pro kalendář a šipky */
+.calendar-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+/* Styl pro navigační šipky u kalendáře */
+.nav-btn {
+  background: #f0642c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 4px 6px;
+}
+
+.nav-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+/* Drobná úprava existujícího kalendáře (smazání marginu, aby byl v rovině) */
+.calendar {
+  margin-top: 0 !important; 
+}

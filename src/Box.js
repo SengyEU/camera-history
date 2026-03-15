@@ -24,40 +24,33 @@ function Box(){
 
   //useState pro vybrani datumu a array obrazku
 
-  const [date,setDate] = useState(todayDate);
+  const [date, setDate] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("date") || new Date().toISOString().slice(0, 10);
+  });
 
   const [images,setImages] = useState([]);
-  const noImage = [{"id":"1","timestamp":"","data":"https://www.kitesportcentre.com/wp-content/uploads/camera_off.png"}];
+  const noImage = [{"id":"1","timestamp": "" ,"data":"https://www.kitesportcentre.com/wp-content/uploads/camera_off.png"}];
 
   //Pripojeni na databazi po kazde zmene datumu
 
   useEffect(() => {
-    // Function to handle URL parameters
-    function handleURLParameters() {
-      if (URLDate) {
-        setDate(URLDate);
-      } else {
-        const searchParams = new URLSearchParams(window.location.search);
-        searchParams.set("date", date); // Use todayDate instead of URLDate here
-        const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
-        window.history.replaceState(null, null, newUrl);
-        setDate(todayDate);
-      }
-
-        const itemToOpen = images.find(
-          (image) =>
-            new Date(image.timestamp).getHours() === parseInt(URLHour, 10)
-        );
-
-        if (itemToOpen) {
-          setOpenItem(itemToOpen.id);
-          setIsOpen(true);
+  function handleURLParameters() {
+    if (URLDate) {
+      setDate(URLDate);
+    }     
+    if (URLHour && images.length > 0) {
+      const itemToOpen = images.find(
+        (image) => new Date(image.timestamp).getHours() === parseInt(URLHour, 10)
+      );
+      if (itemToOpen) {
+        setOpenItem(itemToOpen.id);
+        setIsOpen(true);
       }
     }
-
-    // Execute handleURLParameters on component mount and when URLDate/URLHour change
-    handleURLParameters();
-  }, [URLDate, URLHour]);
+  }
+  handleURLParameters();
+}, [URLDate, URLHour, images.length]);
 
   useEffect(() => {
   // Find and open the specified hour's image
@@ -76,10 +69,10 @@ function Box(){
   useEffect(() => {
 
 
-    axios.post('https://web-xp6b3zn.hstnw.eu',({
+    axios.post('http://130.61.200.245:20000/api.php',({
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'web-xp6b3zn.hstnw.eu'
+        'Access-Control-Allow-Origin': '130.61.200.245:20000'
     },
       datum: date
     })).then(function (response) {
@@ -148,7 +141,6 @@ function Box(){
     document.querySelector(".popup").classList.remove("show");
     setIsOpenedModal(false);
   }
-  
 
 return (
   <>
@@ -206,7 +198,8 @@ return (
                 hour12: true
               })).replace(/\s+/g, ''));
               document.querySelector(".popup").classList.add("show");
-              setUrl("https://sengyeu.github.io/camera-history/?date=" + date + "&hour=" + (new Date(image.timestamp).getHours()));
+              const baseUrl = window.location.origin + window.location.pathname;
+              setUrl(`${baseUrl}?date=${date}&hour=${new Date(image.timestamp).getHours()}`);
               setMetaHour(new Date(image.timestamp).getHours());
               setIsOpenedModal(true);
             
@@ -217,37 +210,70 @@ return (
             </>
           )}
           <div>
-            {(new Date(image.timestamp).toLocaleString('en-US', {
-            hour: 'numeric',
-            hour12: true
-          })).replace(/\s+/g, '')}
+            {image.timestamp && (
+              new Date(image.timestamp).toLocaleString('en-US', {
+                hour: 'numeric',
+                hour12: true
+              }).replace(/\s+/g, '')
+            )}
           </div>
 
         </div>
       ))}
     </div>
-    <input
-      className="calendar"
-      type="date"
-      onChange={(e) => {
-        const searchParams = new URLSearchParams(window.location.search);
-        searchParams.delete("hour");
-        searchParams.delete("date");
-        const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
-        window.history.replaceState(null, null, newUrl);
-        const selectedDate = e.target.value;
-        // Perform any validation if needed before updating the state
-        if (selectedDate >= minDate && selectedDate <= todayDate) {
-          setDate(selectedDate);
-        } else {
-          // Handle invalid date input here (e.g., show a warning message)
-          console.log("Invalid date input.");
-        }
-      }}
-      value={date}
-      min={minDate}
-      max={todayDate}
-    />
+    <div className="calendar-wrapper">
+      {/* Šipka DOZADU */}
+      <button 
+        className="nav-btn"
+        onClick={() => {
+          const prev = new Date(date);
+          prev.setDate(prev.getDate() - 1);
+          const newDate = prev.toISOString().slice(0, 10);
+          if (newDate >= minDate) {
+            setDate(newDate);
+            window.history.replaceState(null, null, `?date=${newDate}`);
+          }
+        }}
+        disabled={date <= minDate}
+      >
+        <i className="fa fa-chevron-left"></i>
+      </button>
+
+      <input
+        className="calendar"
+        type="date"
+        onChange={(e) => {
+          const selectedDate = e.target.value;
+          if (selectedDate >= minDate && selectedDate <= todayDate) {
+            setDate(selectedDate);
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set("date", selectedDate);
+            searchParams.delete("hour"); // Smažeme hodinu při změně dne
+            window.history.replaceState(null, null, `?${searchParams.toString()}`);
+          }
+        }}
+        value={date}
+        min={minDate}
+        max={todayDate}
+      />
+
+      {/* Šipka DOPŘEDU */}
+      <button 
+        className="nav-btn"
+        onClick={() => {
+          const next = new Date(date);
+          next.setDate(next.getDate() + 1);
+          const newDate = next.toISOString().slice(0, 10);
+          if (newDate <= todayDate) {
+            setDate(newDate);
+            window.history.replaceState(null, null, `?date=${newDate}`);
+          }
+        }}
+        disabled={date >= todayDate}
+      >
+        <i className="fa fa-chevron-right"></i>
+      </button>
+    </div>
   </div>
   {isOpenedModal && <div className="overlay" onClick={() => {closeModal()}}></div>}
     <div className="popup">
