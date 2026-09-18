@@ -117,6 +117,7 @@ packages/
 - active_to time (aktivní okno konec)
 - timezone text
 - enabled bool
+- theme text (preset widget téma — default `light`; M5)
 - last_capture_at timestamptz
 - last_error text
 - created_at, updated_at
@@ -159,7 +160,15 @@ org/{tenant_slug}/{camera_id}/{YYYY-MM-DD}/{HHMMSS}.jpg
 - Chybový režim: 1× retry s 30s backoff → při trvalém selhání zapíše camera.last_error a označí stav; žádné mazání dat.
 - Měření size_bytes → zdroj pro billing (ano: reálné náklady místo odhadu).
 
-## 7. Retenční brána
+## 7. Widget témata (M5)
+
+- Presetové styly widgetu volitelné **per kamera** (`cameras.theme`, default `light`).
+- Nabízené varianty: světlý/tmavý + pár barevných schémat — žádná volná customizace, žádné vlastní logo.
+- Výběr v adminu (M2/M5) i přepis přes query param v embed kódu:
+  `<iframe src=".../widget/{tenant}/{camera}?theme=dark">`
+- Nejedná se o white-label (ten zůstává mimo rozsah).
+
+## 8. Retenční brána
 
 Plné ukládání do stropu platformy (36 měsíců), žádné fyzické mazání při downgrade. Brána v API:
 
@@ -171,7 +180,7 @@ WHERE camera_id = :cam AND timestamp >= NOW() - INTERVAL 'X months'
 - Upgrade → okamžitě zpřístupní starší historii.
 - Downgrade → účinné od dalšího fakturačního cyklu (mimo MVP; M4).
 
-## 8. API
+## 9. API
 
 **Veřejné (bez auth, widget + WP plugin):**
 - `GET /api/v1/cameras/:cameraId/images?date=YYYY-MM-DD` — snímky dne v rámci retence
@@ -186,7 +195,7 @@ WHERE camera_id = :cam AND timestamp >= NOW() - INTERVAL 'X months'
 
 Principy: veřejná data bez auth; rate limiting 100 req/min veřejné + 300 req/min admin; JWT 15 min access + 7 dní refresh (httpOnly); argon2id hesla; SQL filtrace vždy přes tenant_id z JWT; chyby ve struktuře RFC 7807.
 
-## 9. Frontend — widget
+## 10. Frontend — widget
 
 Adresa: `https://{domena}/widget/{tenant_slug}/{camera_id}`
 
@@ -199,7 +208,7 @@ Adresa: `https://{domena}/widget/{tenant_slug}/{camera_id}`
 <iframe src="https://{domena}/widget/{tenant}/{camera}" style="width:100%;height:600px;border:0;" frameborder="0" allowfullscreen></iframe>
 ```
 
-## 10. WordPress plugin (M3)
+## 11. WordPress plugin (M3)
 
 PHP plugin, tenký klient:
 - Shortcode `[camera-history tenant="slug" camera="camera-id"]`
@@ -207,14 +216,14 @@ PHP plugin, tenký klient:
 - Generuje the iframe; cache seznamu kamer.
 - Trade-off: závislý na dostupnosti SaaS API — při výpadku se widget nenačte (daň tenkého klienta), stránka klienta se nezbortí.
 
-## 11. Bezpečnost
+## 12. Bezpečnost
 
 - Credentials pouze v `.env`, nikdy v gitu.
 - Argon2id hesla, JWT httpOnly cookies, tenant scoping v SQL.
 - Capture: povolená schémata http/https/rtsp + domain allowlist per kamera (anti-SSRF).
 - Rate limiting, RFC 7807, security headers na nginx.
 
-## 12. Cenová matice (M4, výchozí)
+## 13. Cenová matice (M4, výchozí)
 
 | Retence | €/kamera/měsíc |
 |---|---|
@@ -228,22 +237,23 @@ PHP plugin, tenký klient:
 
 WP plugin zdarma. Billing z reálných size_bytes měřených workerem; ceník přeladitelný.
 
-## 13. Testy
+## 14. Testy
 
 - Unit: adaptéry (mocky feedů), retenční brána, billing kalkulátor.
 - Integration: worker → MinIO + Postgres; API end-to-end.
 - E2E (Playwright): widget v iframe, admin flow (registrace → kamera → embed), error stavy.
 - framework: Vitest + Playwright (React Testing Library).
 
-## 14. Milníky
+## 15. Milníky
 
 1. **M1 — Jádro SaaS:** monorepo, Postgres/MinIO, static_url adaptér, API s retencí, widget + embed. Prodejné po první kameře.
 2. **M2 — Admin dashboard + všechny feed typy** (MJPEG, HLS, RTSP, custom), výpadky, náhled.
 3. **M3 — WordPress plugin.**
 4. **M4 — Billing:** fakturace, stropy, upgrade/downgrade.
+5. **M5 — Widget themes:** presetové styly widgetu per kamera + `?theme=` v embed kódu.
 
-## 15. Co je mimo rozsah
+## 16. Co je mimo rozsah
 
-- White-label branding (neutrální widget).
+- White-label branding (vlastní logo klienta) — presetové widget témata (M5) jsou v rozsahu, volná customizace ne.
 - Fyzické mazání dat podle retence.
 - Auth pro veřejnou timeline.
