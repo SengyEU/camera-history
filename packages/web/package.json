@@ -9,6 +9,7 @@
     "preview": "vite preview --port 8080",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "e2e": "playwright test",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "@playwright/test": "^1.49.1",
     "jsdom": "^25.0.1",
     "typescript": "^5.6.3",
     "vite": "^6.0.3",
