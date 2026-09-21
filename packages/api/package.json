@@ -1,0 +1,31 @@
+{
+  "name": "@ch/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "tsx src/server.ts",
+    "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@ch/core": "*",
+    "@ch/db": "*",
+    "@fastify/cookie": "^11.0.1",
+    "@fastify/jwt": "^9.0.2",
+    "@fastify/rate-limit": "^10.1.0",
+    "@node-rs/argon2": "^2.0.2",
+    "fastify": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^3.0.0"
+  }
+}
