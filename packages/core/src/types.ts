@@ -29,14 +29,14 @@ export interface Camera {
   timezone: string;
   enabled: boolean;
   theme: string;
-  lastCaptureAt: string | null;
+  lastCaptureAt: Date | null;
   lastError: string | null;
 }
 
 export interface ImageRecord {
   id: string;
   cameraId: string;
-  timestamp: string;
+  timestamp: Date;
   storageKey: string;
   sizeBytes: number;
 }
