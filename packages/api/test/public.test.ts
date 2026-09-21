@@ -23,6 +23,15 @@ async function seedCamera(repos: import("@ch/db").Repos): Promise<Camera> {
 }
 
 describe("public routes", () => {
+  it("returns camera info for widget", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCamera(repos);
+    const res = await app.inject({ url: `/v1/cameras/${camera.id}` });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().camera).toMatchObject({ id: camera.id, name: "Main", retentionMonths: 12 });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("returns 404 for missing camera", async () => {
     const { app, repos } = makeApp();
     const res = await app.inject({ url: `/v1/cameras/does-not-exist/images?date=2026-09-18` });

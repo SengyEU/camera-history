@@ -1,0 +1,16 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #fff; color: #111; }
+.widget { max-width: 1000px; margin: 0 auto; padding: 16px; }
+.widget-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+.widget-nav { display: flex; gap: 8px; align-items: center; }
+.widget-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.widget-cell { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; background: #fff; cursor: pointer; padding: 0; position: relative; }
+.widget-cell img { width: 100%; display: block; height: 90px; object-fit: cover; }
+.widget-cell span { display: block; font-size: 12px; padding: 4px 8px; color: #555; }
+.empty, .error { color: #888; text-align: center; padding: 24px; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.modal-content { background: #fff; padding: 16px; border-radius: 8px; max-width: 90vw; max-height: 90vh; overflow: auto; position: relative; }
+.modal-content img { display: block; max-width: 100%; }
+.modal-close { position: absolute; top: 4px; right: 4px; }
+.modal-actions { margin-top: 8px; display: flex; gap: 8px; align-items: center; }
+.share-url { font-size: 12px; color: #666; word-break: break-all; }

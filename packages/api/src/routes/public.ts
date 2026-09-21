@@ -16,6 +16,12 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
   const { cfg, repos, storage } = deps;
   const baseUrl = cfg.api.publicBaseUrl.replace(/\/+$/, "");
 
+  app.get<{ Params: { id: string } }>("/v1/cameras/:id", async (req, reply) => {
+    const cam = await repos.getPublicCamera(req.params.id);
+    if (!cam) return reply.code(404).type("application/problem+json").send(notFound());
+    return { camera: cam };
+  });
+
   app.get<{ Params: { id: string }; Querystring: { date?: string } }>(
     "/v1/cameras/:id/images",
     async (req, reply) => {
