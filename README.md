@@ -1,28 +1,26 @@
-# 📷 Camera History - Kite Sport Centre
+# Camera History — SaaS
 
-Tento projekt je webová aplikace (Frontend + Backend), která slouží k automatickému ukládání a následnému zobrazování historických snímků z živé kamery z [Kite Sport Centre](https://www.kitesportcentre.com/garrylucas-beach-live-cam/).
+Multi-tenant SaaS pro resorty a skiareály: periodické snímkování venkovních kamer + veřejná embedovatelná historie.
 
-🌐 **Live ukázka / Web:** [www.kitesportcentre.com/garrylucas-beach-live-cam/](https://www.kitesportcentre.com/garrylucas-beach-live-cam/)
+- Monorepo: `packages/{core,db,worker,api,web}` (viz design doc `docs/superpowers/specs/`)
+- Stack: TypeScript, Node (Fastify), Postgres (drizzle), MinIO, React (Vite)
+- Legacy kód z původní single-camera verze: `legacy/`
 
-## 📝 O projektu
+## Dev setup
 
-Mnoho živých kamer na internetu poskytuje pouze aktuální stream, ale neumožňuje podívat se zpětně, jaké byly podmínky (např. pro kitesurfing). Cílem tohoto projektu bylo vytvořit řešení, které bude periodicky ukládat snímky z kamery a nabídne uživatelsky přívětivé rozhraní pro jejich prohlížení.
+1. `npm install`
+2. `docker compose up -d postgres minio`
+3. `npm run db:migrate` (vyžaduje běžící Postgres)
+4. `npm run dev:api` a `npm run dev:web` (každý v samostatném terminálu)
+5. `npm run dev:worker` (capture)
 
-## 🛠️ Architektura a technologie
+## Embed widgetu
 
-Projekt se skládá ze dvou hlavních částí:
+Pokud API a web běží na stejném origin (např. `camera.sengycraft.cz`), vloží se widget jako iframe:
 
-### 1. Backend (PHP)
-
-Stará se o získávání dat, ukládání obrázků a komunikaci s frontendem.
-
-- `worker.php` - Skript, který se spouští na pozadí a stahuje aktuální snímek z kamery.
-- `db.php` - Zajišťuje logiku pro evidenci stažených snímků.
-- `api.php` / `getimage.php` - API endpointy, na které se dotazuje frontend pro získání seznamu snímků nebo konkrétní fotografie.
-
-### 2. Frontend (React)
-
-Klientská část, která vizualizuje uložená data.
-
-- Využívá JavaScript pro asynchronní dotazování na `api.php`.
-- Zobrazuje časovou osu / historii snímků, mezi kterými může uživatel listovat.
+```html
+<iframe
+  src="https://camera.sengycraft.cz/widget/{tenant_slug}/{camera_id}"
+  style="width:100%;height:600px;border:0;"
+  frameborder="0" allowfullscreen></iframe>
+```

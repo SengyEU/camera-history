@@ -1,49 +1,24 @@
 {
-  "homepage": "http://sengyeu.github.io/camera-history",
-  "name": "my-app",
+  "name": "camera-history-saas",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.2.2",
-    "create-react-app": "^5.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-helmet": "^6.1.0",
-    "react-image-gallery": "^1.2.11",
-    "react-modal-image": "^2.6.0",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
-  },
+  "workspaces": ["packages/*"],
+  "engines": { "node": ">=20" },
   "scripts": {
-    "start": "react-scripts start",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "clean": "npm run clean --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace @ch/db",
+    "db:migrate": "npm run db:migrate --workspace @ch/db",
+    "dev:api": "npm run dev --workspace @ch/api",
+    "dev:worker": "npm run dev --workspace @ch/worker",
+    "dev:web": "npm run dev --workspace @ch/web"
   },
   "devDependencies": {
-    "gh-pages": "^4.0.0"
+    "eslint": "^9.14.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.15.0"
   }
 }
