@@ -84,6 +84,8 @@ export interface CameraPatch {
   timezone?: string;
   enabled?: boolean;
   theme?: string;
+  lastCaptureAt?: Date | null;
+  lastError?: string | null;
 }
 
 export interface NewImage {
