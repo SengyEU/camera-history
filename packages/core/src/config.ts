@@ -3,12 +3,27 @@ import { z } from "zod";
 const numeric = (defaultValue: number) =>
   z.coerce.number().default(defaultValue).pipe(z.number().finite());
 
+// z.coerce.boolean by ze stringu "false" udelal true (Boolean("false") === true)
+const boolean = (defaultValue: boolean) =>
+  z.preprocess(
+    (value) => {
+      if (value === undefined || value === null) return defaultValue;
+      if (typeof value === "boolean") return value;
+      const text = String(value).trim().toLowerCase();
+      if (text === "") return defaultValue;
+      if (["1", "true", "yes", "on"].includes(text)) return true;
+      if (["0", "false", "no", "off"].includes(text)) return false;
+      return value;
+    },
+    z.boolean(),
+  );
+
 const AppConfigSchema = z.object({
   databaseUrl: z.string().url().default("postgres://camera:camera@127.0.0.1:5432/camera_history"),
   minio: z.object({
     endpoint: z.string().default("127.0.0.1"),
     port: numeric(9000),
-    useSsl: z.coerce.boolean().default(false),
+    useSsl: boolean(false),
     accessKey: z.string().min(1).default("minioadmin"),
     secretKey: z.string().min(1).default("minioadmin"),
     bucket: z.string().min(1).default("org"),

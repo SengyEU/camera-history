@@ -17,4 +17,10 @@ describe("loadConfig", () => {
     const cfg = loadConfig({ FEED_MAX_BYTES: "1000" });
     expect(cfg.feed.maxBytes).toBe(1000);
   });
+
+  it("parses MINIO_USE_SSL=false as boolean false", () => {
+    expect(loadConfig({ MINIO_USE_SSL: "false" }).minio.useSsl).toBe(false);
+    expect(loadConfig({ MINIO_USE_SSL: "true" }).minio.useSsl).toBe(true);
+    expect(loadConfig({}).minio.useSsl).toBe(false);
+  });
 });
