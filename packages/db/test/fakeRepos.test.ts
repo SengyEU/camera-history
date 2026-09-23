@@ -62,4 +62,21 @@ describe("fakeRepos", () => {
     const pub = await repos.getPublicCamera(camera.id);
     expect(pub?.retentionMonths).toBe(24);
   });
+
+  it("creates camera with default status and updates it", async () => {
+    const repos = createFakeRepos();
+    const tenant = await repos.createTenant(newTenant);
+    const camera = await repos.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl: "https://example.com/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    expect(camera.status).toBe("operational");
+    const updated = await repos.updateCamera(camera.id, { status: "offline", lastError: "boom" });
+    expect(updated?.status).toBe("offline");
+  });
 });

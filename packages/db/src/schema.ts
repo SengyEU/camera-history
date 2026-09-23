@@ -22,6 +22,8 @@ export const feedTypeEnum = pgEnum("feed_type", [
 
 export const userRoleEnum = pgEnum("user_role", ["owner", "admin"]);
 
+export const cameraStatusEnum = pgEnum("camera_status", ["operational", "delayed", "offline"]);
+
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -63,6 +65,7 @@ export const cameras = pgTable("cameras", {
   theme: text("theme").notNull().default("light"),
   lastCaptureAt: timestamp("last_capture_at", { withTimezone: true }),
   lastError: text("last_error"),
+  status: cameraStatusEnum("status").notNull().default("operational"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

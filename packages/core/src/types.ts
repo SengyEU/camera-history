@@ -1,5 +1,6 @@
 export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
 export type UserRole = "owner" | "admin";
+export type CameraStatus = "operational" | "delayed" | "offline";
 
 export interface Tenant {
   id: string;
@@ -31,6 +32,7 @@ export interface Camera {
   theme: string;
   lastCaptureAt: Date | null;
   lastError: string | null;
+  status: CameraStatus;
 }
 
 export interface ImageRecord {
@@ -86,6 +88,7 @@ export interface CameraPatch {
   theme?: string;
   lastCaptureAt?: Date | null;
   lastError?: string | null;
+  status?: CameraStatus;
 }
 
 export interface NewImage {

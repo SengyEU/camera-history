@@ -75,6 +75,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         theme: "light",
         lastCaptureAt: null,
         lastError: null,
+        status: "operational",
       };
       db.cameras.push(camera);
       return camera;
