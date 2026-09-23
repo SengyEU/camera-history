@@ -99,8 +99,8 @@ describe("runSchedule", () => {
     const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
     await fakes.createCamera(tenant.id, {
       name: "Main",
-      feedType: "rtsp", // not implemented in M1
-      feedUrl: "rtsp://example.com/cam",
+      feedType: "custom", // not implemented until M2 Task 4
+      feedUrl: "wss://example.com/cam",
       intervalMinutes: 15,
       activeFrom: "00:00",
       activeTo: "23:59",
