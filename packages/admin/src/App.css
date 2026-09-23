@@ -158,3 +158,68 @@ button.secondary {
   height: 40px;
   border-radius: 4px;
 }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-body {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.2rem;
+  min-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.modal-body h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.modal-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.form-row label {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.4rem;
+}
+
+.cell-error {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+button.danger {
+  background: #fff;
+  color: #c5221f;
+  border-color: #c5221f;
+}

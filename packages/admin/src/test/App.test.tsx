@@ -124,3 +124,86 @@ describe("App dashboard", () => {
     await screen.findByTestId("login-form");
   });
 });
+
+describe("App camera CRUD", () => {
+  const camera = (over: Partial<Record<string, unknown>> = {}) => ({
+    id: "cam-1",
+    name: "Beach cam",
+    feedType: "static_url",
+    feedUrl: "https://placehold.co/600x400.jpg",
+    intervalMinutes: 5,
+    activeFrom: "00:00",
+    activeTo: "23:59",
+    timezone: "UTC",
+    enabled: true,
+    status: "operational",
+    lastCaptureAt: null,
+    lastError: null,
+    ...over,
+  });
+
+  function listServer(extra: { create?: unknown; update?: unknown; delete?: unknown } = {}) {
+    const calls: Array<{ u: string; init?: RequestInit }> = [];
+    const fn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(url);
+      calls.push({ u, init });
+      if (u.endsWith("/api/v1/admin/cameras") && (!init || init.method === "GET" || init.method === undefined)) {
+        return jsonResponse({ cameras: [camera()] });
+      }
+      if (u.endsWith("/api/v1/admin/cameras") && init?.method === "POST") {
+        return jsonResponse({ camera: camera({ id: "cam-new", name: "New cam" }) }, 201);
+      }
+      if (u.includes("/api/v1/admin/cameras/cam-1") && init?.method === "PUT") {
+        return jsonResponse({ camera: camera({ name: "Renamed cam" }) });
+      }
+      if (u.includes("/api/v1/admin/cameras/cam-1") && init?.method === "DELETE") {
+        return new Response(null, { status: 204 });
+      }
+      return jsonResponse({ detail: "not found" }, 404);
+    });
+    return { fn, calls };
+  }
+
+  it("creates a camera through the form", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await userEvent.type(screen.getByTestId("form-name"), "New cam");
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() => expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true));
+    const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
+    expect(JSON.parse(String(post.init?.body))).toMatchObject({ name: "New cam", feedType: "static_url" });
+  });
+
+  it("renames a camera through the edit form", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    const nameInput = screen.getByTestId("form-name") as HTMLInputElement;
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "Renamed cam");
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() => expect(calls.some((c) => c.u.includes("/cam-1") && c.init?.method === "PUT")).toBe(true));
+  });
+
+  it("deletes a camera", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("delete-cam-1"));
+    await screen.findByTestId("confirm-delete");
+    await userEvent.click(screen.getByTestId("confirm-delete"));
+
+    await waitFor(() => expect(calls.some((c) => c.u.includes("/cam-1") && c.init?.method === "DELETE")).toBe(true));
+  });
+});

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, FEED_LABELS, type AdminCamera } from "./api";
+import { api, FEED_LABELS, FEED_TYPES, INTERVALS, type AdminCamera, type CameraInput } from "./api";
 import "./App.css";
 
 const STATUS_LABELS: Record<AdminCamera["status"], string> = {
@@ -7,6 +7,16 @@ const STATUS_LABELS: Record<AdminCamera["status"], string> = {
   delayed: "Zpožděno",
   offline: "Výpadek",
 };
+
+const emptyInput = (): CameraInput => ({
+  name: "",
+  feedType: "static_url",
+  feedUrl: "",
+  intervalMinutes: 15,
+  activeFrom: "00:00",
+  activeTo: "23:59",
+  timezone: "UTC",
+});
 
 function Login({ onSuccess }: { onSuccess: (email: string) => void }) {
   const [email, setEmail] = useState("");
@@ -52,22 +62,108 @@ function Login({ onSuccess }: { onSuccess: (email: string) => void }) {
   );
 }
 
-interface RowState {
-  previewUrl: string | null;
+function CameraForm({
+  initial,
+  onSave,
+  onCancel,
+}: {
+  initial: CameraInput;
+  onSave: (input: CameraInput) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [input, setInput] = useState<CameraInput>(initial);
+  const [error, setError] = useState<string | null>(null);
+  const set = (k: keyof CameraInput, v: string | number) => setInput((s) => ({ ...s, [k]: v }));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await onSave(input);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save");
+    }
+  };
+
+  return (
+    <div className="modal">
+      <form className="modal-body" onSubmit={submit} data-testid="camera-form">
+        <h3>{initial.name ? "Upravit kameru" : "Nová kamera"}</h3>
+        {error && <p className="error">{error}</p>}
+        <label>
+          Název
+          <input value={input.name} onChange={(e) => set("name", e.target.value)} data-testid="form-name" required />
+        </label>
+        <label>
+          Typ
+          <select value={input.feedType} onChange={(e) => set("feedType", e.target.value)} data-testid="form-feed-type">
+            {FEED_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {FEED_LABELS[t]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Feed URL
+          <input value={input.feedUrl} onChange={(e) => set("feedUrl", e.target.value)} data-testid="form-feed-url" />
+        </label>
+        <label>
+          Interval (min)
+          <select value={input.intervalMinutes} onChange={(e) => set("intervalMinutes", Number(e.target.value))} data-testid="form-interval">
+            {INTERVALS.map((i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="form-row">
+          <label>
+            Aktivní od
+            <input type="time" value={input.activeFrom} onChange={(e) => set("activeFrom", e.target.value)} />
+          </label>
+          <label>
+            Aktivní do
+            <input type="time" value={input.activeTo} onChange={(e) => set("activeTo", e.target.value)} />
+          </label>
+        </div>
+        <label>
+          Časové pásmo
+          <input value={input.timezone} onChange={(e) => set("timezone", e.target.value)} data-testid="form-timezone" />
+        </label>
+        <div className="form-actions">
+          <button type="submit" data-testid="form-submit">
+            Uložit
+          </button>
+          <button type="button" className="secondary" onClick={onCancel} data-testid="form-cancel">
+            Zrušit
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
-function CameraRow({ cam }: { cam: AdminCamera }) {
-  const [preview, setPreview] = useState<RowState>({ previewUrl: null });
+function CameraRow({
+  cam,
+  onEdit,
+  onDelete,
+}: {
+  cam: AdminCamera;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     api
       .preview(cam.id)
       .then((d) => {
-        if (active) setPreview({ previewUrl: d.latest?.url ?? null });
+        if (active) setPreviewUrl(d.latest?.url ?? null);
       })
       .catch(() => {
-        if (active) setPreview({ previewUrl: null });
+        if (active) setPreviewUrl(null);
       });
     return () => {
       active = false;
@@ -85,8 +181,18 @@ function CameraRow({ cam }: { cam: AdminCamera }) {
         </span>
       </td>
       <td>{cam.lastCaptureAt ? new Date(cam.lastCaptureAt).toLocaleString() : "—"}</td>
-      <td data-testid={`last-error-${cam.id}`}>{cam.lastError ?? "—"}</td>
-      <td>{preview.previewUrl ? <img className="thumb" src={preview.previewUrl} alt={`preview ${cam.name}`} /> : "—"}</td>
+      <td data-testid={`last-error-${cam.id}`} className="cell-error">
+        {cam.lastError ?? "—"}
+      </td>
+      <td>{previewUrl ? <img className="thumb" src={previewUrl} alt={`preview ${cam.name}`} /> : "—"}</td>
+      <td className="cell-actions">
+        <button className="secondary" onClick={onEdit} data-testid={`edit-${cam.id}`}>
+          Upravit
+        </button>
+        <button className="danger" onClick={onDelete} data-testid={`delete-${cam.id}`}>
+          Smazat
+        </button>
+      </td>
     </tr>
   );
 }
@@ -95,6 +201,9 @@ export function App() {
   const [email, setEmail] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [cameras, setCameras] = useState<AdminCamera[]>([]);
+  const [editing, setEditing] = useState<CameraInput | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<AdminCamera | null>(null);
 
   useEffect(() => {
     api
@@ -115,6 +224,33 @@ export function App() {
   const logout = async () => {
     await api.logout();
     setEmail(null);
+  };
+
+  const toInput = (cam: AdminCamera): CameraInput => ({
+    name: cam.name,
+    feedType: cam.feedType,
+    feedUrl: cam.feedUrl,
+    intervalMinutes: cam.intervalMinutes,
+    activeFrom: cam.activeFrom,
+    activeTo: cam.activeTo,
+    timezone: cam.timezone,
+  });
+
+  const saveCamera = async (input: CameraInput) => {
+    if (editingId) {
+      await api.updateCamera(editingId, input);
+    } else {
+      await api.createCamera(input);
+    }
+    setEditing(null);
+    setEditingId(null);
+    await refresh();
+  };
+
+  const removeCamera = async (cam: AdminCamera) => {
+    await api.deleteCamera(cam.id);
+    setConfirming(null);
+    await refresh();
   };
 
   if (!checked) return <p className="loading">Načítám…</p>;
@@ -139,8 +275,14 @@ export function App() {
       <section className="panel">
         <div className="panel-head">
           <h2>Kamery</h2>
-          <button className="secondary" onClick={refresh} data-testid="refresh">
-            Obnovit
+          <button
+            onClick={() => {
+              setEditingId(null);
+              setEditing(emptyInput());
+            }}
+            data-testid="add-camera"
+          >
+            + Nová kamera
           </button>
         </div>
         <table className="cameras">
@@ -153,22 +295,55 @@ export function App() {
               <th>Poslední snímek</th>
               <th>Chyba</th>
               <th>Náhled</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {cameras.length === 0 && (
               <tr>
-                <td colSpan={7} className="empty">
+                <td colSpan={8} className="empty">
                   Žádné kamery.
                 </td>
               </tr>
             )}
             {cameras.map((cam) => (
-              <CameraRow key={cam.id} cam={cam} />
+              <CameraRow
+                key={cam.id}
+                cam={cam}
+                onEdit={() => {
+                  setEditingId(cam.id);
+                  setEditing(toInput(cam));
+                }}
+                onDelete={() => setConfirming(cam)}
+              />
             ))}
           </tbody>
         </table>
       </section>
+      {editing !== null && (
+        <CameraForm
+          initial={editing}
+          onSave={saveCamera}
+          onCancel={() => setEditing(null)}
+        />
+      )}
+      {confirming !== null && (
+        <div className="modal">
+          <div className="modal-body">
+            <p>
+              Smazat kameru <strong>{confirming.name}</strong>? Smažou se i všechny snímky.
+            </p>
+            <div className="form-actions">
+              <button className="danger" onClick={() => void removeCamera(confirming)} data-testid="confirm-delete">
+                Smazat
+              </button>
+              <button className="secondary" onClick={() => setConfirming(null)}>
+                Zrušit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
