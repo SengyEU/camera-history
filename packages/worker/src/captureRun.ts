@@ -10,11 +10,28 @@ export interface RunScheduleDeps {
   cfg: AppConfig;
   now?: Date;
   log?: (msg: string) => void;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+async function captureWithRetry(cam: Parameters<typeof captureBuffer>[0], cfg: AppConfig, sleep: (ms: number) => Promise<void>) {
+  let lastMessage: string | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await captureBuffer(cam, cfg);
+    } catch (err) {
+      lastMessage = err instanceof Error ? err.message : String(err);
+      if (attempt === 0) await sleep(cfg.worker.retryBackoffMs);
+    }
+  }
+  throw new Error(lastMessage ?? "capture failed");
 }
 
 export async function runSchedule(deps: RunScheduleDeps): Promise<number> {
   const { repos, storage, cfg, log = () => {} } = deps;
   const now = deps.now ?? new Date();
+  const sleep = deps.sleep ?? realSleep;
   const cameras = await repos.listEnabledCameras();
   const due = cameras.filter((cam) => isCaptureDue(cam, now));
   let processed = 0;
@@ -25,7 +42,7 @@ export async function runSchedule(deps: RunScheduleDeps): Promise<number> {
       batch.map(async (cam) => {
         processed += 1;
         try {
-          const jpeg = await captureBuffer(cam, cfg);
+          const jpeg = await captureWithRetry(cam, cfg, sleep);
           const tenant = await repos.getTenantById(cam.tenantId);
           if (!tenant) throw new Error(`tenant ${cam.tenantId} not found`);
           const key = keyFor(tenant.slug, cam.id, now);
@@ -36,11 +53,13 @@ export async function runSchedule(deps: RunScheduleDeps): Promise<number> {
             storageKey: key,
             sizeBytes: jpeg.length,
           });
-          await repos.updateCamera(cam.id, { lastCaptureAt: now, lastError: null });
+          await repos.updateCamera(cam.id, { lastCaptureAt: now, lastError: null, status: "operational" });
           log(`captured ${cam.id} ${key}`);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          await repos.updateCamera(cam.id, { lastError: message });
+          const current = await repos.getCameraById(cam.id);
+          const next = current?.status === "delayed" ? "offline" : "delayed";
+          await repos.updateCamera(cam.id, { lastError: message, status: next });
           log(`capture failed ${cam.id}: ${message}`);
         }
       }),
