@@ -38,3 +38,38 @@ Pokud API a web běží na stejném origin (např. `camera.sengycraft.cz`), vlo�
 ```
 
 Odkaz na konkrétní hodinu lze sestavit přes query parametry `?date=YYYY-MM-DD&hour=HH`.
+
+## M2 — Admin dashboard a feed types
+
+### Admin dashboard
+
+- V deploy verzi admin dashboard běží na `/admin/` (nginx `location /admin/` → `packages/admin/dist/`).
+- Lokálně se spustí `npm run dev:admin` na portu **8081** (vite dev server s `base: "/admin/"`, proxy `/api` → API na `127.0.0.1:3000`).
+
+Přihlášení probíhá přes admin endpoints (`/api/v1/admin/...`), JWT access/refresh tokeny se ukládají do httpOnly cookies (`ch_access`, `ch_refresh`).
+
+### Feed types
+
+Podporované feed types (`cameras.feed_type`) a povinné schéma URL (`cameras.feed_url`):
+
+| feed_type | povinné schéma feed_url |
+|---|---|
+| `static_url` | `http://` nebo `https://` |
+| `mjpeg` | `http://` nebo `https://` |
+| `hls` | `http://` nebo `https://` |
+| `rtsp` | `rtsp://` |
+| `custom` | `wss://` |
+
+Adaptéry pro `hls` a `rtsp` dekódují stream přes nástroj `ffmpeg` (jehož binárka se volá ze sledovacího procesu). Na serveru proto musí být nainstalovaný:
+
+```bash
+sudo apt-get install -y ffmpeg
+```
+
+### `cameras.status`
+
+| hodnota | význam |
+|---|---|
+| `operational` | poslední snímek se podařilo zachytit a uložit (výchozí hodnota) |
+| `delayed` | poslední pokus o snímek selhal (po jednom retry s backoffem); do `lastError` se zapíše chyba |
+| `offline` | selhání dvou po sobě jdoucích pokusů (kamera už byla `delayed` a selhala znovu) |
