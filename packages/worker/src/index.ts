@@ -16,7 +16,7 @@ async function tick() {
 
 console.log("worker starting");
 await tick();
-setInterval(tick, cfg.worker.tickMs).unref();
+setInterval(tick, cfg.worker.tickMs);
 
 process.on("SIGTERM", () => process.exit(0));
 process.on("SIGINT", () => process.exit(0));
