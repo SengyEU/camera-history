@@ -99,8 +99,8 @@ describe("runSchedule", () => {
     const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
     await fakes.createCamera(tenant.id, {
       name: "Main",
-      feedType: "custom", // not implemented until M2 Task 4
-      feedUrl: "wss://example.com/cam",
+      feedType: "custom",
+      feedUrl: "ws://127.0.0.1:1/dead",
       intervalMinutes: 15,
       activeFrom: "00:00",
       activeTo: "23:59",
@@ -114,7 +114,7 @@ describe("runSchedule", () => {
       now: new Date("2026-09-18T09:00:00Z"),
       log: () => {},
     });
-    expect(db.cameras[0]!.lastError).toContain("not implemented");
+    expect(db.cameras[0]!.lastError).toBeTruthy();
   });
 });
 
