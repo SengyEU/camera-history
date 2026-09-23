@@ -10,6 +10,24 @@ const RATE_LIMIT = { max: 300, timeWindow: "1 minute" };
 
 const notFound = () => rfc7807(404, "not_found", "camera not found");
 
+function schemeMatches(feedType: string, feedUrl: string): boolean {
+  switch (feedType) {
+    case "rtsp":
+      return feedUrl.startsWith("rtsp://");
+    case "custom":
+      return feedUrl.startsWith("wss://");
+    default:
+      return feedUrl.startsWith("http://") || feedUrl.startsWith("https://");
+  }
+}
+
+function publicImageUrl(baseUrl: string, cameraId: string, storageKey: string): string {
+  const parts = storageKey.split("/");
+  const date = parts[parts.length - 2];
+  const file = parts[parts.length - 1];
+  return `${baseUrl.replace(/\/+$/, "")}/api/v1/cameras/${cameraId}/${date}/${file}`;
+}
+
 export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
   const pre = requireAuth(app);
 
@@ -32,8 +50,8 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!INTERVALS.includes(intervalMinutes)) {
       throw new HttpError(400, "bad_request", "intervalMinutes must be one of 5, 15, 30, 60");
     }
-    if (!feedUrl.startsWith("http://") && !feedUrl.startsWith("https://") && !feedUrl.startsWith("rtsp://")) {
-      throw new HttpError(400, "bad_request", "feedUrl must start with http://, https:// or rtsp://");
+    if (!schemeMatches(feedType, feedUrl)) {
+      throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${feedType}"`);
     }
 
     const camera = await deps.repos.createCamera(req.user!.tenantId, {
@@ -70,6 +88,11 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
         ["name", "feedType", "feedUrl", "intervalMinutes", "activeFrom", "activeTo", "timezone", "enabled"].includes(k),
       ),
     );
+    const effectiveType = patch.feedType !== undefined ? String(patch.feedType) : camera.feedType;
+    const effectiveUrl = patch.feedUrl !== undefined ? String(patch.feedUrl) : camera.feedUrl;
+    if (!schemeMatches(effectiveType, effectiveUrl)) {
+      throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${effectiveType}"`);
+    }
     const updated = await deps.repos.updateCamera(id, patch as never);
     return { camera: updated };
   });
@@ -92,7 +115,14 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     }
     const latest = await deps.repos.latestImageForCamera(id);
     return {
-      latest: latest ? { id: latest.id, timestamp: latest.timestamp, sizeBytes: latest.sizeBytes } : null,
+      latest: latest
+        ? {
+            id: latest.id,
+            timestamp: latest.timestamp,
+            sizeBytes: latest.sizeBytes,
+            url: publicImageUrl(deps.cfg.api.publicBaseUrl, id, latest.storageKey),
+          }
+        : null,
     };
   });
 }

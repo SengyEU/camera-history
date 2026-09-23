@@ -112,7 +112,7 @@ describe("admin cameras", () => {
     await repos.insertImage({
       cameraId: cam.id,
       timestamp: new Date("2026-09-18T09:00:00Z"),
-      storageKey: "k",
+      storageKey: `org/acme/${cam.id}/2026-09-18/090000.jpg`,
       sizeBytes: 10,
     });
     const res = await app.inject({
@@ -122,6 +122,100 @@ describe("admin cameras", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().latest?.timestamp).toBe("2026-09-18T09:00:00.000Z");
+    expect(res.json().latest.url).toContain("/api/v1/cameras/");
+    await (app as { close: () => Promise<void> }).close();
+  });
+});
+
+describe("admin feed type validation", () => {
+  it("accepts a custom camera with wss scheme", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Kite cam",
+        feedType: "custom",
+        feedUrl: "wss://cam.kitesportcentre.com/gl-cam",
+        intervalMinutes: 5,
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().camera.feedType).toBe("custom");
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("accepts an rtsp camera", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: { name: "IP cam", feedType: "rtsp", feedUrl: "rtsp://cam:554/stream", intervalMinutes: 15 },
+    });
+    expect(res.statusCode).toBe(201);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects custom camera without wss scheme", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: { name: "Kite", feedType: "custom", feedUrl: "https://cam/k", intervalMinutes: 15 },
+    });
+    expect(res.statusCode).toBe(400);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects rtsp scheme for a static_url camera", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: { name: "Bad", feedType: "static_url", feedUrl: "rtsp://cam/stream", intervalMinutes: 15 },
+    });
+    expect(res.statusCode).toBe(400);
+    await (app as { close: () => Promise<void> }).close();
+  });
+});
+
+describe("admin camera preview", () => {
+  it("returns a public image url for the latest image", async () => {
+    const { app, repos } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const tenant = repos.db.tenants[0]!;
+    const cam = await repos.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl: "https://x/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    await repos.insertImage({
+      cameraId: cam.id,
+      timestamp: new Date("2026-09-18T09:00:00Z"),
+      storageKey: `org/${tenant.slug}/${cam.id}/2026-09-18/090000.jpg`,
+      sizeBytes: 400,
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/admin/cameras/${cam.id}/preview`,
+      headers: { cookie },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().latest.url).toBe(
+      `http://localhost:8080/api/v1/cameras/${cam.id}/2026-09-18/090000.jpg`,
+    );
     await (app as { close: () => Promise<void> }).close();
   });
 });
