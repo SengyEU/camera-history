@@ -5,25 +5,39 @@ import { captureHls, captureRtsp } from "../src/adapters/ffmpeg.js";
 
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x01]);
 
-function fakeFfmpeg(opts: { data?: Buffer; code?: number; stderr?: string; error?: Error }): ChildProcessWithoutNullStreams {
+function fakeFfmpeg(opts: {
+  data?: Buffer;
+  code?: number;
+  stderr?: string;
+  error?: Error;
+  noAutoClose?: boolean;
+  killEmitsClose?: boolean;
+}): ChildProcessWithoutNullStreams {
   const stdout = new EventEmitter() as unknown as ChildProcessWithoutNullStreams["stdout"];
   const stderr = new EventEmitter() as unknown as ChildProcessWithoutNullStreams["stderr"];
   const proc = new EventEmitter() as unknown as ChildProcessWithoutNullStreams;
+  const kill = vi.fn(() => {
+    if (opts.killEmitsClose) {
+      proc.emit("close", opts.code ?? 0);
+    }
+  });
   Object.defineProperties(proc, {
     stdout: { value: stdout },
     stderr: { value: stderr },
-    kill: { value: vi.fn() },
+    kill: { value: kill },
   });
-  setTimeout(() => {
-    if (opts.error) {
-      proc.emit("error", opts.error);
-      proc.emit("close", 1);
-      return;
-    }
-    if (opts.data) stdout.emit("data", opts.data);
-    stderr.emit("data", Buffer.from(opts.stderr ?? ""));
-    proc.emit("close", opts.code ?? 0);
-  }, 0);
+  if (!opts.noAutoClose) {
+    setTimeout(() => {
+      if (opts.error) {
+        proc.emit("error", opts.error);
+        proc.emit("close", 1);
+        return;
+      }
+      if (opts.data) stdout.emit("data", opts.data);
+      stderr.emit("data", Buffer.from(opts.stderr ?? ""));
+      proc.emit("close", opts.code ?? 0);
+    }, 0);
+  }
   return proc;
 }
 
@@ -73,7 +87,11 @@ describe("captureHls", () => {
 
   it("times out when ffmpeg stalls", async () => {
     await expect(
-      captureHls("https://example.com/a.m3u8", { timeoutMs: 50, maxBytes: 1_000_000, spawn: () => fakeFfmpeg({}) }),
-    ).rejects.toMatchObject({ status: 502 });
+      captureHls("https://example.com/a.m3u8", {
+        timeoutMs: 50,
+        maxBytes: 1_000_000,
+        spawn: () => fakeFfmpeg({ noAutoClose: true, killEmitsClose: true }),
+      }),
+    ).rejects.toMatchObject({ status: 502, title: "capture_timeout" });
   });
 });

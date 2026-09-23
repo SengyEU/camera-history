@@ -22,12 +22,13 @@ export function runFfmpeg(args: string[], opts: FfmpegRunOptions): Promise<Buffe
       // already dead
     }
   };
-  const timer = setTimeout(() => {
-    timedOut = true;
-    kill();
-  }, opts.timeoutMs);
 
   return new Promise<Buffer>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      timedOut = true;
+      kill();
+      reject(new HttpError(502, "capture_timeout", "ffmpeg timed out"));
+    }, opts.timeoutMs);
     child.stdout.on("data", (d: Buffer) => {
       chunks.push(d);
       const total = chunks.reduce((n, c) => n + c.length, 0);
