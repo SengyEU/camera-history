@@ -26,7 +26,7 @@ describe("public routes", () => {
   it("returns camera info for widget", async () => {
     const { app, repos } = makeApp();
     const camera = await seedCamera(repos);
-    const res = await app.inject({ url: `/v1/cameras/${camera.id}` });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}` });
     expect(res.statusCode).toBe(200);
     expect(res.json().camera).toMatchObject({ id: camera.id, name: "Main", retentionMonths: 12 });
     await (app as { close: () => Promise<void> }).close();
@@ -34,7 +34,7 @@ describe("public routes", () => {
 
   it("returns 404 for missing camera", async () => {
     const { app, repos } = makeApp();
-    const res = await app.inject({ url: `/v1/cameras/does-not-exist/images?date=2026-09-18` });
+    const res = await app.inject({ url: `/api/v1/cameras/does-not-exist/images?date=2026-09-18` });
     expect(res.statusCode).toBe(404);
     await (app as { close: () => Promise<void> }).close();
     void repos;
@@ -42,7 +42,7 @@ describe("public routes", () => {
 
   it("returns 404 for missing camera in file route", async () => {
     const { app } = makeApp();
-    const res = await app.inject({ url: "/v1/cameras/ghost/2026-09-18/120000.jpg" });
+    const res = await app.inject({ url: "/api/v1/cameras/ghost/2026-09-18/120000.jpg" });
     expect(res.statusCode).toBe(404);
     await (app as { close: () => Promise<void> }).close();
   });
@@ -50,7 +50,7 @@ describe("public routes", () => {
   it("lists images for a camera on a given date", async () => {
     const { app, repos } = makeApp();
     const camera = await seedCamera(repos);
-    const res = await app.inject({ url: `/v1/cameras/${camera.id}/images?date=2026-09-18` });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-09-18` });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.cameraId).toBe(camera.id);
@@ -66,7 +66,7 @@ describe("public routes", () => {
       storage: { get: async (_key: string) => jpeg as unknown as Buffer },
     });
     const camera = await seedCamera(repos);
-    const res = await app.inject({ url: `/v1/cameras/${camera.id}/2026-09-18/120000.jpg` });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/2026-09-18/120000.jpg` });
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toContain("image/jpeg");
     expect(res.rawPayload.equals(jpeg)).toBe(true);
@@ -76,7 +76,7 @@ describe("public routes", () => {
   it("returns 404 for missing image file", async () => {
     const { app, repos } = makeApp();
     const camera = await seedCamera(repos);
-    const res = await app.inject({ url: `/v1/cameras/${camera.id}/2026-09-18/090000.jpg` });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/2026-09-18/090000.jpg` });
     expect(res.statusCode).toBe(404);
     await (app as { close: () => Promise<void> }).close();
   });

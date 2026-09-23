@@ -16,14 +16,14 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
   const { cfg, repos, storage } = deps;
   const baseUrl = cfg.api.publicBaseUrl.replace(/\/+$/, "");
 
-  app.get<{ Params: { id: string } }>("/v1/cameras/:id", async (req, reply) => {
+  app.get<{ Params: { id: string } }>("/api/v1/cameras/:id", async (req, reply) => {
     const cam = await repos.getPublicCamera(req.params.id);
     if (!cam) return reply.code(404).type("application/problem+json").send(notFound());
     return { camera: cam };
   });
 
   app.get<{ Params: { id: string }; Querystring: { date?: string } }>(
-    "/v1/cameras/:id/images",
+    "/api/v1/cameras/:id/images",
     async (req, reply) => {
       const cam = await repos.getPublicCamera(req.params.id);
       if (!cam) return reply.code(404).type("application/problem+json").send(notFound());
@@ -51,14 +51,14 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
         images: data.map((img) => ({
           id: img.id,
           timestamp: img.timestamp,
-          url: `${baseUrl}/v1/cameras/${cam.id}/${date}/${img.storageKey.split("/").pop()}`,
+          url: `${baseUrl}/api/v1/cameras/${cam.id}/${date}/${img.storageKey.split("/").pop()}`,
         })),
       };
     },
   );
 
   app.get<{ Params: { id: string; date: string; file: string } }>(
-    "/v1/cameras/:id/:date/:file",
+    "/api/v1/cameras/:id/:date/:file",
     async (req, reply) => {
       const cam = await repos.getPublicCamera(req.params.id);
       if (!cam) return reply.code(404).type("application/problem+json").send(notFound());

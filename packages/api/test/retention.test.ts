@@ -43,7 +43,7 @@ describe("retention", () => {
       storageKey: `org/acme/cam/${todayStr}/120000.jpg`,
       sizeBytes: 123,
     });
-    const res = await app.inject({ url: `/v1/cameras/${camera.id}/images?date=${todayStr}` });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=${todayStr}` });
     expect(res.statusCode).toBe(200);
     expect(res.json().images).toHaveLength(1);
     await (app as { close: () => Promise<void> }).close();
@@ -67,7 +67,7 @@ describe("retention", () => {
       storageKey: "org/acme/cam/2024-01-01/120000.jpg",
       sizeBytes: 123,
     });
-    const res = await app.inject({ url: `/v1/cameras/${camera.id}/images?date=2024-01-01` });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2024-01-01` });
     expect(res.statusCode).toBe(200);
     expect(res.json().images).toEqual([]);
     await (app as { close: () => Promise<void> }).close();
