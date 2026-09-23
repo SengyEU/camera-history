@@ -64,3 +64,97 @@ button.secondary {
   text-align: center;
   color: #777;
 }
+
+.admin {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #fff;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.topbar-title {
+  font-weight: 600;
+}
+
+.topbar-user {
+  margin-left: auto;
+  color: #555;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.cameras {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.cameras th,
+.cameras td {
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid #edeff2;
+}
+
+.cell-name {
+  font-weight: 600;
+}
+
+.empty {
+  color: #888;
+  text-align: center;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-operational {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.status-delayed {
+  background: #fef7e0;
+  color: #b26a00;
+}
+
+.status-offline {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.thumb {
+  height: 40px;
+  border-radius: 4px;
+}
