@@ -83,7 +83,6 @@ describe("App dashboard", () => {
   });
 
   it("lists cameras with status badges and preview url", async () => {
-    const json: Array<{ fn: (u: string) => Response }> = [];
     const server = vi.fn(async (url: RequestInfo | URL) => {
       const u = String(url);
       if (u.endsWith("/api/v1/admin/cameras")) {
@@ -142,7 +141,7 @@ describe("App camera CRUD", () => {
     ...over,
   });
 
-  function listServer(extra: { create?: unknown; update?: unknown; delete?: unknown } = {}) {
+  function listServer(_extra: { create?: unknown; update?: unknown; delete?: unknown } = {}) {
     const calls: Array<{ u: string; init?: RequestInit }> = [];
     const fn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const u = String(url);
