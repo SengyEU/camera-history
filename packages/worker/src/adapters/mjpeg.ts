@@ -22,34 +22,37 @@ export async function captureMjpeg(url: string, opts: FetchJpegOptions): Promise
     }
 
     const reader = res.body.getReader();
-    let buf = Buffer.alloc(0);
-    let start = -1;
+    try {
+      let buf = Buffer.alloc(0);
+      let start = -1;
 
-    while (start === -1) {
-      const { done, value } = await reader.read();
-      if (done) throw new HttpError(502, "not_jpeg", "stream ended without a JPEG frame");
-      buf = Buffer.concat([buf, Buffer.from(value)]);
-      if (buf.length > opts.maxBytes) {
-        throw new HttpError(502, "feed_too_large", `feed exceeded ${opts.maxBytes} bytes`);
-      }
-      start = buf.indexOf(SOI);
-    }
-
-    while (true) {
-      const end = buf.indexOf(EOI, start + SOI.length);
-      if (end !== -1) {
-        const frame = buf.subarray(start, end + EOI.length);
-        if (frame.length > opts.maxBytes) {
+      while (start === -1) {
+        const { done, value } = await reader.read();
+        if (done) throw new HttpError(502, "not_jpeg", "stream ended without a JPEG frame");
+        buf = Buffer.concat([buf, Buffer.from(value)]);
+        if (buf.length > opts.maxBytes) {
           throw new HttpError(502, "feed_too_large", `feed exceeded ${opts.maxBytes} bytes`);
         }
-        return frame;
+        start = buf.indexOf(SOI);
       }
-      const { done, value } = await reader.read();
-      if (done) throw new HttpError(502, "not_jpeg", "stream ended without JPEG end marker");
-      buf = Buffer.concat([buf, Buffer.from(value)]);
-      if (buf.length > opts.maxBytes) {
-        throw new HttpError(502, "feed_too_large", `feed exceeded ${opts.maxBytes} bytes`);
+
+      while (true) {
+        const end = buf.indexOf(EOI, start + SOI.length);
+        if (end !== -1) {
+          const frame = buf.subarray(start, end + EOI.length);
+          return frame;
+        }
+        const { done, value } = await reader.read();
+        if (done) throw new HttpError(502, "not_jpeg", "stream ended without JPEG end marker");
+        buf = Buffer.concat([buf, Buffer.from(value)]);
+        if (buf.length > opts.maxBytes) {
+          throw new HttpError(502, "feed_too_large", `feed exceeded ${opts.maxBytes} bytes`);
+        }
       }
+    } finally {
+      try {
+        await reader.cancel();
+      } catch {}
     }
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
@@ -58,5 +61,6 @@ export async function captureMjpeg(url: string, opts: FetchJpegOptions): Promise
     throw err;
   } finally {
     clearTimeout(timer);
+    controller.abort();
   }
 }
