@@ -1,0 +1,66 @@
+:root {
+  color-scheme: light;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f4f5f7;
+  color: #1c1e21;
+}
+
+.login {
+  max-width: 320px;
+  margin: 12vh auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.login h1 {
+  font-size: 1.15rem;
+  margin: 0 0 0.4rem;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #ccd0d5;
+  border-radius: 6px;
+}
+
+button {
+  cursor: pointer;
+  background: #1f6feb;
+  color: #fff;
+  border-color: transparent;
+}
+
+button.secondary {
+  background: #fff;
+  color: #1f6feb;
+  border-color: #1f6feb;
+}
+
+.error {
+  color: #b42318;
+  font-size: 0.85rem;
+}
+
+.placeholder {
+  padding: 3rem;
+  text-align: center;
+  color: #555;
+}
+
+.loading {
+  padding: 3rem;
+  text-align: center;
+  color: #777;
+}

@@ -14,7 +14,8 @@
     "db:migrate": "npm run db:migrate --workspace @ch/db",
     "dev:api": "npm run dev --workspace @ch/api",
     "dev:worker": "npm run dev --workspace @ch/worker",
-    "dev:web": "npm run dev --workspace @ch/web"
+    "dev:web": "npm run dev --workspace @ch/web",
+    "dev:admin": "npm run dev --workspace @ch/admin"
   },
   "devDependencies": {
     "eslint": "^9.14.0",
