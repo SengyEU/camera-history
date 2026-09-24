@@ -1,8 +1,9 @@
 import argon2 from "@node-rs/argon2";
 import type { FastifyInstance } from "fastify";
-import { HttpError } from "@ch/core";
+import { HttpError, priceIdForTier } from "@ch/core";
 import type { AppDeps } from "../app.js";
 import { clearCookies, getRefreshToken, setCookies } from "../plugins/auth.js";
+import { adminBase } from "../stripe/gateway.js";
 
 const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -33,6 +34,27 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
       role: "owner",
     });
 
+    let billing: { required: boolean; checkoutUrl?: string } | undefined;
+    if (deps.stripe) {
+      const customer = await deps.stripe.createCustomer({ tenantId: tenant.id });
+      await deps.repos.setBillingState(tenant.id, { stripeCustomerId: customer.id });
+      const priceId = priceIdForTier(deps.cfg.stripe.prices, deps.cfg.plan.defaultRetentionMonths);
+      if (priceId) {
+        const base = adminBase(deps.cfg);
+        const session = await deps.stripe.createCheckoutSession({
+          customer: customer.id,
+          priceId,
+          tenantId: tenant.id,
+          planMonths: deps.cfg.plan.defaultRetentionMonths,
+          successUrl: `${base}/#/billing?paid=1`,
+          cancelUrl: `${base}/#/billing?pay=cancelled`,
+        });
+        billing = { required: true, checkoutUrl: session.url };
+      } else {
+        billing = { required: false };
+      }
+    }
+
     const access = app.jwt.sign(
       { tenantId: tenant.id, email: user.email, role: user.role, kind: "access" },
       { expiresIn: deps.cfg.jwt.accessTtlSeconds },
@@ -42,7 +64,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
       { expiresIn: deps.cfg.jwt.refreshTtlSeconds },
     );
     setCookies(reply, deps.cfg, access, refresh);
-    return reply.code(201).send({ status: "created", tenantId: tenant.id });
+    return reply.code(201).send({ status: "created", tenantId: tenant.id, ...(billing ? { billing } : {}) });
   });
 
   app.post("/api/v1/auth/login", async (req, reply) => {

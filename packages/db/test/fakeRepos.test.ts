@@ -97,7 +97,7 @@ describe("fakeRepos", () => {
   it("enables/disables all tenant cameras and toggles billing state", async () => {
     const repos = createFakeRepos();
     const tenant = await repos.createTenant(newTenant);
-    const cam = await repos.createCamera(tenant.id, {
+    await repos.createCamera(tenant.id, {
       name: "Main", feedType: "static_url", feedUrl: "https://x/cam.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
     });

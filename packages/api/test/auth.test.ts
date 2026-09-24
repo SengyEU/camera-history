@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeApp } from "./helpers.js";
+import { defineFakeStripeGateway, makeApp, testConfig } from "./helpers.js";
 
 describe("auth", () => {
   it("registers tenant and sets cookies", async () => {
@@ -69,6 +69,33 @@ describe("auth", () => {
       payload: { email: "a@acme.cz", password: "wrong" },
     });
     expect(login.statusCode).toBe(401);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("adds billing block with checkout url when stripe is enabled", async () => {
+    const { app } = makeApp({
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: { "12": "price_12" } } },
+      stripe: defineFakeStripeGateway(),
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().billing).toMatchObject({ required: true, checkoutUrl: "https://checkout.stripe.com/test" });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("omits billing block when stripe is off", async () => {
+    const { app } = makeApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().billing).toBeUndefined();
     await (app as { close: () => Promise<void> }).close();
   });
 });

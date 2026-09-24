@@ -9,11 +9,14 @@ import { errorHandler } from "./plugins/errors.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerPublicRoutes } from "./routes/public.js";
+import { registerBillingRoutes } from "./routes/billing.js";
+import type { StripeGateway } from "./stripe/gateway.js";
 
 export interface AppDeps {
   cfg: AppConfig;
   repos: Repos;
   storage: ObjectStorage;
+  stripe: StripeGateway | null;
 }
 
 export function buildApp(deps: AppDeps): FastifyInstance {
@@ -27,6 +30,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   app.register(registerAuthRoutes, deps);
   app.register(registerAdminRoutes, deps);
+  app.register(registerBillingRoutes, deps);
   app.register(registerPublicRoutes, deps);
 
   return app;
