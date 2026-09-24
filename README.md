@@ -127,3 +127,47 @@ Reaktivace automaticky po zaplacení (webhook `active`) — kamery se znovu zapn
 Presetová témata widgetu: `light` (výchozí), `dark`, `forest`, `midnight`. Téma se nastavuje per kamera
 v adminu (dropdown v editoru kamery). Embed URL `?theme=midnight` přebije téma kamery; neznámé hodnoty
 spadnou na téma kamery. WP plugin shortcode `theme="dark"` už tento parametr přidává (viz M3).
+
+## M6 — Nasazení (docker compose)
+
+### Build a start
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+Servisy: `postgres` + `minio` (infra, porty jen na 127.0.0.1), `api` (127.0.0.1:3000, migrace DB při startu),
+`worker` (capture, bez portu), `web` (127.0.0.1:8080 — widget `/widget/...` + admin `/admin/`).
+Healthcheck API: http://127.0.0.1:3000/api/v1/health, web: http://127.0.0.1:8080/.
+
+### Produkční .env (klíčové hodnoty)
+
+| Proměnná | Hodnota |
+|---|---|
+| DATABASE_URL | hostname `postgres` (compose síť), např. `postgres://camera:heslo@postgres:5432/camera_history` |
+| MINIO_ENDPOINT | `minio` |
+| MINIO_ACCESS_KEY / MINIO_SECRET_KEY | silné hodnoty |
+| PUBLIC_BASE_URL | `https://camera.sengycraft.cz` |
+| JWT_SECRET | dlouhý náhodný řetězec |
+| STRIPE_* / BILLING_GRACE_DAYS | dle sekce M4 |
+
+### Deploy na VPS (runbook — vyžaduje credentials)
+
+1. `git clone` repozitáře na VPS, vytvoř `.env` (viz tabulka) a spusť `docker compose up -d`.
+2. Hostitelský nginx — site `camera.sengycraft.cz` (TLS na portu 20005):
+
+   ```nginx
+   server {
+       listen 20005 ssl http2;
+       server_name camera.sengycraft.cz;
+       ssl_certificate     /etc/letsencrypt/live/camera.sengycraft.cz/fullchain.pem;
+       ssl_certificate_key /etc/letsencrypt/live/camera.sengycraft.cz/privkey.pem;
+       location /widget/ { proxy_pass http://127.0.0.1:8080; }
+       location /admin/  { proxy_pass http://127.0.0.1:8080; }
+       location /api/    { proxy_pass http://127.0.0.1:3000; }
+   }
+   ```
+
+3. Certifikát přes certbot **DNS-01** s Cloudflare pluginem (vzor ve spec `docs/superpowers/specs/2026-09-18-camera-history-saas-design.md` §3); nevyžaduje otevřený port 80/443.
+4. Cloudflare: A záznam `camera.sengycraft.cz` → IP VPS (orange cloud) + Origin Rule, který origin port přesměruje na 20005.
