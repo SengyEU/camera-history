@@ -13,7 +13,8 @@ ENV NODE_ENV=production
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/packages/core/dist packages/core/dist
 COPY --from=build /app/packages/db/dist packages/db/dist
+COPY --from=build /app/packages/db/drizzle drizzle
 COPY --from=build /app/packages/api/dist packages/api/dist
 COPY --from=build /app/package.json ./
 EXPOSE 3000
-CMD ["node", "packages/api/dist/server.js"]
+CMD ["sh", "-c", "node packages/db/dist/migrate.js && node packages/api/dist/server.js"]
