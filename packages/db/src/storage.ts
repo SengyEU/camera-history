@@ -13,6 +13,14 @@ export function keyFor(tenantSlug: string, cameraId: string, timestamp: Date): s
   return `org/${tenantSlug}/${cameraId}/${date}/${time}.jpg`;
 }
 
+export async function ensureBucketExists(
+  client: Pick<Client, "bucketExists" | "makeBucket">,
+  bucket: string,
+): Promise<void> {
+  if (await client.bucketExists(bucket)) return;
+  await client.makeBucket(bucket);
+}
+
 export function createObjectStorage(cfg: AppConfig): ObjectStorage {
   const client = new Client({
     endPoint: cfg.minio.endpoint,
@@ -22,13 +30,21 @@ export function createObjectStorage(cfg: AppConfig): ObjectStorage {
     secretKey: cfg.minio.secretKey,
   });
 
+  let ensure: Promise<void> | null = null;
+  async function ensureBucket() {
+    ensure ??= ensureBucketExists(client, cfg.minio.bucket);
+    return ensure;
+  }
+
   return {
     async put(key: string, data: Buffer) {
+      await ensureBucket();
       await client.putObject(cfg.minio.bucket, key, data, data.length, {
         "Content-Type": "image/jpeg",
       });
     },
     async get(key: string): Promise<Buffer> {
+      await ensureBucket();
       const stream = await client.getObject(cfg.minio.bucket, key);
       const chunks: Buffer[] = [];
       for await (const chunk of stream) chunks.push(Buffer.from(chunk));
