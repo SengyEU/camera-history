@@ -1,4 +1,6 @@
 import type {
+  BillingPatch,
+  BillingStatus,
   Camera,
   CameraPatch,
   ImageRecord,
@@ -28,4 +30,9 @@ export interface Repos {
   imagesForCameraDay(cameraId: string, from: Date, to: Date): Promise<ImageRecord[]>;
   getImageById(id: string): Promise<ImageRecord | null>;
   latestImageForCamera(cameraId: string): Promise<ImageRecord | null>;
+  countCameras(tenantId: string): Promise<number>;
+  usageStats(tenantId: string): Promise<{ usageBytes: number; spanDays: number }>;
+  setTenantCamerasEnabled(tenantId: string, enabled: boolean): Promise<void>;
+  setBillingState(tenantId: string, patch: BillingPatch): Promise<Tenant | null>;
+  listTenantsByBillingStatus(status: BillingStatus): Promise<Tenant[]>;
 }

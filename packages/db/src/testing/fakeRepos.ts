@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
+  BillingPatch,
+  BillingStatus,
   Camera,
   CameraPatch,
   ImageRecord,
@@ -35,6 +37,10 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         slug: input.slug,
         name: input.name,
         planMonths: input.planMonths ?? 12,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        billingStatus: "none",
+        billingGraceUntil: null,
       };
       db.tenants.push(tenant);
       return tenant;
@@ -140,6 +146,33 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
           .filter((i) => i.cameraId === cameraId)
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0] ?? null
       );
+    },
+    async countCameras(tenantId: string) {
+      return db.cameras.filter((c) => c.tenantId === tenantId).length;
+    },
+    async usageStats(tenantId: string) {
+      const cameraIds = new Set(db.cameras.filter((c) => c.tenantId === tenantId).map((c) => c.id));
+      const owned = db.images.filter((i) => cameraIds.has(i.cameraId));
+      if (owned.length === 0) return { usageBytes: 0, spanDays: 0 };
+      const usageBytes = owned.reduce((sum, i) => sum + i.sizeBytes, 0);
+      const times = owned.map((i) => i.timestamp.getTime());
+      const spanDays = Math.max(1, Math.ceil((Math.max(...times) - Math.min(...times)) / 86_400_000));
+      return { usageBytes, spanDays };
+    },
+    async setTenantCamerasEnabled(tenantId: string, enabled: boolean) {
+      for (let i = 0; i < db.cameras.length; i += 1) {
+        if (db.cameras[i]!.tenantId === tenantId) db.cameras[i] = { ...db.cameras[i]!, enabled };
+      }
+    },
+    async setBillingState(tenantId: string, patch: BillingPatch) {
+      const idx = db.tenants.findIndex((t) => t.id === tenantId);
+      if (idx === -1) return null;
+      const updated: Tenant = { ...db.tenants[idx]!, ...patch, id: tenantId };
+      db.tenants[idx] = updated;
+      return updated;
+    },
+    async listTenantsByBillingStatus(status: BillingStatus) {
+      return db.tenants.filter((t) => t.billingStatus === status);
     },
   };
 

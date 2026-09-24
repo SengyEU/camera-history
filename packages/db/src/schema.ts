@@ -3,6 +3,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -24,11 +25,19 @@ export const userRoleEnum = pgEnum("user_role", ["owner", "admin"]);
 
 export const cameraStatusEnum = pgEnum("camera_status", ["operational", "delayed", "offline"]);
 
+export const billingStatusEnum = pgEnum("billing_status", ["none", "active", "past_due", "unpaid", "canceled"]);
+
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").notNull(),
-  planMonths: integer("plan_months").notNull().default(12),
+  planMonths: numeric("plan_months", { precision: 4, scale: 1 })
+    .notNull()
+    .default("12"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  billingStatus: billingStatusEnum("billing_status").notNull().default("none"),
+  billingGraceUntil: timestamp("billing_grace_until", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

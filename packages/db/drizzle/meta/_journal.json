@@ -15,6 +15,13 @@
       "when": 1790175298445,
       "tag": "0001_lively_next_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790269002913,
+      "tag": "0002_cold_imperial_guard",
+      "breakpoints": true
     }
   ]
 }
