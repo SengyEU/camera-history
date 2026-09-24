@@ -76,6 +76,7 @@ describe("App dashboard", () => {
     activeTo: "23:59",
     timezone: "UTC",
     enabled: true,
+    theme: "light",
     status: "delayed",
     lastCaptureAt: "2026-09-23T13:00:00.000Z",
     lastError: "feed returned HTTP 502",
@@ -135,6 +136,7 @@ describe("App camera CRUD", () => {
     activeTo: "23:59",
     timezone: "UTC",
     enabled: true,
+    theme: "light",
     status: "operational",
     lastCaptureAt: null,
     lastError: null,
@@ -175,7 +177,23 @@ describe("App camera CRUD", () => {
 
     await waitFor(() => expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true));
     const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
-    expect(JSON.parse(String(post.init?.body))).toMatchObject({ name: "New cam", feedType: "static_url" });
+    expect(JSON.parse(String(post.init?.body))).toMatchObject({ name: "New cam", feedType: "static_url", theme: "light" });
+  });
+
+  it("creates a camera with a selected theme", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await userEvent.selectOptions(screen.getByTestId("form-theme"), "forest");
+    await userEvent.type(screen.getByTestId("form-name"), "Forest cam");
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() => expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true));
+    const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
+    expect(JSON.parse(String(post.init?.body))).toMatchObject({ name: "Forest cam", theme: "forest" });
   });
 
   it("renames a camera through the edit form", async () => {

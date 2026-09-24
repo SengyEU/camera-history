@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, FEED_LABELS, FEED_TYPES, INTERVALS, type AdminCamera, type CameraInput } from "./api";
+import { api, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput } from "./api";
 import { BillingPage } from "./Billing";
 import "./App.css";
 
@@ -17,6 +17,7 @@ const emptyInput = (): CameraInput => ({
   activeFrom: "00:00",
   activeTo: "23:59",
   timezone: "UTC",
+  theme: "light",
 });
 
 function currentView(): "cameras" | "billing" {
@@ -111,6 +112,16 @@ function CameraForm({
         <label>
           Feed URL
           <input value={input.feedUrl} onChange={(e) => set("feedUrl", e.target.value)} data-testid="form-feed-url" />
+        </label>
+        <label>
+          Téma
+          <select value={input.theme} onChange={(e) => set("theme", e.target.value)} data-testid="form-theme">
+            {THEMES.map((t) => (
+              <option key={t} value={t}>
+                {THEME_LABELS[t]}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Interval (min)
@@ -246,6 +257,7 @@ export function App() {
     activeFrom: cam.activeFrom,
     activeTo: cam.activeTo,
     timezone: cam.timezone,
+    theme: cam.theme,
   });
 
   const saveCamera = async (input: CameraInput) => {

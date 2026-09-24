@@ -11,6 +11,7 @@ export interface AdminCamera {
   activeTo: string;
   timezone: string;
   enabled: boolean;
+  theme: string;
   status: CameraStatus;
   lastCaptureAt: string | null;
   lastError: string | null;
@@ -24,6 +25,7 @@ export interface CameraInput {
   activeFrom: string;
   activeTo: string;
   timezone: string;
+  theme: string;
 }
 
 export interface PreviewDto {
@@ -63,6 +65,15 @@ export const FEED_LABELS: Record<FeedType, string> = {
 export const FEED_TYPES = Object.keys(FEED_LABELS) as FeedType[];
 
 export const INTERVALS = [5, 15, 30, 60];
+
+export const THEME_LABELS: Record<string, string> = {
+  light: "Světlé",
+  dark: "Tmavé",
+  forest: "Lesní",
+  midnight: "Půlnoc",
+};
+
+export const THEMES = Object.keys(THEME_LABELS);
 
 async function json<T>(url: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(url, {
