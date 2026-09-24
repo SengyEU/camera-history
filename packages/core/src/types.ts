@@ -1,12 +1,25 @@
 export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
 export type UserRole = "owner" | "admin";
 export type CameraStatus = "operational" | "delayed" | "offline";
+export type BillingStatus = "none" | "active" | "past_due" | "unpaid" | "canceled";
 
 export interface Tenant {
   id: string;
   slug: string;
   name: string;
   planMonths: number;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  billingStatus: BillingStatus;
+  billingGraceUntil: Date | null;
+}
+
+export interface BillingPatch {
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  billingStatus?: BillingStatus;
+  billingGraceUntil?: Date | null;
+  planMonths?: number;
 }
 
 export interface User {

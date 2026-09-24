@@ -8,8 +8,12 @@ export function dayRangeUtc(dateStr: string): { start: Date; end: Date } {
 }
 
 export function retentionCutoff(months: number, now: Date = new Date()): Date {
-  if (months < 1) throw new RangeError("months must be >= 1");
+  if (months < 0.5) throw new RangeError("months must be >= 0.5");
   const d = new Date(now);
+  if (months === 0.5) {
+    d.setUTCDate(d.getUTCDate() - 14);
+    return d;
+  }
   d.setUTCMonth(d.getUTCMonth() - months);
   return d;
 }

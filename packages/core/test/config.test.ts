@@ -23,4 +23,29 @@ describe("loadConfig", () => {
     expect(loadConfig({ MINIO_USE_SSL: "true" }).minio.useSsl).toBe(true);
     expect(loadConfig({}).minio.useSsl).toBe(false);
   });
+
+  it("loads stripe and billing config", () => {
+    const cfg = loadConfig({
+      STRIPE_ENABLED: "true",
+      STRIPE_SECRET_KEY: "sk_test_x",
+      STRIPE_WEBHOOK_SECRET: "whsec_y",
+      STRIPE_PRICE_0_5: "price_half",
+      STRIPE_PRICE_12: "price_12",
+      BILLING_GRACE_DAYS: "5",
+    });
+    expect(cfg.stripe).toMatchObject({
+      enabled: true,
+      secretKey: "sk_test_x",
+      webhookSecret: "whsec_y",
+      prices: { "0.5": "price_half", "12": "price_12" },
+    });
+    expect(cfg.billing.graceDays).toBe(5);
+  });
+
+  it("defaults stripe to disabled with empty prices", () => {
+    const cfg = loadConfig({});
+    expect(cfg.stripe.enabled).toBe(false);
+    expect(cfg.stripe.prices).toEqual({});
+    expect(cfg.billing.graceDays).toBe(3);
+  });
 });

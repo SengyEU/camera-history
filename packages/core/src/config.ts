@@ -50,7 +50,27 @@ const AppConfigSchema = z.object({
     defaultRetentionMonths: numeric(12),
     maxRetentionMonths: numeric(36),
   }),
+  stripe: z.object({
+    enabled: boolean(false),
+    secretKey: z.string().default(""),
+    webhookSecret: z.string().default(""),
+    prices: z.record(z.string(), z.string()).default({}),
+  }),
+  billing: z.object({
+    graceDays: numeric(3),
+  }),
 });
+
+const PRICE_ENV_KEYS = ["0_5", "1", "3", "6", "12", "24", "36"] as const;
+
+function pricesFromEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of PRICE_ENV_KEYS) {
+    const value = env[`STRIPE_PRICE_${k}`];
+    if (typeof value === "string" && value !== "") out[k.replace("_", ".")] = value;
+  }
+  return out;
+}
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 
@@ -81,5 +101,12 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
       defaultRetentionMonths: env.PLAN_DEFAULT_RETENTION_MONTHS,
       maxRetentionMonths: env.PLAN_MAX_RETENTION_MONTHS,
     },
+    stripe: {
+      enabled: env.STRIPE_ENABLED,
+      secretKey: env.STRIPE_SECRET_KEY ?? "",
+      webhookSecret: env.STRIPE_WEBHOOK_SECRET ?? "",
+      prices: pricesFromEnv(env),
+    },
+    billing: { graceDays: env.BILLING_GRACE_DAYS },
   });
 }

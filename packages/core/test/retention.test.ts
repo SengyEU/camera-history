@@ -25,6 +25,15 @@ describe("retentionCutoff", () => {
     const cutoff = retentionCutoff(1, now);
     expect(cutoff.getUTCMonth()).toBe(2); // únor
   });
+
+  it("retentionCutoff supports 0.5 month as 14 days", () => {
+    const r = retentionCutoff(0.5, new Date("2026-09-18T00:00:00Z"));
+    expect(r.toISOString()).toBe("2026-09-04T00:00:00.000Z");
+  });
+
+  it("retentionCutoff throws below 0.5", () => {
+    expect(() => retentionCutoff(0.4, new Date())).toThrow(RangeError);
+  });
 });
 
 describe("gatedRange", () => {
