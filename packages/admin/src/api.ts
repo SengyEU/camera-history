@@ -30,6 +30,28 @@ export interface PreviewDto {
   latest: { id: string; timestamp: string; url: string } | null;
 }
 
+export type BillingStatus = "none" | "active" | "past_due" | "unpaid" | "canceled";
+
+export interface BillingTierDto {
+  months: number;
+  label: string;
+  eurPerCamera: number;
+  current: boolean;
+}
+
+export interface BillingDto {
+  planMonths: number;
+  price: number | null;
+  billingStatus: BillingStatus;
+  stripeCustomerId: string | null;
+  graceUntil: string | null;
+  cameraCount: number;
+  usageBytes: number;
+  storageBytes: number;
+  billingEnabled: boolean;
+  tiers: BillingTierDto[];
+}
+
 export const FEED_LABELS: Record<FeedType, string> = {
   static_url: "Statický obrázek (HTTP)",
   mjpeg: "MJPEG stream",
@@ -75,4 +97,11 @@ export const api = {
     ),
   deleteCamera: (id: string) => json<undefined>(`/api/v1/admin/cameras/${id}`, { method: "DELETE" }),
   preview: (id: string) => json<PreviewDto>(`/api/v1/admin/cameras/${id}/preview`),
+  getBilling: () => json<BillingDto>("/api/v1/admin/billing"),
+  billingCheckout: (planMonths: number) =>
+    json<{ url?: string; status?: string }>("/api/v1/admin/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ planMonths }),
+    }),
+  billingPortal: () => json<{ url: string }>("/api/v1/admin/billing/portal", { method: "POST" }),
 };

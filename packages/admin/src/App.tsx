@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, FEED_LABELS, FEED_TYPES, INTERVALS, type AdminCamera, type CameraInput } from "./api";
+import { BillingPage } from "./Billing";
 import "./App.css";
 
 const STATUS_LABELS: Record<AdminCamera["status"], string> = {
@@ -17,6 +18,10 @@ const emptyInput = (): CameraInput => ({
   activeTo: "23:59",
   timezone: "UTC",
 });
+
+function currentView(): "cameras" | "billing" {
+  return window.location.hash.startsWith("#/billing") ? "billing" : "cameras";
+}
 
 function Login({ onSuccess }: { onSuccess: (email: string) => void }) {
   const [email, setEmail] = useState("");
@@ -204,6 +209,13 @@ export function App() {
   const [editing, setEditing] = useState<CameraInput | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<AdminCamera | null>(null);
+  const [view, setView] = useState<"cameras" | "billing">(currentView);
+
+  useEffect(() => {
+    const onHash = () => setView(currentView());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   useEffect(() => {
     api
@@ -267,12 +279,23 @@ export function App() {
     <main className="admin" data-testid="admin-app">
       <header className="topbar">
         <span className="topbar-title">Camera History Admin</span>
+        <nav className="topbar-nav">
+          <a href="#/cameras" data-testid="nav-cameras">
+            Kamery
+          </a>
+          <a href="#/billing" data-testid="nav-billing">
+            Billing
+          </a>
+        </nav>
         <span className="topbar-user">{email}</span>
         <button className="secondary" onClick={logout} data-testid="logout">
           Odhlásit
         </button>
       </header>
-      <section className="panel">
+      {view === "billing" ? (
+        <BillingPage />
+      ) : (
+        <section className="panel">
         <div className="panel-head">
           <h2>Kamery</h2>
           <button
@@ -319,7 +342,8 @@ export function App() {
             ))}
           </tbody>
         </table>
-      </section>
+        </section>
+      )}
       {editing !== null && (
         <CameraForm
           initial={editing}

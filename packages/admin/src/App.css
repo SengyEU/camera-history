@@ -223,3 +223,68 @@ button.danger {
   color: #c5221f;
   border-color: #c5221f;
 }
+
+.topbar-nav {
+  display: flex;
+  gap: 12px;
+  margin-left: 24px;
+}
+
+.topbar-nav a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.topbar-nav a:hover {
+  text-decoration: underline;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid #ccc;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.plan-card input {
+  accent-color: #2f6f4f;
+}
+
+.usage-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.usage-stats div {
+  background: #f6f7f9;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.usage-stats dt {
+  color: #666;
+  font-size: 0.85em;
+}
+
+.notice {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eef6ee;
+  margin: 12px 0;
+}
+
+.notice.danger {
+  background: #fdecea;
+  color: #a33;
+}
