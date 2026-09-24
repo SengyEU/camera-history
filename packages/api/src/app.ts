@@ -6,6 +6,7 @@ import rateLimit from "@fastify/rate-limit";
 import type { AppConfig } from "@ch/core";
 import type { ObjectStorage, Repos } from "@ch/db";
 import { errorHandler } from "./plugins/errors.js";
+import { registerHealthRoutes } from "./routes/health.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerPublicRoutes } from "./routes/public.js";
@@ -28,6 +29,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   app.setErrorHandler(errorHandler);
 
+  app.register(registerHealthRoutes);
   app.register(registerAuthRoutes, deps);
   app.register(registerAdminRoutes, deps);
   app.register(registerBillingRoutes, deps);
