@@ -74,6 +74,66 @@ describe("admin cameras", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("creates a camera with a chosen theme", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Forest",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        theme: "forest",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().camera.theme).toBe("forest");
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects an unknown theme on create", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Main",
+        feedType: "static_url",
+        feedUrl: "https://x/cam.jpg",
+        intervalMinutes: 15,
+        theme: "neon",
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("updates the camera theme", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: { name: "Main", feedType: "static_url", feedUrl: "https://x/cam.jpg", intervalMinutes: 15 },
+    });
+    const id = created.json().camera.id as string;
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+      payload: { theme: "midnight" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().camera.theme).toBe("midnight");
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("returns 404 for camera of another tenant", async () => {
     const { app, repos } = makeApp();
     const cookie = await registerAndLogin(app);

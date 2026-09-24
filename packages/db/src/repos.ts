@@ -70,6 +70,7 @@ export function createRepos(db: Db): Repos {
           activeTo: input.activeTo,
           timezone: input.timezone,
           enabled: input.enabled ?? true,
+          theme: input.theme ?? "light",
         })
         .returning();
       return row!;

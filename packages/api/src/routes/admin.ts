@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { rfc7807 } from "@ch/core";
-import { HttpError } from "@ch/core";
+import { THEMES, isValidTheme, HttpError, rfc7807 } from "@ch/core";
 import type { AppDeps } from "../app.js";
 import { requireAuth } from "../plugins/auth.js";
 
@@ -50,6 +49,10 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!INTERVALS.includes(intervalMinutes)) {
       throw new HttpError(400, "bad_request", "intervalMinutes must be one of 5, 15, 30, 60");
     }
+    const theme = typeof body.theme === "string" ? body.theme : "light";
+    if (!isValidTheme(theme)) {
+      throw new HttpError(400, "bad_request", `theme must be one of ${THEMES.join(", ")}`);
+    }
     if (!schemeMatches(feedType, feedUrl)) {
       throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${feedType}"`);
     }
@@ -63,6 +66,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       activeTo: String(body.activeTo ?? "23:59"),
       timezone: String(body.timezone ?? "UTC"),
       enabled: body.enabled === undefined ? true : Boolean(body.enabled),
+      theme,
     });
     return reply.code(201).send({ camera });
   });
@@ -85,13 +89,16 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     const body = req.body as Record<string, unknown>;
     const patch = Object.fromEntries(
       Object.entries(body).filter(([k]) =>
-        ["name", "feedType", "feedUrl", "intervalMinutes", "activeFrom", "activeTo", "timezone", "enabled"].includes(k),
+        ["name", "feedType", "feedUrl", "intervalMinutes", "activeFrom", "activeTo", "timezone", "enabled", "theme"].includes(k),
       ),
     );
     const effectiveType = patch.feedType !== undefined ? String(patch.feedType) : camera.feedType;
     const effectiveUrl = patch.feedUrl !== undefined ? String(patch.feedUrl) : camera.feedUrl;
     if (!schemeMatches(effectiveType, effectiveUrl)) {
       throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${effectiveType}"`);
+    }
+    if (patch.theme !== undefined && !isValidTheme(String(patch.theme))) {
+      throw new HttpError(400, "bad_request", `theme must be one of ${THEMES.join(", ")}`);
     }
     const updated = await deps.repos.updateCamera(id, patch as never);
     return { camera: updated };

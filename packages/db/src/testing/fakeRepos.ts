@@ -78,7 +78,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         activeTo: input.activeTo,
         timezone: input.timezone,
         enabled: input.enabled ?? true,
-        theme: "light",
+        theme: input.theme ?? "light",
         lastCaptureAt: null,
         lastError: null,
         status: "operational",
