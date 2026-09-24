@@ -100,3 +100,24 @@ node scripts/zip-wp-plugin.mjs   # → packages/wp-plugin/dist/camera-history.zi
 php packages/wp-plugin/test/harness.php   # stub harness clienta + shortcodu (bez PHPUnit/WP)
 php -l packages/wp-plugin/camera-history/*.php packages/wp-plugin/camera-history/includes/*.php
 ```
+## M4 — Billing (Stripe metered)
+
+Platí se €/kamera/měsíc podle retenčního tieru (14 dní–36 měsíců). Stripe vypnutý (výchozí) = aplikace běží bez plateb,
+Billing stránka ukáže banner. Zapnutí: `STRIPE_ENABLED=true` + `STRIPE_SECRET_KEY` + price ids.
+
+### Simulační (Stripe test mode) spuštění
+
+1. `STRIPE_SECRET_KEY=sk_test_... node scripts/seed-stripe.mjs` — vytvoří produkt, 7 metered cen a Billing Portal config.
+2. Do `.env` zkopíruj vypsané `STRIPE_PRICE_*`, nastav `STRIPE_WEBHOOK_SECRET` z dashboardu.
+3. Stripe → Developers → Webhooks → přidej endpoint `https://camera.sengycraft.cz/api/v1/billing/webhook` s událostmi
+   `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+4. Billing Portal: ověř v dashboardu, že subscription_cancel je povoleno (seed to nastaví).
+
+### Hard stop
+
+`past_due` + 3 dny grace (`BILLING_GRACE_DAYS`) → worker deaktivuje kamery na `enabled=false`, tenant přejde do `unpaid`.
+Reaktivace automaticky po zaplacení (webhook `active`) — kamery se znovu zapnou.
+
+### Worker
+
+`npm run dev:worker` — kromě snímků reportuje metered usage (počet kamer, dameno 1×/h) a hlídá hard stop.
