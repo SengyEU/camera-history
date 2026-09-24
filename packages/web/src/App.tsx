@@ -2,6 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { getCamera, getImages, type ImageDto } from "./api";
 import "./App.css";
 
+const THEMES = ["light", "dark", "forest", "midnight"];
+
+function isValidTheme(theme: string): boolean {
+  return THEMES.includes(theme);
+}
+
+function resolveTheme(query: URLSearchParams, cameraTheme: string | undefined): string {
+  const q = query.get("theme");
+  if (q && isValidTheme(q)) return q;
+  if (cameraTheme && isValidTheme(cameraTheme)) return cameraTheme;
+  return "light";
+}
+
 function parseWidgetPath(path: string): { tenant: string; cameraId: string } | null {
   const parts = path.split("/").filter(Boolean);
   if (parts[0] === "widget" && parts.length === 3) {
@@ -17,7 +30,7 @@ function toLocalInputValue(d: Date): string {
 
 export function App() {
   const route = useMemo(() => parseWidgetPath(window.location.pathname), []);
-  const [camera, setCamera] = useState<{ name: string; retentionMonths: number } | null>(null);
+  const [camera, setCamera] = useState<{ name: string; retentionMonths: number; theme: string } | null>(null);
   const [images, setImages] = useState<ImageDto[]>([]);
   const [date, setDate] = useState(() => {
     const p = new URLSearchParams(window.location.search);
@@ -34,6 +47,12 @@ export function App() {
   const minDate = camera
     ? toLocalInputValue(new Date(Date.now() - camera.retentionMonths * 30 * 24 * 3600 * 1000))
     : "";
+
+  const theme = useMemo(() => resolveTheme(new URLSearchParams(window.location.search), camera?.theme), [camera]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   useEffect(() => {
     if (!cameraId) return;
@@ -56,13 +75,14 @@ export function App() {
   const buildShareUrl = (img: ImageDto) => {
     const hour = new Date(img.timestamp).getHours();
     const p = new URLSearchParams({ date, hour: String(hour) });
+    p.set("theme", theme);
     return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
   };
 
   const openImg = openImage ? images.find((i) => i.id === openImage) : undefined;
 
   return (
-    <div className="widget" data-testid="widget">
+    <div className="widget" data-testid="widget" data-theme={theme}>
       <div className="widget-header">
         <span className="widget-title">{camera?.name ?? "Camera"}</span>
         <div className="widget-nav">

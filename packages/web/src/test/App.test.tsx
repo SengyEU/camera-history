@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
+import { getCamera } from "../api";
 
 vi.mock("../api", () => ({
   getCamera: vi.fn(async () => ({ id: "cam-1", name: "Pláž", theme: "light", retentionMonths: 12 })),
@@ -31,5 +32,28 @@ describe("App widget", () => {
     const copy = screen.getByText("Copy link");
     await user.click(copy);
     expect(screen.getByText(/date=2026-09-18/)).toBeInTheDocument();
+  });
+
+  it("applies the camera theme as data-theme", async () => {
+    vi.mocked(getCamera).mockResolvedValueOnce({ id: "cam-1", name: "Pláž", theme: "forest", retentionMonths: 12 });
+    render(<App />);
+    await screen.findByText("Pláž");
+    await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "forest"));
+    expect(document.documentElement.getAttribute("data-theme")).toBe("forest");
+  });
+
+  it("overrides the theme via ?theme", async () => {
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&theme=midnight");
+    render(<App />);
+    await screen.findByText("Pláž");
+    await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "midnight"));
+  });
+
+  it("falls back to the camera theme when ?theme is unknown", async () => {
+    vi.mocked(getCamera).mockResolvedValueOnce({ id: "cam-1", name: "Pláž", theme: "forest", retentionMonths: 12 });
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&theme=neon");
+    render(<App />);
+    await screen.findByText("Pláž");
+    await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "forest"));
   });
 });
