@@ -150,4 +150,28 @@ $GLOBALS['ch_options'] = array(
 $err = fresh_client()->list_cameras();
 check('missing config returns WP_Error', is_wp_error($err) && $err->get_error_message() !== '');
 
+// ---- shortcode tests ----
+require dirname(__DIR__) . '/camera-history/includes/class-shortcode.php';
+Ch_Shortcode::register();
+
+$GLOBALS['ch_options'] = array(
+    Ch_Client::OPT_BASE_URL => 'https://camera.sengycraft.cz',
+    Ch_Client::OPT_SLUG => 'acme-basins',
+);
+$html = Ch_Shortcode::render(array('camera' => 'cam-1'));
+check('shortcode builds iframe src', strpos($html, 'src="https://camera.sengycraft.cz/widget/acme-basins/cam-1"') !== false);
+check('shortcode defaults width/height', strpos($html, 'width="100%"') !== false && strpos($html, 'height="600"') !== false);
+check('shortcode includes iframe attrs', strpos($html, 'allowfullscreen') !== false && strpos($html, 'loading="lazy"') !== false);
+
+$dark = Ch_Shortcode::render(array('camera' => 'cam-1', 'theme' => 'dark'));
+check('shortcode theme pass-through', strpos($dark, '?theme=dark') !== false);
+
+$missing = Ch_Shortcode::render(array('camera' => ''));
+check('shortcode missing camera → ch-error', strpos($missing, 'ch-error') !== false && strpos($missing, '<iframe') === false);
+
+// reset config → error path
+$GLOBALS['ch_options'] = array(Ch_Client::OPT_BASE_URL => '', Ch_Client::OPT_SLUG => '');
+$nocfg = Ch_Shortcode::render(array('camera' => 'cam-1'));
+check('shortcode missing config → ch-error', strpos($nocfg, 'ch-error') !== false && strpos($nocfg, '<iframe') === false);
+
 done();
