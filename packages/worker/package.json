@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@ch/core": "*",
-    "@ch/db": "*"
+    "@ch/db": "*",
+    "stripe": "^22"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
