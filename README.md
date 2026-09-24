@@ -73,3 +73,30 @@ sudo apt-get install -y ffmpeg
 | `operational` | poslední snímek se podařilo zachytit a uložit (výchozí hodnota) |
 | `delayed` | poslední pokus o snímek selhal (po jednom retry s backoffem); do `lastError` se zapíše chyba |
 | `offline` | selhání dvou po sobě jdoucích pokusů (kamera už byla `delayed` a selhala znovu) |
+
+## M3 — WordPress plugin
+
+Thin WP plugin, který embeduje widget jako iframe přes shortcode. Zdroj: `packages/wp-plugin/camera-history/`
+(čisté PHP, žádný Composer). Není součástí npm workspace.
+
+### Build distribučního ZIP
+
+```bash
+node scripts/zip-wp-plugin.mjs   # → packages/wp-plugin/dist/camera-history.zip
+```
+
+### Instalace a konfigurace (manuální smoke, mimo repo)
+
+1. Nahrajte `packages/wp-plugin/dist/camera-history.zip` přes **Plugins → Add New → Upload Plugin** a aktivujte.
+2. **Settings → Camera History**: vyplňte API URL (např. `https://camera.sengycraft.cz`), e-mail a heslo
+   do SaaS admin účtu a tenant slug.
+3. Vyberte kameru z dropdownu (seznam z `GET /api/v1/admin/cameras`) a zkopírujte shortcode
+   `[camera-history camera="…"]`.
+4. Vložte shortcode do stránky/příspěvku. Volitelné atributy: `width` (100%), `height` (600), `theme`.
+
+### Testy pluginu
+
+```bash
+php packages/wp-plugin/test/harness.php   # stub harness clienta + shortcodu (bez PHPUnit/WP)
+php -l packages/wp-plugin/camera-history/*.php packages/wp-plugin/camera-history/includes/*.php
+```
