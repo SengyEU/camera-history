@@ -26,6 +26,101 @@ services:
       - "127.0.0.1:9001:9001"
     volumes:
       - miniodata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-camera}:${POSTGRES_PASSWORD:-camera}@postgres:5432/${POSTGRES_DB:-camera_history}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-org}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_ACCESS_TTL_SECONDS: ${JWT_ACCESS_TTL_SECONDS:-900}
+      JWT_REFRESH_TTL_SECONDS: ${JWT_REFRESH_TTL_SECONDS:-604800}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      STRIPE_ENABLED: ${STRIPE_ENABLED:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_0_5: ${STRIPE_PRICE_0_5:-}
+      STRIPE_PRICE_1: ${STRIPE_PRICE_1:-}
+      STRIPE_PRICE_3: ${STRIPE_PRICE_3:-}
+      STRIPE_PRICE_6: ${STRIPE_PRICE_6:-}
+      STRIPE_PRICE_12: ${STRIPE_PRICE_12:-}
+      STRIPE_PRICE_24: ${STRIPE_PRICE_24:-}
+      STRIPE_PRICE_36: ${STRIPE_PRICE_36:-}
+      BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-3}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  worker:
+    build:
+      context: .
+      dockerfile: packages/worker/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-camera}:${POSTGRES_PASSWORD:-camera}@postgres:5432/${POSTGRES_DB:-camera_history}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-org}
+      WORKER_TICK_MS: ${WORKER_TICK_MS:-60000}
+      WORKER_RETRY_BACKOFF_MS: ${WORKER_RETRY_BACKOFF_MS:-30000}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      FEED_TIMEOUT_MS: ${FEED_TIMEOUT_MS:-15000}
+      FEED_MAX_BYTES: ${FEED_MAX_BYTES:-5242880}
+      STRIPE_ENABLED: ${STRIPE_ENABLED:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_0_5: ${STRIPE_PRICE_0_5:-}
+      STRIPE_PRICE_1: ${STRIPE_PRICE_1:-}
+      STRIPE_PRICE_3: ${STRIPE_PRICE_3:-}
+      STRIPE_PRICE_6: ${STRIPE_PRICE_6:-}
+      STRIPE_PRICE_12: ${STRIPE_PRICE_12:-}
+      STRIPE_PRICE_24: ${STRIPE_PRICE_24:-}
+      STRIPE_PRICE_36: ${STRIPE_PRICE_36:-}
+      BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-3}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: packages/web/Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1/"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
 volumes:
   pgdata:
