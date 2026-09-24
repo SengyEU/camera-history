@@ -121,3 +121,9 @@ Reaktivace automaticky po zaplacení (webhook `active`) — kamery se znovu zapn
 ### Worker
 
 `npm run dev:worker` — kromě snímků reportuje metered usage (počet kamer, dameno 1×/h) a hlídá hard stop.
+
+## M5 — Widget themes
+
+Presetová témata widgetu: `light` (výchozí), `dark`, `forest`, `midnight`. Téma se nastavuje per kamera
+v adminu (dropdown v editoru kamery). Embed URL `?theme=midnight` přebije téma kamery; neznámé hodnoty
+spadnou na téma kamery. WP plugin shortcode `theme="dark"` už tento parametr přidává (viz M3).
