@@ -86,6 +86,7 @@ export interface NewCamera {
   activeTo: string;
   timezone: string;
   enabled?: boolean;
+  theme?: string;
 }
 
 export interface CameraPatch {
