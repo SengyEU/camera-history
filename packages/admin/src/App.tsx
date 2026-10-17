@@ -112,6 +112,7 @@ function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void;
         window.location.assign(res.billing.checkoutUrl);
         return;
       }
+      window.location.hash = "";
       onSuccess(email);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -356,6 +357,7 @@ export function App() {
 
   const logout = async () => {
     await api.logout();
+    window.location.hash = "";
     setEmail(null);
   };
 

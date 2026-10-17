@@ -230,6 +230,7 @@ describe("App registration", () => {
     vi.fn(async (url: RequestInfo | URL) => {
       const u = String(url);
       if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+      if (u.endsWith("/api/v1/auth/logout")) return jsonResponse({ status: "ok" });
       if (u.endsWith("/api/v1/auth/register")) {
         if (registerStatus !== 201) return jsonResponse({ detail }, registerStatus);
         return jsonResponse({ status: "created", tenantId: "t1", billing: { required: false } }, 201);
@@ -275,6 +276,26 @@ describe("App registration", () => {
     await screen.findByTestId("login-form");
     await userEvent.click(screen.getByTestId("goto-register"));
     expect(window.location.hash).toBe("#/register");
+    window.location.hash = "";
+  });
+
+  it("returns to login (not register) after registering then logging out", async () => {
+    vi.stubGlobal("fetch", registerServer());
+    window.location.hash = "#/register";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
+    await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    await screen.findByTestId("logout");
+    expect(screen.queryByTestId("register-form")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("logout"));
+
+    await screen.findByTestId("login-form");
+    expect(screen.queryByTestId("register-form")).not.toBeInTheDocument();
     window.location.hash = "";
   });
 });
