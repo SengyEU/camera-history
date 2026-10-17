@@ -38,7 +38,7 @@ export function App() {
   });
   const [openImage, setOpenImage] = useState<string | null>(() => {
     const p = new URLSearchParams(window.location.search);
-    return p.get("hour") ?? null;
+    return p.get("img") ?? null;
   });
   const [modalUrl, setModalUrl] = useState<string>("");
 
@@ -73,8 +73,7 @@ export function App() {
   };
 
   const buildShareUrl = (img: ImageDto) => {
-    const hour = new Date(img.timestamp).getHours();
-    const p = new URLSearchParams({ date, hour: String(hour) });
+    const p = new URLSearchParams({ date, img: img.id });
     p.set("theme", theme);
     return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
   };

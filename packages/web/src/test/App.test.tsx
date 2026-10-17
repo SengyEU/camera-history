@@ -34,6 +34,16 @@ describe("App widget", () => {
     expect(screen.getByText(/date=2026-09-18/)).toBeInTheDocument();
   });
 
+  it("opens the shared image from an ?img deep link", async () => {
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&img=img-2");
+    render(<App />);
+    expect(await screen.findByTestId("share-modal")).toBeInTheDocument();
+    expect(screen.getByTestId("modal-image")).toHaveAttribute(
+      "src",
+      "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
+    );
+  });
+
   it("applies the camera theme as data-theme", async () => {
     vi.mocked(getCamera).mockResolvedValueOnce({ id: "cam-1", name: "Pláž", theme: "forest", retentionMonths: 12 });
     render(<App />);
