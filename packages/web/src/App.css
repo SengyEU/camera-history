@@ -1,12 +1,12 @@
 * { box-sizing: border-box; }
 
 :root {
-  --bg: #ffffff;
+  --bg: #f6f8fb;
   --surface: #ffffff;
-  --text: #111111;
-  --muted: #555555;
-  --border: #dddddd;
-  --accent: #2f6f4f;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #2563eb;
 }
 
 :root[data-theme="dark"] {
@@ -42,12 +42,12 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 .widget-title { color: var(--accent); }
 .widget-nav { display: flex; gap: 8px; align-items: center; }
 .widget-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-.widget-cell { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--surface); cursor: pointer; padding: 0; position: relative; }
+.widget-cell { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); cursor: pointer; padding: 0; position: relative; }
 .widget-cell img { width: 100%; display: block; height: 90px; object-fit: cover; }
 .widget-cell span { display: block; font-size: 12px; padding: 4px 8px; color: var(--muted); }
 .empty, .error { color: var(--muted); text-align: center; padding: 24px; }
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 10; }
-.modal-content { background: var(--surface); padding: 16px; border-radius: 8px; max-width: 90vw; max-height: 90vh; overflow: auto; position: relative; }
+.modal-content { background: var(--surface); padding: 16px; border-radius: 10px; max-width: 90vw; max-height: 90vh; overflow: auto; position: relative; }
 .modal-content img { display: block; max-width: 100%; }
 .modal-close { position: absolute; top: 4px; right: 4px; }
 .modal-actions { margin-top: 8px; display: flex; gap: 8px; align-items: center; }
