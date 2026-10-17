@@ -32,6 +32,7 @@ describe("App widget", () => {
     const copy = screen.getByText("Copy link");
     await user.click(copy);
     expect(screen.getByText(/date=2026-09-18/)).toBeInTheDocument();
+    expect(screen.getByText(/img=img-1/)).toBeInTheDocument();
   });
 
   it("opens the shared image from an ?img deep link", async () => {
