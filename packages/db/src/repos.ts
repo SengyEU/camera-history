@@ -1,20 +1,24 @@
-import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import type {
+  AdminCameraGroup,
   BillingPatch,
   BillingStatus,
   Camera,
+  CameraGroup,
   CameraPatch,
   ImageRecord,
   NewCamera,
+  NewCameraGroup,
   NewImage,
   NewTenant,
   NewUser,
   PublicCamera,
+  PublicGroupWithCameras,
   Tenant,
   User,
 } from "@ch/core";
 import type { Db } from "./db.js";
-import { cameras, images, tenants, users } from "./schema.js";
+import { cameraGroupMembers, cameraGroups, cameras, images, tenants, users } from "./schema.js";
 import type { Repos } from "./repos.types.js";
 
 type TenantRow = typeof tenants.$inferSelect;
@@ -171,6 +175,87 @@ export function createRepos(db: Db): Repos {
     async listTenantsByBillingStatus(status: BillingStatus) {
       const rows = await db.select().from(tenants).where(eq(tenants.billingStatus, status));
       return rows.map(toTenant);
+    },
+    async createGroup(tenantId: string, input: NewCameraGroup): Promise<CameraGroup> {
+      const [row] = await db
+        .insert(cameraGroups)
+        .values({ tenantId, name: input.name, slug: input.slug })
+        .returning();
+      return row!;
+    },
+    async listGroups(tenantId: string): Promise<AdminCameraGroup[]> {
+      const groups = await db.select().from(cameraGroups).where(eq(cameraGroups.tenantId, tenantId));
+      const members = await db
+        .select({ groupId: cameraGroupMembers.cameraGroupId, cameraId: cameraGroupMembers.cameraId })
+        .from(cameraGroupMembers)
+        .innerJoin(cameraGroups, eq(cameraGroups.id, cameraGroupMembers.cameraGroupId))
+        .where(eq(cameraGroups.tenantId, tenantId));
+      return groups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        slug: g.slug,
+        cameraIds: members.filter((m) => m.groupId === g.id).map((m) => m.cameraId),
+      }));
+    },
+    async getGroup(id: string) {
+      const [row] = await db.select().from(cameraGroups).where(eq(cameraGroups.id, id));
+      return row ?? null;
+    },
+    async updateGroup(id: string, patch: { name?: string; slug?: string }) {
+      const [row] = await db.update(cameraGroups).set(patch).where(eq(cameraGroups.id, id)).returning();
+      return row ?? null;
+    },
+    async deleteGroup(id: string) {
+      await db.delete(cameraGroups).where(eq(cameraGroups.id, id));
+    },
+    async setGroupCameras(groupId: string, cameraIds: string[]) {
+      const existing = await db
+        .select()
+        .from(cameraGroupMembers)
+        .where(eq(cameraGroupMembers.cameraGroupId, groupId));
+      const existingIds = new Set(existing.map((m) => m.cameraId));
+      const want = new Set(cameraIds);
+      const toDelete = [...existingIds].filter((id) => !want.has(id));
+      const toInsert = cameraIds.filter((id) => !existingIds.has(id));
+      if (toDelete.length > 0) {
+        await db
+          .delete(cameraGroupMembers)
+          .where(
+            and(
+              eq(cameraGroupMembers.cameraGroupId, groupId),
+              inArray(cameraGroupMembers.cameraId, toDelete),
+            ),
+          );
+      }
+      if (toInsert.length > 0) {
+        await db
+          .insert(cameraGroupMembers)
+          .values(toInsert.map((cameraId) => ({ cameraGroupId: groupId, cameraId })));
+      }
+    },
+    async getGroupBySlug(tenantSlug: string, groupSlug: string): Promise<PublicGroupWithCameras | null> {
+      const rows = await db
+        .select({
+          groupId: cameraGroups.id,
+          gname: cameraGroups.name,
+          gslug: cameraGroups.slug,
+          cameraId: cameras.id,
+          cname: cameras.name,
+          ctheme: cameras.theme,
+          cenabled: cameras.enabled,
+        })
+        .from(cameraGroups)
+        .innerJoin(tenants, eq(tenants.id, cameraGroups.tenantId))
+        .leftJoin(cameraGroupMembers, eq(cameraGroupMembers.cameraGroupId, cameraGroups.id))
+        .leftJoin(cameras, eq(cameras.id, cameraGroupMembers.cameraId))
+        .where(and(eq(tenants.slug, tenantSlug), eq(cameraGroups.slug, groupSlug)));
+      if (rows.length === 0) return null;
+      const group = { id: rows[0]!.groupId, name: rows[0]!.gname, slug: rows[0]!.gslug };
+      const cams = rows
+        .filter((r) => r.cameraId && r.cenabled)
+        .map((r) => ({ id: r.cameraId!, name: r.cname!, theme: r.ctheme! }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      return { group, cameras: cams };
     },
   };
 }

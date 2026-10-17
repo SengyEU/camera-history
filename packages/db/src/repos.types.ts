@@ -1,14 +1,18 @@
 import type {
+  AdminCameraGroup,
   BillingPatch,
   BillingStatus,
   Camera,
+  CameraGroup,
   CameraPatch,
   ImageRecord,
   NewCamera,
+  NewCameraGroup,
   NewImage,
   NewTenant,
   NewUser,
   PublicCamera,
+  PublicGroupWithCameras,
   Tenant,
   User,
 } from "@ch/core";
@@ -35,4 +39,11 @@ export interface Repos {
   setTenantCamerasEnabled(tenantId: string, enabled: boolean): Promise<void>;
   setBillingState(tenantId: string, patch: BillingPatch): Promise<Tenant | null>;
   listTenantsByBillingStatus(status: BillingStatus): Promise<Tenant[]>;
+  createGroup(tenantId: string, input: NewCameraGroup): Promise<CameraGroup>;
+  listGroups(tenantId: string): Promise<AdminCameraGroup[]>;
+  getGroup(id: string): Promise<CameraGroup | null>;
+  updateGroup(id: string, patch: { name?: string; slug?: string }): Promise<CameraGroup | null>;
+  deleteGroup(id: string): Promise<void>;
+  setGroupCameras(groupId: string, cameraIds: string[]): Promise<void>;
+  getGroupBySlug(tenantSlug: string, groupSlug: string): Promise<PublicGroupWithCameras | null>;
 }

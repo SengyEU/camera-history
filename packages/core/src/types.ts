@@ -111,3 +111,33 @@ export interface NewImage {
   storageKey: string;
   sizeBytes: number;
 }
+
+export interface CameraGroup {
+  id: string;
+  tenantId: string;
+  name: string;
+  slug: string;
+}
+
+export interface NewCameraGroup {
+  name: string;
+  slug: string;
+}
+
+export interface AdminCameraGroup {
+  id: string;
+  name: string;
+  slug: string;
+  cameraIds: string[];
+}
+
+export interface PublicGroupCamera {
+  id: string;
+  name: string;
+  theme: string;
+}
+
+export interface PublicGroupWithCameras {
+  group: { id: string; name: string; slug: string };
+  cameras: PublicGroupCamera[];
+}

@@ -5,6 +5,7 @@ import {
   jsonb,
   numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   time,
@@ -95,4 +96,34 @@ export const images = pgTable("images", {
   index("images_camera_timestamp_idx").on(t.cameraId, t.timestamp.desc()),
 ]);
 
-export const tables = { tenants, users, cameras, images };
+export const cameraGroups = pgTable(
+  "camera_groups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("camera_groups_tenant_slug_unique").on(t.tenantId, t.slug)],
+);
+
+export const cameraGroupMembers = pgTable(
+  "camera_group_members",
+  {
+    cameraGroupId: uuid("camera_group_id")
+      .notNull()
+      .references(() => cameraGroups.id, { onDelete: "cascade" }),
+    cameraId: uuid("camera_id")
+      .notNull()
+      .references(() => cameras.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.cameraGroupId, t.cameraId] }),
+    index("camera_group_members_camera_idx").on(t.cameraId),
+  ],
+);
+
+export const tables = { tenants, users, cameras, images, cameraGroups, cameraGroupMembers };

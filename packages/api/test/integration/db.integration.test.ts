@@ -45,4 +45,34 @@ describe.skipIf(!RUN)("PG integration", () => {
     const pool = db.$client as import("pg").Pool;
     await pool.end();
   });
+
+  it("creates groups, sets membership idempotently, resolves public group by slug", async () => {
+    const cfg = loadConfig(process.env);
+    const db = createDb(cfg.databaseUrl);
+    const repos = createRepos(db);
+    const tenant = await repos.createTenant({ name: "GRP", slug: `grp-${Date.now()}` });
+    const a = await repos.createCamera(tenant.id, {
+      name: "Alpha", feedType: "static_url", feedUrl: "https://e.com/a.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    const b = await repos.createCamera(tenant.id, {
+      name: "Beta", feedType: "static_url", feedUrl: "https://e.com/b.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC", enabled: false,
+    });
+    const g = await repos.createGroup(tenant.id, { name: "Summit", slug: "summit" });
+    await repos.setGroupCameras(g.id, [a.id, b.id]);
+    await repos.setGroupCameras(g.id, [a.id]); // idempotent replace → only Alpha remains
+
+    const list = await repos.listGroups(tenant.id);
+    expect(list.find((x) => x.id === g.id)?.cameraIds).toEqual([a.id]);
+
+    const pub = await repos.getGroupBySlug(tenant.slug, "summit");
+    expect(pub?.group.slug).toBe("summit");
+    expect(pub?.cameras.map((c) => c.id)).toEqual([a.id]); // disabled Beta excluded
+    expect(await repos.getGroupBySlug(tenant.slug, "nope")).toBeNull();
+
+    await db.delete(tenants).where(eq(tenants.id, tenant.id));
+    const pool = db.$client as import("pg").Pool;
+    await pool.end();
+  });
 });

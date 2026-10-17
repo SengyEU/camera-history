@@ -1,15 +1,19 @@
 import { randomUUID } from "node:crypto";
 import type {
+  AdminCameraGroup,
   BillingPatch,
   BillingStatus,
   Camera,
+  CameraGroup,
   CameraPatch,
   ImageRecord,
   NewCamera,
+  NewCameraGroup,
   NewImage,
   NewTenant,
   NewUser,
   PublicCamera,
+  PublicGroupWithCameras,
   Tenant,
   User,
 } from "@ch/core";
@@ -20,6 +24,8 @@ export interface FakeDb {
   users: User[];
   cameras: Camera[];
   images: ImageRecord[];
+  cameraGroups: CameraGroup[];
+  cameraGroupMembers: { cameraGroupId: string; cameraId: string }[];
 }
 
 export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeDb } {
@@ -28,6 +34,8 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     users: seed.users ?? [],
     cameras: seed.cameras ?? [],
     images: seed.images ?? [],
+    cameraGroups: seed.cameraGroups ?? [],
+    cameraGroupMembers: seed.cameraGroupMembers ?? [],
   };
 
   const repos: Repos = {
@@ -173,6 +181,52 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     },
     async listTenantsByBillingStatus(status: BillingStatus) {
       return db.tenants.filter((t) => t.billingStatus === status);
+    },
+    async createGroup(tenantId: string, input: NewCameraGroup): Promise<CameraGroup> {
+      const group: CameraGroup = { id: randomUUID(), tenantId, name: input.name, slug: input.slug };
+      db.cameraGroups.push(group);
+      return group;
+    },
+    async listGroups(tenantId: string): Promise<AdminCameraGroup[]> {
+      return db.cameraGroups
+        .filter((g) => g.tenantId === tenantId)
+        .map((g) => ({
+          id: g.id,
+          name: g.name,
+          slug: g.slug,
+          cameraIds: db.cameraGroupMembers.filter((m) => m.cameraGroupId === g.id).map((m) => m.cameraId),
+        }));
+    },
+    async getGroup(id: string) {
+      return db.cameraGroups.find((g) => g.id === id) ?? null;
+    },
+    async updateGroup(id: string, patch: { name?: string; slug?: string }) {
+      const idx = db.cameraGroups.findIndex((g) => g.id === id);
+      if (idx === -1) return null;
+      const updated: CameraGroup = { ...db.cameraGroups[idx]!, ...patch, id };
+      db.cameraGroups[idx] = updated;
+      return updated;
+    },
+    async deleteGroup(id: string) {
+      db.cameraGroups = db.cameraGroups.filter((g) => g.id !== id);
+      db.cameraGroupMembers = db.cameraGroupMembers.filter((m) => m.cameraGroupId !== id);
+    },
+    async setGroupCameras(groupId: string, cameraIds: string[]) {
+      db.cameraGroupMembers = db.cameraGroupMembers.filter((m) => m.cameraGroupId !== groupId);
+      for (const cameraId of cameraIds) db.cameraGroupMembers.push({ cameraGroupId: groupId, cameraId });
+    },
+    async getGroupBySlug(tenantSlug: string, groupSlug: string): Promise<PublicGroupWithCameras | null> {
+      const tenant = db.tenants.find((t) => t.slug === tenantSlug);
+      if (!tenant) return null;
+      const group = db.cameraGroups.find((g) => g.tenantId === tenant.id && g.slug === groupSlug);
+      if (!group) return null;
+      const cams = db.cameraGroupMembers
+        .filter((m) => m.cameraGroupId === group.id)
+        .map((m) => db.cameras.find((c) => c.id === m.cameraId))
+        .filter((c): c is Camera => !!c && c.enabled)
+        .map((c) => ({ id: c.id, name: c.name, theme: c.theme }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      return { group: { id: group.id, name: group.name, slug: group.slug }, cameras: cams };
     },
   };
 
