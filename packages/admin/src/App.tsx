@@ -24,7 +24,7 @@ function currentView(): "cameras" | "billing" {
   return window.location.hash.startsWith("#/billing") ? "billing" : "cameras";
 }
 
-function Login({ onSuccess }: { onSuccess: (email: string) => void }) {
+function Login({ onSuccess, onRegister }: { onSuccess: (email: string) => void; onRegister: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +63,107 @@ function Login({ onSuccess }: { onSuccess: (email: string) => void }) {
       />
       <button type="submit" data-testid="login-submit">
         Sign in
+      </button>
+      <button type="button" className="link" onClick={onRegister} data-testid="goto-register">
+        Create account
+      </button>
+    </form>
+  );
+}
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void; onSignIn: () => void }) {
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!slugTouched) setSlug(slugify(name));
+  }, [name, slugTouched]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!SLUG_RE.test(slug)) {
+      setError("Slug can only contain lowercase letters, numbers and hyphens.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    try {
+      const res = await api.register({ name, slug, email, password });
+      if (res.billing?.checkoutUrl) {
+        window.location.assign(res.billing.checkoutUrl);
+        return;
+      }
+      onSuccess(email);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    }
+  };
+
+  return (
+    <form className="login" onSubmit={submit} data-testid="register-form">
+      <h1>Create account</h1>
+      {error && (
+        <p className="error" data-testid="register-error">
+          {error}
+        </p>
+      )}
+      <input
+        placeholder="Company name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        data-testid="register-name"
+        required
+      />
+      <input
+        placeholder="Slug"
+        value={slug}
+        onChange={(e) => {
+          setSlugTouched(true);
+          setSlug(e.target.value);
+        }}
+        data-testid="register-slug"
+        required
+      />
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        data-testid="register-email"
+        required
+      />
+      <input
+        type="password"
+        placeholder="Password (min 8 characters)"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        data-testid="register-password"
+        required
+      />
+      <button type="submit" data-testid="register-submit">
+        Create account
+      </button>
+      <button type="button" className="link" onClick={onSignIn} data-testid="goto-signin">
+        Already have an account? Sign in
       </button>
     </form>
   );
@@ -108,6 +209,10 @@ function CameraForm({
               </option>
             ))}
           </select>
+          <span className="field-hint">
+            Static image fetches a JPEG URL. MJPEG is a motion-JPEG stream. HLS/RTSP use ffmpeg. Custom is a
+            WebSocket that sends JPEG frames.
+          </span>
         </label>
         <label>
           Feed URL
@@ -146,6 +251,7 @@ function CameraForm({
         <label>
           Timezone
           <input value={input.timezone} onChange={(e) => set("timezone", e.target.value)} data-testid="form-timezone" />
+          <span className="field-hint">IANA timezone, e.g. Europe/Zurich.</span>
         </label>
         <div className="form-actions">
           <button type="submit" data-testid="form-submit">
@@ -221,9 +327,13 @@ export function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<AdminCamera | null>(null);
   const [view, setView] = useState<"cameras" | "billing">(currentView);
+  const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
 
   useEffect(() => {
-    const onHash = () => setView(currentView());
+    const onHash = () => {
+      setView(currentView());
+      setRegistering(window.location.hash.startsWith("#/register"));
+    };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
@@ -282,7 +392,21 @@ export function App() {
   if (email === null) {
     return (
       <main className="admin">
-        <Login onSuccess={setEmail} />
+        {registering ? (
+          <Register
+            onSuccess={setEmail}
+            onSignIn={() => {
+              window.location.hash = "";
+            }}
+          />
+        ) : (
+          <Login
+            onSuccess={setEmail}
+            onRegister={() => {
+              window.location.hash = "#/register";
+            }}
+          />
+        )}
       </main>
     );
   }
@@ -337,7 +461,19 @@ export function App() {
             {cameras.length === 0 && (
               <tr>
                 <td colSpan={8} className="empty">
-                  No cameras.
+                  <div className="empty-state" data-testid="empty-state">
+                    <p className="empty-title">No cameras yet</p>
+                    <p>Add your first camera to start building its history.</p>
+                    <button
+                      onClick={() => {
+                        setEditingId(null);
+                        setEditing(emptyInput());
+                      }}
+                      data-testid="empty-add-camera"
+                    >
+                      Add your first camera
+                    </button>
+                  </div>
                 </td>
               </tr>
             )}

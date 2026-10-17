@@ -224,3 +224,57 @@ describe("App camera CRUD", () => {
     await waitFor(() => expect(calls.some((c) => c.u.includes("/cam-1") && c.init?.method === "DELETE")).toBe(true));
   });
 });
+
+describe("App registration", () => {
+  const registerServer = (registerStatus = 201, detail = "tenant slug already taken") =>
+    vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url);
+      if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+      if (u.endsWith("/api/v1/auth/register")) {
+        if (registerStatus !== 201) return jsonResponse({ detail }, registerStatus);
+        return jsonResponse({ status: "created", tenantId: "t1", billing: { required: false } }, 201);
+      }
+      return jsonResponse({ detail: "not found" }, 404);
+    });
+
+  it("registers and lands on the empty camera list", async () => {
+    vi.stubGlobal("fetch", registerServer());
+    window.location.hash = "#/register";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
+    await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    expect((screen.getByTestId("register-slug") as HTMLInputElement).value).toBe("alpine-resort");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    expect(await screen.findByTestId("empty-state")).toBeInTheDocument();
+    window.location.hash = "";
+  });
+
+  it("shows an inline error when the slug is taken", async () => {
+    vi.stubGlobal("fetch", registerServer(409));
+    window.location.hash = "#/register";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    await userEvent.type(screen.getByTestId("register-name"), "Taken Co");
+    await userEvent.type(screen.getByTestId("register-email"), "a@b.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    await waitFor(() => expect(screen.getByTestId("register-error")).toHaveTextContent("tenant slug already taken"));
+    window.location.hash = "";
+  });
+
+  it("links from login to the register screen", async () => {
+    vi.stubGlobal("fetch", registerServer());
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByTestId("login-form");
+    await userEvent.click(screen.getByTestId("goto-register"));
+    expect(window.location.hash).toBe("#/register");
+    window.location.hash = "";
+  });
+});

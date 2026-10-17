@@ -98,6 +98,11 @@ async function json<T>(url: string, init: RequestInit = {}): Promise<T> {
 export const api = {
   login: (email: string, password: string) =>
     json<{ status?: string }>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  register: (input: { name: string; slug: string; email: string; password: string }) =>
+    json<{ status: string; tenantId: string; billing?: { required: boolean; checkoutUrl?: string } }>(
+      "/api/v1/auth/register",
+      { method: "POST", body: JSON.stringify(input) },
+    ),
   logout: () => json<{ status?: string }>("/api/v1/auth/logout", { method: "POST" }),
   listCameras: () => json<{ cameras: AdminCamera[] }>("/api/v1/admin/cameras").then((r) => r.cameras),
   createCamera: (input: CameraInput) =>
