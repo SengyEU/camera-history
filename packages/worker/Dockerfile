@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json tsconfig.base.json ./
 COPY packages/core packages/core
@@ -7,7 +7,7 @@ COPY packages/worker packages/worker
 RUN npm install --workspace @ch/core --workspace @ch/db --workspace @ch/worker
 RUN npm run build --workspace @ch/core --workspace @ch/db --workspace @ch/worker
 
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/node_modules node_modules
