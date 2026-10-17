@@ -40,3 +40,7 @@ playwright-report/
 
 # git worktrees
 /.worktrees
+
+# host-specific compose overrides
+docker-compose.override.yml
+compose.override.yml
