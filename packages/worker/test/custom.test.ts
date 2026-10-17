@@ -17,8 +17,8 @@ class FakeWS {
   open() {
     this.onopen?.();
   }
-  frame(data: ArrayBuffer) {
-    this.onmessage?.({ data });
+  frame(data: ArrayBuffer | string) {
+    this.onmessage?.({ data } as { data: ArrayBuffer });
   }
 }
 
@@ -66,5 +66,25 @@ describe("captureCustom", () => {
     await expect(
       captureCustom("https://cam/x", { timeoutMs: 50, maxBytes: 1_000_000, WebSocketCtor: ctor }),
     ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("decodes a base64 data-URL text frame", async () => {
+    const p = captureCustom("wss://cam/x", { timeoutMs: 1000, maxBytes: 1_000_000, WebSocketCtor: ctor });
+    const ws = FakeWS.instances[FakeWS.instances.length - 1]!;
+    ws.frame(`data:image/jpg;base64,${JPG.toString("base64")}`);
+    await expect(p).resolves.toEqual(JPG);
+  });
+
+  it("uses the global WebSocket when no ctor is injected", async () => {
+    const prev = globalThis.WebSocket;
+    globalThis.WebSocket = ctor as unknown as typeof WebSocket;
+    try {
+      const p = captureCustom("wss://cam/x", { timeoutMs: 1000, maxBytes: 1_000_000 });
+      const ws = FakeWS.instances[FakeWS.instances.length - 1]!;
+      ws.frame(`data:image/jpeg;base64,${JPG.toString("base64")}`);
+      await expect(p).resolves.toEqual(JPG);
+    } finally {
+      globalThis.WebSocket = prev;
+    }
   });
 });
