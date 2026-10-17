@@ -10,7 +10,7 @@ import {
 describe("billing catalog", () => {
   it("exposes the 7 approved tiers with eur and labels", () => {
     expect(BILLING_TIERS.map((t) => t.months)).toEqual([0.5, 1, 3, 6, 12, 24, 36]);
-    expect(BILLING_TIERS[3]).toMatchObject({ label: "6 měsíců", eurPerCamera: 22 });
+    expect(BILLING_TIERS[3]).toMatchObject({ label: "6 months", eurPerCamera: 22 });
   });
 
   it("validates plan months against whitelist", () => {

@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { api, type BillingDto, type BillingStatus } from "./api";
 
 const STATUS_LABELS: Record<BillingStatus, string> = {
-  none: "není aktivováno",
-  active: "aktivní",
-  past_due: "po splatnosti",
-  unpaid: "není zaplaceno",
-  canceled: "zrušeno",
+  none: "not activated",
+  active: "active",
+  past_due: "past due",
+  unpaid: "unpaid",
+  canceled: "canceled",
 };
 
 function formatBytes(n: number): string {
@@ -28,8 +28,8 @@ export function BillingPage() {
   useEffect(() => {
     load();
     const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
-    if (params.get("paid") === "1") setNotice("Platba proběhla úspěšně.");
-    if (params.get("pay") === "cancelled") setNotice("Platba byla zrušena.");
+    if (params.get("paid") === "1") setNotice("Payment completed.");
+    if (params.get("pay") === "cancelled") setNotice("Payment was canceled.");
   }, [load]);
 
   const changePlan = async () => {
@@ -39,7 +39,7 @@ export function BillingPage() {
       const res = await api.billingCheckout(selected);
       if (res.url) window.location.assign(res.url);
       else {
-        setNotice("Změna tarifu se projeví na příští faktuře.");
+        setNotice("The plan change will apply on your next invoice.");
         load();
       }
     } catch (e) {
@@ -58,7 +58,7 @@ export function BillingPage() {
   };
 
   if (error) return <p className="error">{error}</p>;
-  if (!data) return <p className="loading">Načítám…</p>;
+  if (!data) return <p className="loading">Loading…</p>;
 
   return (
     <section className="panel" data-testid="billing-page">
@@ -66,7 +66,7 @@ export function BillingPage() {
         <h2>Billing</h2>
         <span className={`status status-${data.billingStatus}`}>{STATUS_LABELS[data.billingStatus]}</span>
       </div>
-      {!data.billingEnabled && <p className="notice">Platební integrace není aktuálně zapnutá.</p>}
+      {!data.billingEnabled && <p className="notice">Billing is not enabled right now.</p>}
       {notice && (
         <p className="notice" data-testid="billing-notice">
           {notice}
@@ -74,14 +74,14 @@ export function BillingPage() {
       )}
       {data.billingStatus === "past_due" && data.graceUntil && (
         <p className="notice danger">
-          Platba po splatnosti — aktivace do {new Date(data.graceUntil).toLocaleString()}.
+          Payment past due — activation by {new Date(data.graceUntil).toLocaleString()}.
         </p>
       )}
       {(data.billingStatus === "unpaid" || data.billingStatus === "canceled") && (
-        <p className="notice danger">Účet není aktivní. Obnovte platbu pro zapnutí kamer.</p>
+        <p className="notice danger">Account is not active. Restore payment to enable cameras.</p>
       )}
       <p data-testid="current-plan">
-        Aktuální tarif: {data.tiers.find((t) => t.current)?.label ?? "—"} · {data.price ?? "—"} € / kamera
+        Current plan: {data.tiers.find((t) => t.current)?.label ?? "—"} · {data.price ?? "—"} € / camera
       </p>
       <div className="plan-grid">
         {data.tiers.map((tier) => (
@@ -94,30 +94,30 @@ export function BillingPage() {
               onChange={() => setSelected(tier.months)}
             />
             <strong>{tier.label}</strong>
-            <span>{tier.eurPerCamera} € / kamera / měsíc</span>
-            {tier.current && <em>aktuální</em>}
+            <span>{tier.eurPerCamera} € / camera / month</span>
+            {tier.current && <em>current</em>}
           </label>
         ))}
       </div>
       <div className="form-actions">
         <button onClick={changePlan} data-testid="change-plan">
-          Změnit tarif
+          Change plan
         </button>
         <button className="secondary" onClick={openPortal} data-testid="open-portal">
-          Platby / faktury
+          Payments / invoices
         </button>
       </div>
       <dl className="usage-stats">
         <div>
-          <dt>Kamery</dt>
+          <dt>Cameras</dt>
           <dd data-testid="camera-count">{data.cameraCount}</dd>
         </div>
         <div>
-          <dt>Uloženo</dt>
+          <dt>Stored</dt>
           <dd data-testid="usage-bytes">{formatBytes(data.usageBytes)}</dd>
         </div>
         <div>
-          <dt>Odhad plné retence</dt>
+          <dt>Estimated full retention</dt>
           <dd data-testid="storage-bytes">{formatBytes(data.storageBytes)}</dd>
         </div>
       </dl>

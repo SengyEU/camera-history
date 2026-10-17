@@ -101,7 +101,7 @@ export function App() {
         </div>
       </div>
       <div className="widget-grid" data-testid="image-grid">
-        {images.length === 0 && <p className="empty">Žádné snímky pro toto datum.</p>}
+        {images.length === 0 && <p className="empty">No images for this date.</p>}
         {images.map((img) => (
           <button
             key={img.id}

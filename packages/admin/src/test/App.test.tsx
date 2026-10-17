@@ -100,8 +100,8 @@ describe("App dashboard", () => {
 
     expect(await screen.findByText("Beach cam")).toBeInTheDocument();
     expect(screen.getByText("Kite cam")).toBeInTheDocument();
-    expect(screen.getByTestId("status-cam-1")).toHaveTextContent("Zpožděno");
-    expect(screen.getByTestId("status-cam-2")).toHaveTextContent("V běhu");
+    expect(screen.getByTestId("status-cam-1")).toHaveTextContent("Delayed");
+    expect(screen.getByTestId("status-cam-2")).toHaveTextContent("Operational");
     expect(screen.getByTestId("last-error-cam-1")).toHaveTextContent("feed returned HTTP 502");
     const img = screen.getAllByRole("img")[0] as HTMLImageElement;
     expect(img.src).toContain("/2026-09-23/130000.jpg");

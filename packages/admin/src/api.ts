@@ -55,7 +55,7 @@ export interface BillingDto {
 }
 
 export const FEED_LABELS: Record<FeedType, string> = {
-  static_url: "Statický obrázek (HTTP)",
+  static_url: "Static image (HTTP)",
   mjpeg: "MJPEG stream",
   hls: "HLS (ffmpeg)",
   rtsp: "RTSP (ffmpeg)",
@@ -67,10 +67,10 @@ export const FEED_TYPES = Object.keys(FEED_LABELS) as FeedType[];
 export const INTERVALS = [5, 15, 30, 60];
 
 export const THEME_LABELS: Record<string, string> = {
-  light: "Světlé",
-  dark: "Tmavé",
-  forest: "Lesní",
-  midnight: "Půlnoc",
+  light: "Light",
+  dark: "Dark",
+  forest: "Forest",
+  midnight: "Midnight",
 };
 
 export const THEMES = Object.keys(THEME_LABELS);

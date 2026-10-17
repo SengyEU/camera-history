@@ -14,13 +14,13 @@ const billing = {
   storageBytes: 14814804,
   billingEnabled: true,
   tiers: [
-    { months: 0.5, label: "14 dní", eurPerCamera: 5, current: false },
-    { months: 1, label: "1 měsíc", eurPerCamera: 9, current: false },
-    { months: 3, label: "3 měsíce", eurPerCamera: 15, current: false },
-    { months: 6, label: "6 měsíců", eurPerCamera: 22, current: false },
-    { months: 12, label: "12 měsíců", eurPerCamera: 29, current: true },
-    { months: 24, label: "24 měsíců", eurPerCamera: 49, current: false },
-    { months: 36, label: "36 měsíců", eurPerCamera: 69, current: false },
+    { months: 0.5, label: "14 days", eurPerCamera: 5, current: false },
+    { months: 1, label: "1 month", eurPerCamera: 9, current: false },
+    { months: 3, label: "3 months", eurPerCamera: 15, current: false },
+    { months: 6, label: "6 months", eurPerCamera: 22, current: false },
+    { months: 12, label: "12 months", eurPerCamera: 29, current: true },
+    { months: 24, label: "24 months", eurPerCamera: 49, current: false },
+    { months: 36, label: "36 months", eurPerCamera: 69, current: false },
   ],
 };
 
@@ -45,15 +45,15 @@ describe("BillingPage", () => {
   it("renders plan, status and usage", async () => {
     render(<BillingPage />);
     const plan = await screen.findByTestId("current-plan");
-    expect(plan).toHaveTextContent("12 měsíců");
+    expect(plan).toHaveTextContent("12 months");
     expect(plan).toHaveTextContent("29");
-    expect(screen.getByText("po splatnosti")).toBeInTheDocument();
+    expect(screen.getByText("past due")).toBeInTheDocument();
     expect(screen.getByText("1.2 MB")).toBeInTheDocument();
   });
 
   it("shows grace warning for past_due", async () => {
     render(<BillingPage />);
-    expect(await screen.findByText(/aktivace do/i)).toBeInTheDocument();
+    expect(await screen.findByText(/activation by/i)).toBeInTheDocument();
   });
 
   it("redirects to checkout on plan change", async () => {

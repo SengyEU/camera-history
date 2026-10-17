@@ -4,9 +4,9 @@ import { BillingPage } from "./Billing";
 import "./App.css";
 
 const STATUS_LABELS: Record<AdminCamera["status"], string> = {
-  operational: "V běhu",
-  delayed: "Zpožděno",
-  offline: "Výpadek",
+  operational: "Operational",
+  delayed: "Delayed",
+  offline: "Offline",
 };
 
 const emptyInput = (): CameraInput => ({
@@ -62,7 +62,7 @@ function Login({ onSuccess }: { onSuccess: (email: string) => void }) {
         data-testid="login-password"
       />
       <button type="submit" data-testid="login-submit">
-        Přihlásit se
+        Sign in
       </button>
     </form>
   );
@@ -93,14 +93,14 @@ function CameraForm({
   return (
     <div className="modal">
       <form className="modal-body" onSubmit={submit} data-testid="camera-form">
-        <h3>{initial.name ? "Upravit kameru" : "Nová kamera"}</h3>
+        <h3>{initial.name ? "Edit camera" : "New camera"}</h3>
         {error && <p className="error">{error}</p>}
         <label>
-          Název
+          Name
           <input value={input.name} onChange={(e) => set("name", e.target.value)} data-testid="form-name" required />
         </label>
         <label>
-          Typ
+          Type
           <select value={input.feedType} onChange={(e) => set("feedType", e.target.value)} data-testid="form-feed-type">
             {FEED_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -114,7 +114,7 @@ function CameraForm({
           <input value={input.feedUrl} onChange={(e) => set("feedUrl", e.target.value)} data-testid="form-feed-url" />
         </label>
         <label>
-          Téma
+          Theme
           <select value={input.theme} onChange={(e) => set("theme", e.target.value)} data-testid="form-theme">
             {THEMES.map((t) => (
               <option key={t} value={t}>
@@ -135,24 +135,24 @@ function CameraForm({
         </label>
         <div className="form-row">
           <label>
-            Aktivní od
+            Active from
             <input type="time" value={input.activeFrom} onChange={(e) => set("activeFrom", e.target.value)} />
           </label>
           <label>
-            Aktivní do
+            Active to
             <input type="time" value={input.activeTo} onChange={(e) => set("activeTo", e.target.value)} />
           </label>
         </div>
         <label>
-          Časové pásmo
+          Timezone
           <input value={input.timezone} onChange={(e) => set("timezone", e.target.value)} data-testid="form-timezone" />
         </label>
         <div className="form-actions">
           <button type="submit" data-testid="form-submit">
-            Uložit
+            Save
           </button>
           <button type="button" className="secondary" onClick={onCancel} data-testid="form-cancel">
-            Zrušit
+            Cancel
           </button>
         </div>
       </form>
@@ -190,7 +190,7 @@ function CameraRow({
     <tr data-testid={`camera-${cam.id}`}>
       <td className="cell-name">{cam.name}</td>
       <td>{FEED_LABELS[cam.feedType]}</td>
-      <td>{cam.enabled ? "ano" : "ne"}</td>
+      <td>{cam.enabled ? "yes" : "no"}</td>
       <td>
         <span className={`status status-${cam.status}`} data-testid={`status-${cam.id}`}>
           {STATUS_LABELS[cam.status]}
@@ -203,10 +203,10 @@ function CameraRow({
       <td>{previewUrl ? <img className="thumb" src={previewUrl} alt={`preview ${cam.name}`} /> : "—"}</td>
       <td className="cell-actions">
         <button className="secondary" onClick={onEdit} data-testid={`edit-${cam.id}`}>
-          Upravit
+          Edit
         </button>
         <button className="danger" onClick={onDelete} data-testid={`delete-${cam.id}`}>
-          Smazat
+          Delete
         </button>
       </td>
     </tr>
@@ -277,7 +277,7 @@ export function App() {
     await refresh();
   };
 
-  if (!checked) return <p className="loading">Načítám…</p>;
+  if (!checked) return <p className="loading">Loading…</p>;
 
   if (email === null) {
     return (
@@ -293,7 +293,7 @@ export function App() {
         <span className="topbar-title">Camera History Admin</span>
         <nav className="topbar-nav">
           <a href="#/cameras" data-testid="nav-cameras">
-            Kamery
+            Cameras
           </a>
           <a href="#/billing" data-testid="nav-billing">
             Billing
@@ -301,7 +301,7 @@ export function App() {
         </nav>
         <span className="topbar-user">{email}</span>
         <button className="secondary" onClick={logout} data-testid="logout">
-          Odhlásit
+          Sign out
         </button>
       </header>
       {view === "billing" ? (
@@ -309,7 +309,7 @@ export function App() {
       ) : (
         <section className="panel">
         <div className="panel-head">
-          <h2>Kamery</h2>
+          <h2>Cameras</h2>
           <button
             onClick={() => {
               setEditingId(null);
@@ -317,19 +317,19 @@ export function App() {
             }}
             data-testid="add-camera"
           >
-            + Nová kamera
+            + New camera
           </button>
         </div>
         <table className="cameras">
           <thead>
             <tr>
-              <th>Název</th>
-              <th>Typ</th>
-              <th>Povolena</th>
-              <th>Stav</th>
-              <th>Poslední snímek</th>
-              <th>Chyba</th>
-              <th>Náhled</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Enabled</th>
+              <th>Status</th>
+              <th>Last capture</th>
+              <th>Error</th>
+              <th>Preview</th>
               <th></th>
             </tr>
           </thead>
@@ -337,7 +337,7 @@ export function App() {
             {cameras.length === 0 && (
               <tr>
                 <td colSpan={8} className="empty">
-                  Žádné kamery.
+                  No cameras.
                 </td>
               </tr>
             )}
@@ -367,14 +367,14 @@ export function App() {
         <div className="modal">
           <div className="modal-body">
             <p>
-              Smazat kameru <strong>{confirming.name}</strong>? Smažou se i všechny snímky.
+              Delete camera <strong>{confirming.name}</strong>? This also deletes all of its images.
             </p>
             <div className="form-actions">
               <button className="danger" onClick={() => void removeCamera(confirming)} data-testid="confirm-delete">
-                Smazat
+                Delete
               </button>
               <button className="secondary" onClick={() => setConfirming(null)}>
-                Zrušit
+                Cancel
               </button>
             </div>
           </div>
