@@ -458,6 +458,7 @@ git commit -m "feat(api): public group resolve and latest capture date"
   - `PATCH /api/v1/admin/groups/:id` `{ name?, slug? }` → `{ group }` (`409` on slug conflict)
   - `DELETE /api/v1/admin/groups/:id` → `204`
   - `PUT /api/v1/admin/groups/:id/cameras` `{ cameraIds: string[] }` → `204` (idempotent replace; `400` if not an array)
+  - `GET /api/v1/admin/tenant` → `{ tenant: { id, name, slug } }` (admin UI needs the tenant **slug** for the embed snippet; JWT only carries `tenantId`)
 
 - [ ] **Step 1: Write failing tests in `packages/api/test/admin.test.ts`** (append; reuse the file's existing auth helper/`login` pattern — it already logs in and passes cookies to admin routes)
 
@@ -511,6 +512,18 @@ git commit -m "feat(api): public group resolve and latest capture date"
     const del = await app.inject({ method: "DELETE", url: `/api/v1/admin/groups/${gid}`, headers: { cookie } });
     expect(del.statusCode).toBe(204);
     expect((await app.inject({ method: "GET", url: `/api/v1/admin/groups/${gid}`, headers: { cookie } })).statusCode).toBe(404);
+  });
+
+  it("returns the tenant slug for embed snippets", async () => {
+    const { app } = makeApp();
+    const reg = await app.inject({
+      method: "POST", url: "/api/v1/auth/register",
+      payload: { name: "T", slug: "slug-src", email: "s@x.dev", password: "password1" },
+    });
+    const cookie = reg.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+    const res = await app.inject({ method: "GET", url: "/api/v1/admin/tenant", headers: { cookie } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().tenant.slug).toBe("slug-src");
   });
 ```
 
@@ -585,6 +598,12 @@ Expected: FAIL (group routes missing → 404).
     }
     await deps.repos.setGroupCameras(group.id, body.cameraIds as string[]);
     return reply.code(204).send();
+  });
+
+  app.get("/api/v1/admin/tenant", { preHandler: pre }, async (req, reply) => {
+    const t = await deps.repos.getTenantById(req.user!.tenantId);
+    if (!t) return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Tenant not found"));
+    return { tenant: { id: t.id, name: t.name, slug: t.slug } };
   });
 ```
 (Import `rfc7807` from `@ch/core` if not already imported in `admin.ts`; `HttpError`, `pre`, `RATE_LIMIT` already exist in this file.)
@@ -757,6 +776,8 @@ Add to the `api` object:
   deleteGroup: (id: string) => json<undefined>(`/api/v1/admin/groups/${id}`, { method: "DELETE" }),
   setGroupCameras: (id: string, cameraIds: string[]) =>
     json<undefined>(`/api/v1/admin/groups/${id}/cameras`, { method: "PUT", body: JSON.stringify({ cameraIds }) }),
+  getTenant: () =>
+    json<{ tenant: { id: string; name: string; slug: string } }>("/api/v1/admin/tenant").then((r) => r.tenant),
 ```
 
 - [ ] **Step 2: Write failing tests in `packages/admin/src/test/App.test.tsx`** (append; follow existing login + fetch-stub pattern)
@@ -782,7 +803,7 @@ Expected: FAIL (no Groups nav / view).
 - [ ] **Step 4: Implement in `packages/admin/src/App.tsx`**
 
 - Extend `currentView()` to `"cameras" | "groups" | "billing"` and add a Groups nav button.
-- Add a `Groups` view component: lists groups (name, slug, camera count), create form (name → auto-`slugify`, reuse existing `slugify`), edit/delete, per-group camera checkboxes writing `setGroupCameras`, and an **embed snippet** `<iframe src={`${origin}/group/${tenantSlug}/${group.slug}`} …>` with a copy button (`navigator.clipboard.writeText`). Fetch tenant slug from an existing admin endpoint (or add `GET /api/v1/admin/me` if none — prefer reusing the login response / stored tenant slug if available; otherwise read `group` list + a small `GET /api/v1/admin/tenant` if needed).
+- Add a `Groups` view component: lists groups (name, slug, camera count), create form (name → auto-`slugify`, reuse existing `slugify`), edit/delete, per-group camera checkboxes writing `setGroupCameras`, and an **embed snippet** `<iframe src={`${origin}/group/${tenantSlug}/${group.slug}`} …>` with a copy button (`navigator.clipboard.writeText`). Fetch `tenantSlug` once via `api.getTenant()` (added in Task 3).
 - In `CameraForm`, load `api.listGroups()` and render group checkboxes; on save, for any group whose membership changed, call `api.setGroupCameras(groupId, nextIds)`.
 
 - [ ] **Step 5: Run tests to verify they pass**
@@ -845,5 +866,5 @@ git commit -m "feat(demo): seed a demo camera group for the group widget"
 
 ## Self-Review
 - **Spec coverage:** schema (T1), repos (T1), public group + latest (T2), admin CRUD + membership (T3), widget dropdown/keep-date/fallback/theme/empty (T4), admin tab + camera editor + embed (T5), testing + gates (T6). All spec sections map to a task.
-- **Placeholder scan:** Task 5 test bodies and the tenant-slug source for the embed snippet are the only soft spots — Task 5 Step 4 tells the implementer to reuse an existing tenant-slug source or add a minimal `GET /admin/tenant`. Acceptable (admin already has auth context); flagged for the implementer.
-- **Type consistency:** `CameraGroup`, `AdminCameraGroup`, `PublicGroupWithCameras`, `setGroupCameras(groupId, cameraIds)`, `getGroupBySlug(tenantSlug, groupSlug)`, endpoints `/api/v1/groups/:tenantSlug/:groupSlug` and `/api/v1/cameras/:id/latest` used identically across T1–T6.
+- **Placeholder scan:** no TBD/TODO. The only previously soft spot (tenant slug for the embed snippet) is resolved by the `GET /api/v1/admin/tenant` endpoint added to Task 3 and consumed in Task 5 via `api.getTenant()`.
+- **Type consistency:** `CameraGroup`, `AdminCameraGroup`, `PublicGroupWithCameras`, `setGroupCameras(groupId, cameraIds)`, `getGroupBySlug(tenantSlug, groupSlug)`, endpoints `/api/v1/groups/:tenantSlug/:groupSlug`, `/api/v1/cameras/:id/latest`, and `/api/v1/admin/tenant` used identically across T1–T6.
