@@ -2,6 +2,7 @@ import type { AppConfig } from "@ch/core";
 import type { ObjectStorage, Repos } from "@ch/db";
 import { keyFor } from "@ch/db";
 import { captureBuffer } from "./adapters/index.js";
+import { toWebp } from "./imageConvert.js";
 import { isCaptureDue } from "./schedule.js";
 
 export interface RunScheduleDeps {
@@ -43,15 +44,16 @@ export async function runSchedule(deps: RunScheduleDeps): Promise<number> {
         processed += 1;
         try {
           const jpeg = await captureWithRetry(cam, cfg, sleep);
+          const webp = await toWebp(jpeg);
           const tenant = await repos.getTenantById(cam.tenantId);
           if (!tenant) throw new Error(`tenant ${cam.tenantId} not found`);
-          const key = keyFor(tenant.slug, cam.id, now);
-          await storage.put(key, jpeg);
+          const key = keyFor(tenant.slug, cam.id, now).replace(/\.jpg$/, ".webp");
+          await storage.put(key, webp);
           await repos.insertImage({
             cameraId: cam.id,
             timestamp: now,
             storageKey: key,
-            sizeBytes: jpeg.length,
+            sizeBytes: webp.length,
           });
           await repos.updateCamera(cam.id, { lastCaptureAt: now, lastError: null, status: "operational" });
           log(`captured ${cam.id} ${key}`);

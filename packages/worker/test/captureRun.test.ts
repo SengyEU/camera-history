@@ -4,6 +4,12 @@ import type { AppConfig } from "@ch/core";
 import { createFakeRepos } from "@ch/db";
 import { captureBuffer } from "../src/adapters/index.js";
 import { runSchedule } from "../src/captureRun.js";
+import { toWebp } from "../src/imageConvert.js";
+
+vi.mock("../src/imageConvert.js", () => ({
+  WEBP_ARGS: [],
+  toWebp: vi.fn(),
+}));
 
 const cfg: AppConfig = {
   databaseUrl: "",
@@ -18,15 +24,25 @@ const cfg: AppConfig = {
 };
 
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+const WEBP = Buffer.concat([Buffer.from("RIFF....WEBP"), JPG]);
 
 const sleep = vi.fn(async () => undefined);
-const storage = { put: async () => undefined, get: async () => JPG };
+const puts: Array<{ key: string; data: Buffer }> = [];
+const storage = {
+  put: async (key: string, data: Buffer) => {
+    puts.push({ key, data });
+  },
+  get: async () => JPG,
+};
 
 let server: Server;
 let feedUrl = "";
 
 beforeEach(async () => {
   sleep.mockClear();
+  puts.length = 0;
+  vi.mocked(toWebp).mockReset();
+  vi.mocked(toWebp).mockResolvedValue(WEBP);
   server = createServer((_req, res) => {
     res.writeHead(200, { "Content-Type": "image/jpeg" });
     res.end(JPG);
@@ -66,7 +82,11 @@ describe("runSchedule", () => {
 
     expect(processed).toBe(1);
     expect(db.images).toHaveLength(1);
-    expect(db.images[0]).toMatchObject({ cameraId: camera.id, sizeBytes: JPG.length });
+    expect(db.images[0]).toMatchObject({ cameraId: camera.id, sizeBytes: WEBP.length });
+    expect(db.images[0]!.storageKey).toBe(`org/acme/${camera.id}/2026-09-18/090000.webp`);
+    expect(puts).toEqual([{ key: `org/acme/${camera.id}/2026-09-18/090000.webp`, data: WEBP }]);
+    expect(vi.mocked(toWebp)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(toWebp)).toHaveBeenCalledWith(JPG);
     expect(db.cameras[0]!.lastCaptureAt).not.toBeNull();
     expect(db.cameras[0]!.lastError).toBeNull();
     expect(db.cameras[0]!.status).toBe("operational");
@@ -115,6 +135,30 @@ describe("runSchedule", () => {
     expect(db.images).toHaveLength(0);
     expect(db.cameras[0]!.status).toBe("delayed");
     expect(db.cameras[0]!.lastError).toBeTruthy();
+    expect(vi.mocked(toWebp)).not.toHaveBeenCalled();
+  });
+
+  it("treats a WebP conversion failure as a capture error", async () => {
+    const fakes = createFakeRepos();
+    const db = fakes.db;
+    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
+    await fakes.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl,
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    vi.mocked(toWebp).mockRejectedValueOnce(new Error("ffmpeg webp failed (1): boom"));
+
+    await runSchedule({ repos: fakes, storage, cfg, now: new Date("2026-09-18T09:00:00Z"), log: () => {}, sleep });
+
+    expect(puts).toHaveLength(0);
+    expect(db.images).toHaveLength(0);
+    expect(db.cameras[0]!.status).toBe("delayed");
+    expect(db.cameras[0]!.lastError).toContain("ffmpeg webp failed");
   });
 
   it("escalates a repeated failure to offline", async () => {

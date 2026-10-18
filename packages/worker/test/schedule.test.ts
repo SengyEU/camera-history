@@ -60,13 +60,49 @@ describe("isCaptureDue", () => {
   it("due when no last capture", () => {
     expect(isCaptureDue(baseCam, new Date("2026-07-18T12:00:00Z"))).toBe(true);
   });
-  it("not due within interval", () => {
-    const cam = { ...baseCam, lastCaptureAt: new Date("2026-07-18T11:00:00Z") };
-    expect(isCaptureDue(cam, new Date("2026-07-18T11:05:00Z"))).toBe(false);
-  });
-  it("due after interval elapses", () => {
-    const cam = { ...baseCam, lastCaptureAt: new Date("2026-07-18T11:00:00Z") };
+  it("not due twice in the same bucket", () => {
+    const cam = { ...baseCam, lastCaptureAt: new Date("2026-07-18T11:00:01Z") };
+    expect(isCaptureDue(cam, new Date("2026-07-18T11:14:59Z"))).toBe(false);
     expect(isCaptureDue(cam, new Date("2026-07-18T11:15:00Z"))).toBe(true);
+  });
+  it("not due before the next bucket boundary", () => {
+    const cam = { ...baseCam, intervalMinutes: 60, lastCaptureAt: new Date("2026-07-18T10:00:05Z") };
+    expect(isCaptureDue(cam, new Date("2026-07-18T10:59:59Z"))).toBe(false);
+  });
+  it("due on the first tick after the bucket boundary", () => {
+    const cam = { ...baseCam, intervalMinutes: 60, lastCaptureAt: new Date("2026-07-18T10:00:05Z") };
+    expect(isCaptureDue(cam, new Date("2026-07-18T11:00:01Z"))).toBe(true);
+  });
+  it("due at the boundary even when the last capture was seconds before it", () => {
+    const cam = { ...baseCam, intervalMinutes: 60, lastCaptureAt: new Date("2026-07-18T10:59:59Z") };
+    expect(isCaptureDue(cam, new Date("2026-07-18T11:00:01Z"))).toBe(true);
+  });
+  const alignmentCases: Array<[number, string]> = [
+    [5, "2026-07-18T10:05:00Z"],
+    [15, "2026-07-18T10:15:00Z"],
+    [30, "2026-07-18T10:30:00Z"],
+    [60, "2026-07-18T11:00:00Z"],
+  ];
+  it.each(alignmentCases)("aligns %i-minute intervals to UTC bucket boundaries", (intervalMinutes, boundary) => {
+    const cam = { ...baseCam, intervalMinutes, lastCaptureAt: new Date("2026-07-18T10:00:00Z") };
+    const at = new Date(boundary);
+    expect(isCaptureDue(cam, new Date(at.getTime() - 1000))).toBe(false);
+    expect(isCaptureDue(cam, at)).toBe(true);
+  });
+  it("due when whole buckets were missed", () => {
+    const cam = { ...baseCam, intervalMinutes: 60, lastCaptureAt: new Date("2026-07-18T08:00:00Z") };
+    expect(isCaptureDue(cam, new Date("2026-07-18T12:30:00Z"))).toBe(true);
+  });
+  it("active window still gates bucket-due captures", () => {
+    const cam = {
+      ...baseCam,
+      intervalMinutes: 60,
+      activeFrom: "09:00",
+      activeTo: "17:00",
+      lastCaptureAt: new Date("2026-07-18T07:00:00Z"),
+    };
+    expect(isCaptureDue(cam, new Date("2026-07-18T08:59:59Z"))).toBe(false);
+    expect(isCaptureDue(cam, new Date("2026-07-18T16:00:01Z"))).toBe(true);
   });
   it("disabled camera never due", () => {
     const cam = { ...baseCam, enabled: false };
@@ -120,6 +156,12 @@ describe("isCaptureDue with daylightOnly", () => {
   it("not due outside daylight even when active window would allow it", () => {
     expect(isCaptureDue(lakeLouiseCam, new Date("2026-07-18T08:00:00Z"))).toBe(false);
     expect(isCaptureDue(lakeLouiseCam, new Date("2026-07-19T05:30:00Z"))).toBe(false);
+  });
+  it("daylight still gates bucket-due captures", () => {
+    const cam = { ...lakeLouiseCam, intervalMinutes: 60, lastCaptureAt: new Date("2026-07-18T07:00:00Z") };
+    expect(isCaptureDue(cam, new Date("2026-07-18T08:00:01Z"))).toBe(false); // before sunrise 11:47:57Z
+    const inDaylight = { ...cam, lastCaptureAt: new Date("2026-07-18T11:00:00Z") };
+    expect(isCaptureDue(inDaylight, new Date("2026-07-18T12:00:01Z"))).toBe(true);
   });
   it("daylight overrides the active window", () => {
     const cam = { ...lakeLouiseCam, activeFrom: "09:00", activeTo: "10:00" };

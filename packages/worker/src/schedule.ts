@@ -35,7 +35,7 @@ export function isCaptureDue(cam: Camera, now: Date): boolean {
   const daylight = isInDaylightWindow(cam, now);
   if (daylight !== null ? !daylight : !isInActiveWindow(cam, now)) return false;
   if (!cam.lastCaptureAt) return true;
-  const last = cam.lastCaptureAt.getTime();
   const intervalMs = cam.intervalMinutes * 60_000;
-  return now.getTime() - last >= intervalMs;
+  const bucketStart = Math.floor(now.getTime() / intervalMs) * intervalMs;
+  return cam.lastCaptureAt.getTime() < bucketStart;
 }

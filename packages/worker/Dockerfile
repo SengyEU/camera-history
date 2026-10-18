@@ -10,6 +10,7 @@ RUN npm run build --workspace @ch/core --workspace @ch/db --workspace @ch/worker
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apk add --no-cache ffmpeg
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/packages/core/dist packages/core/dist
 COPY --from=build /app/packages/core/package.json packages/core/package.json
