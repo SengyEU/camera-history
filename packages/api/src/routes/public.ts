@@ -91,4 +91,23 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
       return reply.type("image/jpeg").send(bytes);
     },
   );
+
+  app.get<{ Params: { tenantSlug: string; groupSlug: string } }>(
+    "/api/v1/groups/:tenantSlug/:groupSlug",
+    async (req, reply) => {
+      const data = await repos.getGroupBySlug(req.params.tenantSlug, req.params.groupSlug);
+      if (!data) return reply.code(404).type("application/problem+json").send(notFound());
+      return data;
+    },
+  );
+
+  app.get<{ Params: { id: string } }>("/api/v1/cameras/:id/latest", async (req, reply) => {
+    const cam = await repos.getPublicCamera(req.params.id);
+    if (!cam) return reply.code(404).type("application/problem+json").send(notFound());
+    const latest = await repos.latestImageForCamera(req.params.id);
+    if (!latest) return { date: null };
+    const d = latest.timestamp;
+    const date = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    return { date, timestamp: d.toISOString() };
+  });
 };

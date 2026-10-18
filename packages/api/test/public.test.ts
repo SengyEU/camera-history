@@ -80,4 +80,58 @@ describe("public routes", () => {
     expect(res.statusCode).toBe(404);
     await (app as { close: () => Promise<void> }).close();
   });
+
+  it("returns public group with enabled cameras ordered by name", async () => {
+    const { app, repos } = makeApp();
+    const t = await repos.createTenant({ name: "T", slug: "t-one" });
+    const cam = await repos.createCamera(t.id, {
+      name: "Zulu", feedType: "static_url", feedUrl: "https://e.com/z.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC", theme: "dark",
+    });
+    const off = await repos.createCamera(t.id, {
+      name: "Off", feedType: "static_url", feedUrl: "https://e.com/o.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC", enabled: false,
+    });
+    const g = await repos.createGroup(t.id, { name: "G", slug: "g-one" });
+    await repos.setGroupCameras(g.id, [cam.id, off.id]);
+
+    const res = await app.inject({ method: "GET", url: "/api/v1/groups/t-one/g-one" });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.group.slug).toBe("g-one");
+    expect(body.cameras).toEqual([{ id: cam.id, name: "Zulu", theme: "dark" }]);
+  });
+
+  it("404s for unknown public group", async () => {
+    const { app } = makeApp();
+    const res = await app.inject({ method: "GET", url: "/api/v1/groups/none/none" });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns latest capture date, or null when none", async () => {
+    const { app, repos } = makeApp();
+    const t = await repos.createTenant({ name: "T", slug: "t-latest" });
+    const cam = await repos.createCamera(t.id, {
+      name: "C", feedType: "static_url", feedUrl: "https://e.com/c.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    await repos.insertImage({
+      cameraId: cam.id, timestamp: new Date("2026-10-10T09:00:00Z"),
+      storageKey: "org/x/2026-10-10/090000.jpg", sizeBytes: 1,
+    });
+
+    const ok = await app.inject({ method: "GET", url: `/api/v1/cameras/${cam.id}/latest` });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().date).toBe("2026-10-10");
+
+    const empty = await repos.createCamera(t.id, {
+      name: "E", feedType: "static_url", feedUrl: "https://e.com/e.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    const none = await app.inject({ method: "GET", url: `/api/v1/cameras/${empty.id}/latest` });
+    expect(none.json()).toEqual({ date: null });
+
+    const missing = await app.inject({ method: "GET", url: "/api/v1/cameras/00000000-0000-0000-0000-000000000000/latest" });
+    expect(missing.statusCode).toBe(404);
+  });
 });
