@@ -241,6 +241,10 @@ describe("App widget", () => {
 
     const popup = await screen.findByTestId("share-popup");
     expect(popup).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(popup.querySelector("img")).toHaveAttribute(
+      "src",
+      "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
+    );
 
     const url = `${window.location.origin}/widget/acme/cam-1?date=2026-09-18&hour=12`;
     const encoded = encodeURIComponent(url);

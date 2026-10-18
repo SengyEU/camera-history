@@ -10,7 +10,7 @@ import {
 } from "./api";
 import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
 import { SharePopup } from "./SharePopup";
-import { localDateInZone, localHourInZone } from "./time";
+import { formatCameraHour, localDateInZone, localHourInZone } from "./time";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
@@ -153,6 +153,8 @@ function WidgetBody({
       {shareImage && (
         <SharePopup
           title={viewerCaptureLabel(shareImage.timestamp, timezone)}
+          hourLabel={formatCameraHour(shareImage.timestamp, timezone)}
+          imageUrl={shareImage.url}
           url={shareUrl}
           onClose={onCloseShare}
         />
