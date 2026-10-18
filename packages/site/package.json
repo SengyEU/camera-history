@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port 8081",
+    "dev": "vite --port 8082",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
-    "preview": "vite preview --port 8081 --strictPort",
+    "preview": "vite preview --port 8082 --strictPort",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "screenshots": "node scripts/capture-admin-screenshots.mjs",
