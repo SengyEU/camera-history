@@ -65,9 +65,14 @@ describe("App widget", () => {
 
   it("shows viewer-local hour chips on the frames", async () => {
     render(<App />);
-    await screen.findByTestId("frame-img-1");
-    expect(screen.getByText("9 AM")).toBeInTheDocument();
-    expect(screen.getByText("12 PM")).toBeInTheDocument();
+    const morning = await screen.findByTestId("frame-img-1");
+    const noon = screen.getByTestId("frame-img-2");
+    expect(morning).toHaveTextContent("9 AM");
+    expect(morning.querySelector(".chip-h")).toHaveTextContent("9");
+    expect(morning.querySelector(".chip-ap")).toHaveTextContent("AM");
+    expect(noon).toHaveTextContent("12 PM");
+    expect(noon.querySelector(".chip-h")).toHaveTextContent("12");
+    expect(noon.querySelector(".chip-ap")).toHaveTextContent("PM");
   });
 
   it("expands a frame in place and collapses it again", async () => {

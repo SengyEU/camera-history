@@ -1,9 +1,17 @@
+import { useEffect, useRef } from "react";
 import type { ImageDto } from "./api";
 
-export function viewerHourLabel(timestamp: string): string {
+export function viewerHourParts(timestamp: string): { hour: number; meridiem: "AM" | "PM" } {
   const hours = new Date(timestamp).getHours();
-  const hour12 = hours % 12 === 0 ? 12 : hours % 12;
-  return `${hour12} ${hours < 12 ? "AM" : "PM"}`;
+  return {
+    hour: hours % 12 === 0 ? 12 : hours % 12,
+    meridiem: hours < 12 ? "AM" : "PM",
+  };
+}
+
+export function viewerHourLabel(timestamp: string): string {
+  const { hour, meridiem } = viewerHourParts(timestamp);
+  return `${hour} ${meridiem}`;
 }
 
 export function viewerCaptureLabel(timestamp: string): string {
@@ -37,6 +45,12 @@ function ShareGlyph() {
 export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: FilmStripProps) {
   const openIndex = openId ? images.findIndex((image) => image.id === openId) : -1;
   const openImage = openIndex >= 0 ? images[openIndex] : undefined;
+  const openRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!openId) return;
+    openRef.current?.scrollIntoView?.({ block: "nearest", inline: "center" });
+  }, [openId]);
 
   return (
     <div
@@ -60,6 +74,7 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
             return (
               <div
                 key={image.id}
+                ref={openRef}
                 className="frame frame-open"
                 data-testid="frame-open"
                 role="button"
@@ -117,18 +132,21 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
             );
           }
 
-          const hour = viewerHourLabel(image.timestamp);
+          const hour = viewerHourParts(image.timestamp);
           return (
             <button
               key={image.id}
               type="button"
               className="frame"
               data-testid={`frame-${image.id}`}
-              aria-label={`Open capture ${hour}`}
+              aria-label={`Open capture ${hour.hour} ${hour.meridiem}`}
               style={{ backgroundImage: `url(${image.url})` }}
               onClick={() => onOpenChange(image.id)}
             >
-              <span className="frame-hours">{hour}</span>
+              <span className="frame-hours">
+                <span className="chip-h">{hour.hour}</span>{" "}
+                <span className="chip-ap">{hour.meridiem}</span>
+              </span>
             </button>
           );
         })}

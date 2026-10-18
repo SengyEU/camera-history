@@ -114,6 +114,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 }
 .film-strip-scroll { overflow-x: auto; }
 .film-strip-scroll .frame { min-width: 14px; }
+.film-strip-scroll .frame-open { flex: 0 0 auto; width: 97%; }
 
 .frame {
   flex: 1;
@@ -151,6 +152,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   white-space: nowrap;
   pointer-events: none;
 }
+.film-strip-scroll .chip-ap { display: none; }
 
 .frame-open {
   flex: 1 1 97%;
