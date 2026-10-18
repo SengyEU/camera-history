@@ -139,7 +139,10 @@ export function App() {
     const p = new URLSearchParams(window.location.search);
     return p.get("date") ?? toLocalInputValue(new Date());
   });
-  const latestFallbackRef = useRef<Record<string, string>>({});
+  const fallbackRef = useRef<{ attempted: Set<string>; latest: Map<string, string> }>({
+    attempted: new Set(),
+    latest: new Map(),
+  });
 
   const cameraId = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
   const selectedCamera =
@@ -177,22 +180,31 @@ export function App() {
       .catch(() => setGroup(null));
   }, [groupRoute]);
 
+  const isGroup = !!groupRoute;
+
   useEffect(() => {
     if (!cameraId) return;
     let cancelled = false;
     getImages(cameraId, date)
-      .then((imgs) => {
+      .then(async (imgs) => {
         if (cancelled) return;
+        if (isGroup && imgs.length === 0) {
+          const key = `${cameraId}:${date}`;
+          if (!fallbackRef.current.attempted.has(key)) {
+            fallbackRef.current.attempted.add(key);
+            let latest = fallbackRef.current.latest.get(cameraId) ?? null;
+            if (!latest) {
+              latest = await getCameraLatest(cameraId);
+              if (cancelled) return;
+              if (latest) fallbackRef.current.latest.set(cameraId, latest);
+            }
+            if (latest && latest !== date) {
+              setDate(latest);
+              return;
+            }
+          }
+        }
         setImages(imgs);
-        if (!groupRoute || imgs.length > 0) return;
-        if (latestFallbackRef.current[cameraId] === date) return;
-        getCameraLatest(cameraId)
-          .then((latest) => {
-            if (cancelled || !latest) return;
-            latestFallbackRef.current[cameraId] = latest;
-            if (latest !== date) setDate(latest);
-          })
-          .catch(() => {});
       })
       .catch(() => {
         if (!cancelled) setImages([]);
@@ -200,7 +212,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [cameraId, date, groupRoute]);
+  }, [cameraId, date, isGroup]);
 
   if (groupRoute) {
     if (group && group.cameras.length === 0) {

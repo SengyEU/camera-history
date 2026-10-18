@@ -121,6 +121,7 @@ describe("App group widget", () => {
 
     expect(await screen.findByTestId("image-i2")).toBeInTheDocument();
     expect(vi.mocked(getCameraLatest)).toHaveBeenCalledWith("cam-b");
+    expect(vi.mocked(getCameraLatest)).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "dark"));
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
@@ -159,6 +160,28 @@ describe("App group widget", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(vi.mocked(getCameraLatest)).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument();
+  });
+
+  it("does not loop when the switched camera has no images on the selected or latest date", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    vi.mocked(getCameraLatest).mockResolvedValue("2026-10-09");
+    vi.mocked(getImages).mockImplementation(async (cameraId) =>
+      cameraId === "cam-a" ? [{ id: "i1", timestamp: "2026-10-10T09:00:00Z", url: "/api/v1/i1.jpg" }] : [],
+    );
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    expect(await screen.findByTestId("image-i1")).toBeInTheDocument();
+    const select = screen.getByRole("combobox");
+    await user.selectOptions(select, "cam-b");
+
+    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(vi.mocked(getCameraLatest)).toHaveBeenCalledTimes(1);
+    expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument();
+    expect(vi.mocked(getImages)).toHaveBeenCalledTimes(3);
   });
 
   it("shows empty state for a group with no cameras", async () => {
