@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Camera } from "@ch/core";
-import { isCaptureDue, isInActiveWindow, minutesInZone } from "../src/schedule.js";
+import { isCaptureDue, isInActiveWindow, isInDaylightWindow, minutesInZone } from "../src/schedule.js";
 
 const baseCam: Camera = {
   id: "c1",
@@ -15,8 +15,21 @@ const baseCam: Camera = {
   timezone: "UTC",
   enabled: true,
   theme: "light",
+  latitude: null,
+  longitude: null,
+  daylightOnly: false,
   lastCaptureAt: null,
   lastError: null,
+  status: "operational",
+};
+
+// Lake Louise, 2026-07-18: sunrise 11:47:57Z, sunset 2026-07-19 03:53:39Z.
+const lakeLouiseCam: Camera = {
+  ...baseCam,
+  latitude: 51.425,
+  longitude: -116.177,
+  timezone: "America/Edmonton",
+  daylightOnly: true,
 };
 
 describe("minutesInZone", () => {
@@ -57,5 +70,72 @@ describe("isCaptureDue", () => {
   it("disabled camera never due", () => {
     const cam = { ...baseCam, enabled: false };
     expect(isCaptureDue(cam, new Date("2026-07-18T12:00:00Z"))).toBe(false);
+  });
+});
+
+describe("isInDaylightWindow", () => {
+  it("null when daylightOnly is false", () => {
+    expect(isInDaylightWindow(baseCam, new Date("2026-07-18T12:00:00Z"))).toBeNull();
+  });
+  it("null when coordinates are missing", () => {
+    const cam = { ...baseCam, daylightOnly: true };
+    expect(isInDaylightWindow(cam, new Date("2026-07-18T12:00:00Z"))).toBeNull();
+  });
+  it("null on polar day/night", () => {
+    const cam = { ...baseCam, daylightOnly: true, latitude: 69.65, longitude: 18.956, timezone: "Europe/Oslo" };
+    expect(isInDaylightWindow(cam, new Date("2026-06-21T12:00:00Z"))).toBeNull();
+  });
+  it("true between sunrise and sunset for the local date", () => {
+    expect(isInDaylightWindow(lakeLouiseCam, new Date("2026-07-18T18:00:00Z"))).toBe(true);
+  });
+  it("false before sunrise", () => {
+    expect(isInDaylightWindow(lakeLouiseCam, new Date("2026-07-18T08:00:00Z"))).toBe(false);
+  });
+  it("false after sunset", () => {
+    expect(isInDaylightWindow(lakeLouiseCam, new Date("2026-07-19T05:30:00Z"))).toBe(false);
+  });
+});
+
+describe("isCaptureDue with daylightOnly", () => {
+  it("due inside daylight", () => {
+    expect(isCaptureDue(lakeLouiseCam, new Date("2026-07-18T18:00:00Z"))).toBe(true);
+  });
+  it("not due outside daylight even when active window would allow it", () => {
+    expect(isCaptureDue(lakeLouiseCam, new Date("2026-07-18T08:00:00Z"))).toBe(false);
+    expect(isCaptureDue(lakeLouiseCam, new Date("2026-07-19T05:30:00Z"))).toBe(false);
+  });
+  it("daylight overrides the active window", () => {
+    const cam = { ...lakeLouiseCam, activeFrom: "09:00", activeTo: "10:00" };
+    expect(isCaptureDue(cam, new Date("2026-07-18T18:00:00Z"))).toBe(true);
+  });
+  it("falls back to active window when coordinates are missing", () => {
+    const cam = { ...baseCam, daylightOnly: true, activeFrom: "09:00", activeTo: "17:00" };
+    expect(isCaptureDue(cam, new Date("2026-07-18T12:00:00Z"))).toBe(true);
+    expect(isCaptureDue(cam, new Date("2026-07-18T18:00:00Z"))).toBe(false);
+  });
+  it("falls back to active window on polar day/night", () => {
+    const cam = {
+      ...baseCam,
+      daylightOnly: true,
+      latitude: 69.65,
+      longitude: 18.956,
+      timezone: "UTC",
+      activeFrom: "09:00",
+      activeTo: "17:00",
+    };
+    expect(isCaptureDue(cam, new Date("2026-06-21T12:00:00Z"))).toBe(true);
+    expect(isCaptureDue(cam, new Date("2026-06-21T18:00:00Z"))).toBe(false);
+  });
+  it("unchanged active-window behavior when daylightOnly is false", () => {
+    const cam = {
+      ...baseCam,
+      latitude: 51.425,
+      longitude: -116.177,
+      timezone: "America/Edmonton",
+      activeFrom: "09:00",
+      activeTo: "17:00",
+    };
+    expect(isCaptureDue(cam, new Date("2026-07-18T16:00:00Z"))).toBe(true); // 10:00 local
+    expect(isCaptureDue(cam, new Date("2026-07-18T08:00:00Z"))).toBe(false); // 02:00 local
   });
 });

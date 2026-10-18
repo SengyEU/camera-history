@@ -1,4 +1,4 @@
-import type { Camera } from "@ch/core";
+import { localDateInZone, sunTimes, type Camera } from "@ch/core";
 
 export function minutesInZone(now: Date, timezone: string): number {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -23,9 +23,17 @@ export function isInActiveWindow(cam: Camera, now: Date): boolean {
   return current >= from || current < to; // přes půlnoc
 }
 
+export function isInDaylightWindow(cam: Camera, now: Date): boolean | null {
+  if (!cam.daylightOnly || cam.latitude === null || cam.longitude === null) return null;
+  const t = sunTimes(localDateInZone(now, cam.timezone), cam.latitude, cam.longitude);
+  if (!t) return null; // polar day/night -> let caller fall back
+  return now >= t.sunrise && now <= t.sunset;
+}
+
 export function isCaptureDue(cam: Camera, now: Date): boolean {
   if (!cam.enabled) return false;
-  if (!isInActiveWindow(cam, now)) return false;
+  const daylight = isInDaylightWindow(cam, now);
+  if (daylight !== null ? !daylight : !isInActiveWindow(cam, now)) return false;
   if (!cam.lastCaptureAt) return true;
   const last = cam.lastCaptureAt.getTime();
   const intervalMs = cam.intervalMinutes * 60_000;
