@@ -18,7 +18,7 @@ export type PublicRouteDeps = {
 };
 
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-const fileRe = /^\d{6}\.jpg$/;
+const fileRe = /^\d{6}\.(webp|jpg)$/;
 const notFound = () => rfc7807(404, "not_found", "Camera not found");
 
 export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (app, deps) => {
@@ -121,7 +121,8 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
       }
 
       const bytes = await storage.get(image.storageKey);
-      return reply.type("image/jpeg").send(bytes);
+      const contentType = file.endsWith(".webp") ? "image/webp" : "image/jpeg";
+      return reply.type(contentType).send(bytes);
     },
   );
 

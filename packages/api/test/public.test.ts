@@ -201,13 +201,61 @@ describe("public routes", () => {
   it("serves a stored image file", async () => {
     const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
     const { app, repos } = makeApp({
-      storage: { get: async (_key: string) => jpeg as unknown as Buffer },
+      storage: {
+        get: async (_key: string) => jpeg as unknown as Buffer,
+        put: async () => undefined,
+      },
     });
     const camera = await seedCamera(repos);
     const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/2026-09-18/120000.jpg` });
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toContain("image/jpeg");
     expect(res.rawPayload.equals(jpeg)).toBe(true);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("serves a stored webp file with the webp content type", async () => {
+    const webp = Buffer.from([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]);
+    const { app, repos } = makeApp({
+      storage: {
+        get: async (_key: string) => webp as unknown as Buffer,
+        put: async () => undefined,
+      },
+    });
+    const camera = await seedCamera(repos);
+    await repos.insertImage({
+      cameraId: camera.id,
+      timestamp: new Date("2026-09-18T13:00:00Z"),
+      storageKey: "org/acme/cam/2026-09-18/130000.webp",
+      sizeBytes: webp.length,
+    });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/2026-09-18/130000.webp` });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("image/webp");
+    expect(res.rawPayload.equals(webp)).toBe(true);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("returns 404 for a jpg request when only the webp capture exists", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCamera(repos);
+    await repos.insertImage({
+      cameraId: camera.id,
+      timestamp: new Date("2026-09-18T13:00:00Z"),
+      storageKey: "org/acme/cam/2026-09-18/130000.webp",
+      sizeBytes: 1,
+    });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/2026-09-18/130000.jpg` });
+    expect(res.statusCode).toBe(404);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects unsupported file extensions", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCamera(repos);
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/2026-09-18/120000.png` });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().detail).toBe("invalid path");
     await (app as { close: () => Promise<void> }).close();
   });
 
@@ -219,12 +267,32 @@ describe("public routes", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("exposes showNight on the public camera DTO", async () => {
+    const { app, repos } = makeApp();
+    const tenant = await repos.createTenant({ name: "Night", slug: "night-dto" });
+    const camera = await repos.createCamera(tenant.id, {
+      name: "Night cam",
+      feedType: "static_url",
+      feedUrl: "https://example.com/night.jpg",
+      intervalMinutes: 60,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+      showNight: true,
+    });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}` });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().camera).toMatchObject({ id: camera.id, showNight: true });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("returns public group with enabled cameras ordered by name", async () => {
     const { app, repos } = makeApp();
     const t = await repos.createTenant({ name: "T", slug: "t-one" });
     const cam = await repos.createCamera(t.id, {
       name: "Zulu", feedType: "static_url", feedUrl: "https://e.com/z.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC", theme: "dark",
+      showNight: true,
     });
     const off = await repos.createCamera(t.id, {
       name: "Off", feedType: "static_url", feedUrl: "https://e.com/o.jpg",
@@ -237,7 +305,7 @@ describe("public routes", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.group.slug).toBe("g-one");
-    expect(body.cameras).toEqual([{ id: cam.id, name: "Zulu", theme: "dark", showNight: false }]);
+    expect(body.cameras).toEqual([{ id: cam.id, name: "Zulu", theme: "dark", showNight: true }]);
   });
 
   it("404s for unknown public group with a group-specific detail", async () => {

@@ -480,6 +480,102 @@ describe("admin camera coordinates", () => {
   });
 });
 
+describe("admin camera showNight", () => {
+  it("creates a camera with showNight and returns it on GET", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Night",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        showNight: true,
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().camera.showNight).toBe(true);
+
+    const get = await app.inject({
+      method: "GET",
+      url: `/api/v1/admin/cameras/${res.json().camera.id as string}`,
+      headers: { cookie },
+    });
+    expect(get.statusCode).toBe(200);
+    expect(get.json().camera.showNight).toBe(true);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("defaults showNight to false and updates it via PUT", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Day",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().camera.showNight).toBe(false);
+
+    const put = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${created.json().camera.id as string}`,
+      headers: { cookie },
+      payload: { showNight: true },
+    });
+    expect(put.statusCode).toBe(200);
+    expect(put.json().camera.showNight).toBe(true);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects a non-boolean showNight on create and update", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const base = {
+      name: "Night",
+      feedType: "static_url",
+      feedUrl: "https://example.com/cam.jpg",
+      intervalMinutes: 15,
+    };
+
+    const post = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: { ...base, showNight: "false" },
+    });
+    expect(post.statusCode).toBe(400);
+    expect(post.json().title).toBe("bad_request");
+    expect(post.json().detail).toBe("showNight must be a boolean");
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: base,
+    });
+    const put = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${created.json().camera.id as string}`,
+      headers: { cookie },
+      payload: { showNight: "false" },
+    });
+    expect(put.statusCode).toBe(400);
+    expect(put.json().title).toBe("bad_request");
+    expect(put.json().detail).toBe("showNight must be a boolean");
+    await (app as { close: () => Promise<void> }).close();
+  });
+});
+
 describe("admin feed type validation", () => {
   it("accepts a custom camera with wss scheme", async () => {
     const { app } = makeApp();

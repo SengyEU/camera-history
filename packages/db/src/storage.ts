@@ -39,8 +39,9 @@ export function createObjectStorage(cfg: AppConfig): ObjectStorage {
   return {
     async put(key: string, data: Buffer) {
       await ensureBucket();
+      const contentType = key.endsWith(".webp") ? "image/webp" : "image/jpeg";
       await client.putObject(cfg.minio.bucket, key, data, data.length, {
-        "Content-Type": "image/jpeg",
+        "Content-Type": contentType,
       });
     },
     async get(key: string): Promise<Buffer> {

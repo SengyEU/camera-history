@@ -85,6 +85,13 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
         "latitude and longitude are required when daylightOnly is enabled",
       );
     }
+    let showNight = false;
+    if (body.showNight !== undefined) {
+      if (typeof body.showNight !== "boolean") {
+        throw new HttpError(400, "bad_request", "showNight must be a boolean");
+      }
+      showNight = body.showNight;
+    }
 
     const camera = await deps.repos.createCamera(req.user!.tenantId, {
       name,
@@ -99,6 +106,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       latitude,
       longitude,
       daylightOnly,
+      showNight,
     });
     return reply.code(201).send({ camera });
   });
@@ -134,6 +142,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
           "latitude",
           "longitude",
           "daylightOnly",
+          "showNight",
         ].includes(k),
       ),
     );
@@ -164,6 +173,9 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
         "bad_request",
         "latitude and longitude are required when daylightOnly is enabled",
       );
+    }
+    if (patch.showNight !== undefined && typeof patch.showNight !== "boolean") {
+      throw new HttpError(400, "bad_request", "showNight must be a boolean");
     }
     if (patch.latitude !== undefined) patch.latitude = effectiveLatitude;
     if (patch.longitude !== undefined) patch.longitude = effectiveLongitude;
