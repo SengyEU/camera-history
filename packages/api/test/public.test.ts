@@ -287,6 +287,39 @@ describe("public routes", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("rejects calendar-invalid dates on the images route with a 400 problem", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCamera(repos);
+
+    for (const date of ["2026-02-30", "2026-13-01"]) {
+      const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=${date}` });
+      expect(res.statusCode).toBe(400);
+      expect(res.headers["content-type"]).toContain("application/problem+json");
+      expect(res.json()).toMatchObject({
+        type: "about:blank",
+        title: "bad_request",
+        status: 400,
+        detail: "date must be a valid calendar date",
+      });
+    }
+
+    const ok = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-09-18` });
+    expect(ok.statusCode).toBe(200);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects calendar-invalid dates on the file route with a 400 problem", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCamera(repos);
+    const res = await app.inject({
+      url: `/api/v1/cameras/${camera.id}/2026-02-30/120000.jpg`,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.headers["content-type"]).toContain("application/problem+json");
+    expect(res.json().detail).toBe("date must be a valid calendar date");
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("returns 404 for missing image file", async () => {
     const { app, repos } = makeApp();
     const camera = await seedCamera(repos);

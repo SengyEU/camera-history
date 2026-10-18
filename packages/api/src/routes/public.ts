@@ -17,9 +17,30 @@ export type PublicRouteDeps = {
   storage: ObjectStorage;
 };
 
-const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+const dateRe = /^(\d{4})-(\d{2})-(\d{2})$/;
 const fileRe = /^\d{6}\.(webp|jpg)$/;
 const notFound = () => rfc7807(404, "not_found", "Camera not found");
+
+function dayRangeOrNull(date: string, timezone: string): { start: Date; end: Date } | null {
+  const match = dateRe.exec(date);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  try {
+    return dayRangeInZone(date, timezone);
+  } catch {
+    return null;
+  }
+}
 
 export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (app, deps) => {
   const { cfg, repos, storage } = deps;
@@ -45,7 +66,14 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           .send(rfc7807(400, "bad_request", "date must be YYYY-MM-DD"));
       }
 
-      const range = dayRangeInZone(date, cam.timezone);
+      const range = dayRangeOrNull(date, cam.timezone);
+      if (!range) {
+        return reply
+          .code(400)
+          .type("application/problem+json")
+          .send(rfc7807(400, "bad_request", "date must be a valid calendar date"));
+      }
+
       const cutoff = retentionCutoff(cam.retentionMonths);
       const gated = gatedRange(range.start, range.end, cutoff);
       const data =
@@ -103,7 +131,14 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           .send(rfc7807(400, "bad_request", "invalid path"));
       }
 
-      const range = dayRangeInZone(date, cam.timezone);
+      const range = dayRangeOrNull(date, cam.timezone);
+      if (!range) {
+        return reply
+          .code(400)
+          .type("application/problem+json")
+          .send(rfc7807(400, "bad_request", "date must be a valid calendar date"));
+      }
+
       const cutoff = retentionCutoff(cam.retentionMonths);
       const gated = gatedRange(range.start, range.end, cutoff);
       const data =
