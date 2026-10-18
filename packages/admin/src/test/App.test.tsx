@@ -463,10 +463,13 @@ describe("App groups", () => {
     expect(JSON.parse(String(patch!.init?.body))).toEqual({ name: "Summit Ridge", slug: "summit" });
 
     await userEvent.click(screen.getByTestId("group-delete-grp-1"));
+    await screen.findByText(/Delete group "Summit Ridge"\? Cameras stay/);
+    await userEvent.click(screen.getByTestId("confirm-delete-group"));
     await waitFor(() =>
       expect(calls.some((c) => c.u.endsWith("/api/v1/admin/groups/grp-1") && c.init?.method === "DELETE")).toBe(true),
     );
     expect(screen.queryByTestId("group-grp-1")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("confirm-delete-group")).not.toBeInTheDocument();
 
     window.location.hash = "";
   });

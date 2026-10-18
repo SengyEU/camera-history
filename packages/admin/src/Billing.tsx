@@ -9,6 +9,14 @@ const STATUS_LABELS: Record<BillingStatus, string> = {
   canceled: "canceled",
 };
 
+const STATUS_PILL: Record<BillingStatus, string> = {
+  none: "pill pill-neutral",
+  active: "pill pill-operational",
+  past_due: "pill pill-delayed",
+  unpaid: "pill pill-offline",
+  canceled: "pill pill-offline",
+};
+
 function formatBytes(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} MB`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)} kB`;
@@ -64,7 +72,7 @@ export function BillingPage() {
     <section className="panel" data-testid="billing-page">
       <div className="panel-head">
         <h2>Billing</h2>
-        <span className={`status status-${data.billingStatus}`}>{STATUS_LABELS[data.billingStatus]}</span>
+        <span className={STATUS_PILL[data.billingStatus]}>{STATUS_LABELS[data.billingStatus]}</span>
       </div>
       {!data.billingEnabled && <p className="notice">Billing is not enabled right now.</p>}
       {notice && (
@@ -80,8 +88,9 @@ export function BillingPage() {
       {(data.billingStatus === "unpaid" || data.billingStatus === "canceled") && (
         <p className="notice danger">Account is not active. Restore payment to enable cameras.</p>
       )}
-      <p data-testid="current-plan">
-        Current plan: {data.tiers.find((t) => t.current)?.label ?? "—"} · {data.price ?? "—"} € / camera
+      <p data-testid="current-plan" className="current-plan">
+        Current plan: {data.tiers.find((t) => t.current)?.label ?? "—"} ·{" "}
+        <span className="plan-price">{data.price ?? "—"} €</span> / camera
       </p>
       <div className="plan-grid">
         {data.tiers.map((tier) => (
@@ -94,7 +103,7 @@ export function BillingPage() {
               onChange={() => setSelected(tier.months)}
             />
             <strong>{tier.label}</strong>
-            <span>{tier.eurPerCamera} € / camera / month</span>
+            <span className="plan-price">{tier.eurPerCamera} € / camera / month</span>
             {tier.current && <em>current</em>}
           </label>
         ))}

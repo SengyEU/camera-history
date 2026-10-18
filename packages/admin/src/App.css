@@ -16,13 +16,6 @@
   --radius: 10px;
   --font-ui: "Archivo Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  /* Legacy aliases — existing views (table, groups, billing) keep working until Task 4 reworks them */
-  --bg: var(--snow);
-  --text: var(--ink);
-  --border: var(--line);
-  --accent: var(--glacier);
-  --accent-weak: var(--glacier-weak);
-  --danger: var(--red);
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.08);
 }
 
@@ -137,19 +130,27 @@ button.link:hover {
   font-weight: 600;
 }
 
+.pill.pill-operational,
 .pill.operational {
   background: #dcfce7;
   color: var(--pine);
 }
 
+.pill.pill-delayed,
 .pill.delayed {
   background: #fef3c7;
   color: var(--amber);
 }
 
+.pill.pill-offline,
 .pill.offline {
   background: #fee2e2;
   color: var(--red);
+}
+
+.pill.pill-neutral {
+  background: var(--snow);
+  color: var(--muted);
 }
 
 /* Auth screens — login/register cards */
@@ -348,31 +349,8 @@ button.link:hover {
   margin: 0;
 }
 
-.status {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.status-operational {
-  background: #dcfce7;
-  color: var(--pine);
-}
-
-.status-delayed {
-  background: #fef3c7;
-  color: var(--amber);
-}
-
-.status-offline {
-  background: #fee2e2;
-  color: var(--red);
-}
-
 .thumb {
-  height: 40px;
+  height: 48px;
   border-radius: 6px;
   border: 1px solid var(--line);
 }
@@ -401,14 +379,24 @@ button.link:hover {
 
 .modal-body h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
 }
 
 .modal-body label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 6px;
   font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.modal-body input,
+.modal-body select {
+  font-weight: 400;
 }
 
 .form-row {
@@ -461,6 +449,13 @@ button.link:hover {
   padding: 12px;
   border-radius: var(--radius);
   cursor: pointer;
+  background: var(--surface);
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease;
+}
+
+.plan-card:hover {
+  border-color: var(--glacier);
 }
 
 .plan-card:has(input:checked) {
@@ -470,6 +465,27 @@ button.link:hover {
 
 .plan-card input {
   accent-color: var(--glacier);
+}
+
+.plan-card strong {
+  font-weight: 700;
+}
+
+.plan-price {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.plan-card em {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--glacier-deep);
+}
+
+.current-plan {
+  font-size: 0.95rem;
 }
 
 .usage-stats {
@@ -488,6 +504,12 @@ button.link:hover {
 .usage-stats dt {
   color: var(--muted);
   font-size: 0.85em;
+}
+
+.usage-stats dd {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-weight: 500;
 }
 
 .notice {
@@ -581,8 +603,14 @@ button.link:hover {
 
 .group-slug {
   font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--muted);
-  font-size: 0.85rem;
+  background: var(--snow);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 8px;
 }
 
 .group-count {
@@ -610,6 +638,12 @@ button.link:hover {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.group-embed-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .group-embed iframe {

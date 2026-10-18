@@ -47,7 +47,7 @@ function Login({ onSuccess, onRegister }: { onSuccess: (email: string) => void; 
         <span className="auth-brand-name">Camera History</span>
         <span className="ts-chip">ADMIN</span>
       </div>
-      <h1>Camera History Admin</h1>
+      <h1>Sign in</h1>
       <label className="field" htmlFor="login-email">
         Email
         <input
@@ -389,11 +389,17 @@ function CameraRow({
       <td>{FEED_LABELS[cam.feedType]}</td>
       <td>{cam.enabled ? "yes" : "no"}</td>
       <td>
-        <span className={`status status-${cam.status}`} data-testid={`status-${cam.id}`}>
+        <span className={`pill pill-${cam.status}`} data-testid={`status-${cam.id}`}>
           {STATUS_LABELS[cam.status]}
         </span>
       </td>
-      <td>{cam.lastCaptureAt ? new Date(cam.lastCaptureAt).toLocaleString() : "—"}</td>
+      <td>
+        {cam.lastCaptureAt ? (
+          <span className="ts-chip">{new Date(cam.lastCaptureAt).toLocaleString()}</span>
+        ) : (
+          "—"
+        )}
+      </td>
       <td data-testid={`last-error-${cam.id}`} className="cell-error">
         {cam.lastError ?? "—"}
       </td>
@@ -434,6 +440,7 @@ function GroupsView({
   const [editSlug, setEditSlug] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<AdminGroup | null>(null);
 
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
@@ -481,6 +488,13 @@ function GroupsView({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
+  };
+
+  const confirmRemove = async () => {
+    if (!deleting) return;
+    const target = deleting;
+    setDeleting(null);
+    await remove(target);
   };
 
   const toggleCamera = async (g: AdminGroup, cameraId: string, checked: boolean) => {
@@ -610,7 +624,7 @@ function GroupsView({
                     >
                       Rename
                     </button>
-                    <button className="danger" onClick={() => void remove(g)} data-testid={`group-delete-${g.id}`}>
+                    <button className="danger" onClick={() => setDeleting(g)} data-testid={`group-delete-${g.id}`}>
                       Delete
                     </button>
                   </div>
@@ -635,7 +649,10 @@ function GroupsView({
                 )}
               </div>
               <div className="group-embed">
-                <h4>Embed snippet</h4>
+                <div className="group-embed-head">
+                  <h4>Embed snippet</h4>
+                  <span className="ts-chip">EMBED</span>
+                </div>
                 {tenantSlug ? (
                   <>
                     <iframe
@@ -668,6 +685,23 @@ function GroupsView({
             </li>
           ))}
         </ul>
+      )}
+      {deleting !== null && (
+        <div className="modal">
+          <div className="modal-body">
+            <p>
+              Delete group &quot;{deleting.name}&quot;? Cameras stay — only the group goes away.
+            </p>
+            <div className="form-actions">
+              <button className="danger" onClick={() => void confirmRemove()} data-testid="confirm-delete-group">
+                Delete
+              </button>
+              <button className="secondary" onClick={() => setDeleting(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );
