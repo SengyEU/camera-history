@@ -66,6 +66,7 @@ beforeEach(() => {
     name: "Pláž",
     theme: "light",
     retentionMonths: 12,
+    showNight: false,
   }));
   vi.mocked(getImages).mockImplementation(async () => defaultImages);
   vi.mocked(getCameraLatest).mockResolvedValue(null);
@@ -550,12 +551,70 @@ describe("App widget", () => {
     expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true");
   });
 
+  it("defaults the night toggle to on when the camera shows night images by default", async () => {
+    vi.mocked(getCamera).mockResolvedValueOnce({
+      id: "cam-1",
+      name: "Pláž",
+      theme: "light",
+      retentionMonths: 12,
+      showNight: true,
+    });
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+    ]);
+    render(<App />);
+
+    await screen.findByText("Pláž");
+    await waitFor(() =>
+      expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true"),
+    );
+    expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
+    expect(screen.getByTestId("frame-n1")).toBeInTheDocument();
+  });
+
+  it("defaults the night toggle to off when the camera does not show night images by default", async () => {
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+    ]);
+    render(<App />);
+
+    await screen.findByText("Pláž");
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
+    expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
+  });
+
+  it("keeps a manual night toggle across date changes", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+    ]);
+    render(<App />);
+    await screen.findByText("Pláž");
+
+    const toggle = screen.getByTestId("night-toggle");
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+
+    await user.click(screen.getByLabelText("Next day"));
+    await waitFor(() =>
+      expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"),
+    );
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByTestId("frame-n1")).toBeInTheDocument();
+  });
+
   it("applies the camera theme as data-theme", async () => {
     vi.mocked(getCamera).mockResolvedValueOnce({
       id: "cam-1",
       name: "Pláž",
       theme: "forest",
       retentionMonths: 12,
+      showNight: false,
     });
     render(<App />);
     await screen.findByText("Pláž");
@@ -576,6 +635,7 @@ describe("App widget", () => {
       name: "Pláž",
       theme: "forest",
       retentionMonths: 12,
+      showNight: false,
     });
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&theme=neon");
     render(<App />);
@@ -587,8 +647,8 @@ describe("App widget", () => {
 const summitGroup = {
   group: { id: "g1", name: "Summit", slug: "summit" },
   cameras: [
-    { id: "cam-a", name: "Alpha", theme: "light" },
-    { id: "cam-b", name: "Beta", theme: "dark" },
+    { id: "cam-a", name: "Alpha", theme: "light", showNight: false },
+    { id: "cam-b", name: "Beta", theme: "dark", showNight: false },
   ],
 };
 
@@ -767,5 +827,32 @@ describe("App group widget", () => {
     const select = await screen.findByTestId("camera-switcher");
     await waitFor(() => expect(select).toHaveValue("cam-a"));
     expect(await screen.findByTestId("frame-cam-a-2026-10-10")).toBeInTheDocument();
+  });
+
+  it("syncs the night toggle to the selected camera's default", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue({
+      group: { id: "g1", name: "Summit", slug: "summit" },
+      cameras: [
+        { id: "cam-a", name: "Alpha", theme: "light", showNight: true },
+        { id: "cam-b", name: "Beta", theme: "dark", showNight: false },
+      ],
+    });
+    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
+      makeImage(`${cameraId}-${date}`, `${date}T09:00:00`, `/api/v1/${cameraId}.jpg`),
+    ]);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    await screen.findByTestId("frame-cam-a-2026-10-10");
+    const toggle = screen.getByTestId("night-toggle");
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"));
+
+    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "false"));
+
+    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-a");
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"));
   });
 });

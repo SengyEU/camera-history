@@ -173,7 +173,7 @@ export function App() {
   const widgetRoute = useMemo(() => parseWidgetPath(window.location.pathname), []);
   const groupRoute = useMemo(() => parseGroupPath(window.location.pathname), []);
 
-  const [camera, setCamera] = useState<{ name: string; retentionMonths: number; theme: string } | null>(null);
+  const [camera, setCamera] = useState<{ name: string; retentionMonths: number; theme: string; showNight: boolean } | null>(null);
   const [group, setGroup] = useState<PublicGroup | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [images, setImages] = useState<ImageDto[]>([]);
@@ -233,6 +233,14 @@ export function App() {
   }, [groupRoute]);
 
   const isGroup = !!groupRoute;
+
+  useEffect(() => {
+    if (camera) setNightOn(camera.showNight);
+  }, [camera]);
+
+  useEffect(() => {
+    if (selectedCamera) setNightOn(selectedCamera.showNight);
+  }, [selectedCamera]);
 
   useEffect(() => {
     setOpenId(null);

@@ -3,6 +3,7 @@ export interface PublicCamera {
   name: string;
   theme: string;
   retentionMonths: number;
+  showNight: boolean;
 }
 
 export interface ImageDto {
@@ -30,6 +31,7 @@ export interface GroupCamera {
   id: string;
   name: string;
   theme: string;
+  showNight: boolean;
 }
 
 export interface PublicGroup {
