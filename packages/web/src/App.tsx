@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { getCamera, getCameraLatest, getGroup, getImages, type ImageDto, type PublicGroup } from "./api";
+import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
+import { SharePopup } from "./SharePopup";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
@@ -34,15 +36,30 @@ function toLocalInputValue(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function shiftDay(date: string, delta: number): string {
+  const d = new Date(`${date}T12:00:00`);
+  d.setDate(d.getDate() + delta);
+  return toLocalInputValue(d);
+}
+
 interface WidgetBodyProps {
   title: string;
   date: string;
-  setDate: (d: string) => void;
-  theme: string;
-  images: ImageDto[];
-  loading: boolean;
+  onDateChange: (date: string) => void;
   minDate?: string;
-  shareCameraId?: string | null;
+  theme: string;
+  loading: boolean;
+  images: ImageDto[];
+  visibleImages: ImageDto[];
+  nightOn: boolean;
+  onToggleNight: () => void;
+  onShowNight: () => void;
+  openId: string | null;
+  onOpenChange: (id: string | null) => void;
+  onShare: (image: ImageDto) => void;
+  shareImage: ImageDto | null;
+  shareUrl: string;
+  onCloseShare: () => void;
   switcher?: ReactNode;
   children?: ReactNode;
 }
@@ -50,116 +67,103 @@ interface WidgetBodyProps {
 function WidgetBody({
   title,
   date,
-  setDate,
-  theme,
-  images,
-  loading,
+  onDateChange,
   minDate,
-  shareCameraId,
+  theme,
+  loading,
+  images,
+  visibleImages,
+  nightOn,
+  onToggleNight,
+  onShowNight,
+  openId,
+  onOpenChange,
+  onShare,
+  shareImage,
+  shareUrl,
+  onCloseShare,
   switcher,
   children,
 }: WidgetBodyProps) {
-  const [openImage, setOpenImage] = useState<string | null>(() => {
-    const p = new URLSearchParams(window.location.search);
-    return p.get("img") ?? null;
-  });
-  const [modalUrl, setModalUrl] = useState<string>("");
-  const [copied, setCopied] = useState<boolean>(false);
-  const copyTimer = useRef<number | undefined>(undefined);
-
-  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
-
-  const shiftDay = (delta: number) => {
-    const d = new Date(`${date}T12:00:00`);
-    d.setDate(d.getDate() + delta);
-    setDate(toLocalInputValue(d));
-  };
-
-  const buildShareUrl = (img: ImageDto) => {
-    const p = new URLSearchParams({ date, img: img.id });
-    p.set("theme", theme);
-    if (shareCameraId) p.set("camera", shareCameraId);
-    return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
-  };
-
-  const openImg = openImage ? images.find((i) => i.id === openImage) : undefined;
+  const today = toLocalInputValue(new Date());
 
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       <div className="widget-header">
         <span className="widget-title">{title}</span>
         {switcher}
-        <div className="widget-nav">
-          <button onClick={() => shiftDay(-1)} aria-label="Previous day">
-            {"<"}
-          </button>
-          <input
-            type="date"
-            value={date}
-            min={minDate || undefined}
-            max={toLocalInputValue(new Date())}
-            onChange={(e) => setDate(e.target.value || date)}
-          />
-          <button onClick={() => shiftDay(1)} aria-label="Next day">
-            {">"}
+        <button
+          type="button"
+          className="night-toggle"
+          data-testid="night-toggle"
+          role="switch"
+          aria-checked={nightOn}
+          aria-pressed={nightOn}
+          onClick={onToggleNight}
+        >
+          <span className="night-toggle-track" aria-hidden="true">
+            <span className="night-toggle-thumb" />
+          </span>
+          Night images
+        </button>
+      </div>
+      {loading ? (
+        <FilmStrip images={[]} loading openId={null} onOpenChange={() => {}} onShare={() => {}} />
+      ) : images.length === 0 ? (
+        <>
+          <p className="empty">No images for this date.</p>
+          <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
+        </>
+      ) : visibleImages.length === 0 ? (
+        <div className="night-empty">
+          <p>Every capture today is a night shot.</p>
+          <button type="button" className="show-night" data-testid="show-night" onClick={onShowNight}>
+            Show night images
           </button>
         </div>
+      ) : (
+        <FilmStrip
+          images={visibleImages}
+          loading={false}
+          openId={openId}
+          onOpenChange={onOpenChange}
+          onShare={onShare}
+        />
+      )}
+      <div className="date-nav" data-testid="date-nav">
+        <button
+          type="button"
+          aria-label="Previous day"
+          disabled={minDate ? date <= minDate : false}
+          onClick={() => onDateChange(shiftDay(date, -1))}
+        >
+          ‹
+        </button>
+        <input
+          type="date"
+          aria-label="Date"
+          value={date}
+          min={minDate || undefined}
+          max={today}
+          onChange={(event) => {
+            if (event.target.value) onDateChange(event.target.value);
+          }}
+        />
+        <button
+          type="button"
+          aria-label="Next day"
+          disabled={date >= today}
+          onClick={() => onDateChange(shiftDay(date, 1))}
+        >
+          ›
+        </button>
       </div>
-      <div className="widget-grid" data-testid="image-grid">
-        {loading ? (
-          Array.from({ length: 8 }, (_, i) => (
-            <div key={`skeleton-${i}`} className="skeleton" aria-hidden="true" />
-          ))
-        ) : (
-          <>
-            {images.length === 0 && (
-              <>
-                <p className="empty">No images for this date.</p>
-                <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
-              </>
-            )}
-            {images.map((img) => (
-              <button
-                key={img.id}
-                className="widget-cell"
-                data-testid={`image-${img.id}`}
-                onClick={() => {
-                  setCopied(false);
-                  setOpenImage(openImage === img.id ? null : img.id);
-                }}
-              >
-                <img src={img.url} alt={img.timestamp} loading="lazy" />
-                <span className="ts-chip">{new Date(img.timestamp).toLocaleTimeString()}</span>
-              </button>
-            ))}
-          </>
-        )}
-      </div>
-      {openImage && openImg && (
-        <div className="modal" data-testid="share-modal" onClick={() => setOpenImage(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setOpenImage(null)}>
-              ×
-            </button>
-            <img src={openImg.url} alt="selected" data-testid="modal-image" />
-            <div className="modal-actions">
-              <button
-                onClick={() => {
-                  const url = buildShareUrl(openImg);
-                  navigator.clipboard?.writeText(url);
-                  setModalUrl(url);
-                  setCopied(true);
-                  window.clearTimeout(copyTimer.current);
-                  copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
-                }}
-              >
-                Copy link
-              </button>
-              <span className="share-url">{modalUrl}</span>
-              {copied && <span className="copied">Copied</span>}
-            </div>
-          </div>
-        </div>
+      {shareImage && (
+        <SharePopup
+          title={viewerCaptureLabel(shareImage.timestamp)}
+          url={shareUrl}
+          onClose={onCloseShare}
+        />
       )}
       {children}
     </div>
@@ -175,6 +179,9 @@ export function App() {
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [images, setImages] = useState<ImageDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [nightOn, setNightOn] = useState<boolean>(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [shareImage, setShareImage] = useState<ImageDto | null>(null);
   const [date, setDate] = useState(() => {
     const p = new URLSearchParams(window.location.search);
     return p.get("date") ?? toLocalInputValue(new Date());
@@ -183,6 +190,7 @@ export function App() {
     attempted: new Set(),
     latest: new Map(),
   });
+  const deepLinkAppliedRef = useRef(false);
 
   const cameraId = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
   const selectedCamera =
@@ -190,7 +198,7 @@ export function App() {
 
   const minDate = camera
     ? toLocalInputValue(new Date(Date.now() - camera.retentionMonths * 30 * 24 * 3600 * 1000))
-    : "";
+    : undefined;
 
   const theme = useMemo(
     () =>
@@ -266,6 +274,63 @@ export function App() {
     };
   }, [cameraId, date, isGroup]);
 
+  const visibleImages = useMemo(
+    () => (nightOn ? images : images.filter((i) => i.isDaylight)),
+    [images, nightOn],
+  );
+
+  useEffect(() => {
+    if (loading || images.length === 0 || deepLinkAppliedRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const hourParam = params.get("hour");
+    const imgParam = params.get("img");
+    let match: ImageDto | undefined;
+    if (hourParam !== null) {
+      const hour = Number.parseInt(hourParam, 10);
+      if (Number.isFinite(hour)) {
+        match = images.find((image) => new Date(image.timestamp).getHours() === hour);
+      }
+    } else if (imgParam) {
+      match = images.find((image) => image.id === imgParam);
+    }
+    deepLinkAppliedRef.current = true;
+    if (match) {
+      if (!match.isDaylight) setNightOn(true);
+      setOpenId(match.id);
+    }
+  }, [loading, images]);
+
+  const changeDate = (next: string) => {
+    if (!next) return;
+    if (minDate && next < minDate) return;
+    if (next > toLocalInputValue(new Date())) return;
+    setDate(next);
+    setOpenId(null);
+    setShareImage(null);
+    const params = new URLSearchParams(window.location.search);
+    params.set("date", next);
+    params.delete("hour");
+    params.delete("img");
+    window.history.replaceState(null, "", `?${params.toString()}`);
+  };
+
+  const shareUrl = useMemo(() => {
+    if (!shareImage) return "";
+    const params = new URLSearchParams();
+    const current = new URLSearchParams(window.location.search);
+    const themeParam = current.get("theme");
+    if (themeParam) params.set("theme", themeParam);
+    if (isGroup && selectedCameraId) params.set("camera", selectedCameraId);
+    params.set("date", date);
+    params.set("hour", String(new Date(shareImage.timestamp).getHours()));
+    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  }, [shareImage, date, isGroup, selectedCameraId]);
+
+  const handleOpenChange = (id: string | null) => {
+    setOpenId(id);
+    if (id === null) setShareImage(null);
+  };
+
   if (groupRoute) {
     if (group && group.cameras.length === 0) {
       return (
@@ -280,11 +345,20 @@ export function App() {
       <WidgetBody
         title={group?.group.name ?? "Group"}
         date={date}
-        setDate={setDate}
+        onDateChange={changeDate}
         theme={theme}
-        images={images}
         loading={loading}
-        shareCameraId={selectedCameraId}
+        images={images}
+        visibleImages={visibleImages}
+        nightOn={nightOn}
+        onToggleNight={() => setNightOn((value) => !value)}
+        onShowNight={() => setNightOn(true)}
+        openId={openId}
+        onOpenChange={handleOpenChange}
+        onShare={setShareImage}
+        shareImage={shareImage}
+        shareUrl={shareUrl}
+        onCloseShare={() => setShareImage(null)}
         switcher={
           group ? (
             <select
@@ -310,11 +384,21 @@ export function App() {
     <WidgetBody
       title={camera?.name ?? "Camera"}
       date={date}
-      setDate={setDate}
+      onDateChange={changeDate}
+      minDate={minDate}
       theme={theme}
-      images={images}
       loading={loading}
-      minDate={minDate || undefined}
+      images={images}
+      visibleImages={visibleImages}
+      nightOn={nightOn}
+      onToggleNight={() => setNightOn((value) => !value)}
+      onShowNight={() => setNightOn(true)}
+      openId={openId}
+      onOpenChange={handleOpenChange}
+      onShare={setShareImage}
+      shareImage={shareImage}
+      shareUrl={shareUrl}
+      onCloseShare={() => setShareImage(null)}
     >
       {!widgetRoute && <p className="error">Invalid widget URL. Use /widget/{"{tenant}"}/{"{camera_id}"}</p>}
     </WidgetBody>

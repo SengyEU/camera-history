@@ -9,6 +9,7 @@ export interface ImageDto {
   id: string;
   timestamp: string;
   url: string;
+  isDaylight: boolean;
 }
 
 export async function getCamera(cameraId: string): Promise<PublicCamera> {
