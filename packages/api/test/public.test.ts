@@ -62,7 +62,12 @@ describe("public routes", () => {
     const camera = await seedCamera(repos);
     const res = await app.inject({ url: `/api/v1/cameras/${camera.id}` });
     expect(res.statusCode).toBe(200);
-    expect(res.json().camera).toMatchObject({ id: camera.id, name: "Main", retentionMonths: 12 });
+    expect(res.json().camera).toMatchObject({
+      id: camera.id,
+      name: "Main",
+      timezone: "UTC",
+      retentionMonths: 12,
+    });
     await (app as { close: () => Promise<void> }).close();
   });
 
@@ -134,12 +139,35 @@ describe("public routes", () => {
       timestamps: ["2026-10-18T00:00:00Z", "2026-10-18T13:00:00Z"],
     });
 
-    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
-    expect(res.statusCode).toBe(200);
-    const images = res.json().images as Record<string, unknown>[];
-    expect(images).toHaveLength(2);
-    expect(images[0]).toMatchObject({ timestamp: "2026-10-18T00:00:00.000Z", isDaylight: true });
-    expect(images[1]).toMatchObject({ timestamp: "2026-10-18T13:00:00.000Z", isDaylight: false });
+    const local17 = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-17` });
+    expect(local17.statusCode).toBe(200);
+    const images17 = local17.json().images as Record<string, unknown>[];
+    expect(images17).toHaveLength(1);
+    expect(images17[0]).toMatchObject({ timestamp: "2026-10-18T00:00:00.000Z", isDaylight: true });
+
+    const local18 = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
+    expect(local18.statusCode).toBe(200);
+    const images18 = local18.json().images as Record<string, unknown>[];
+    expect(images18).toHaveLength(1);
+    expect(images18[0]).toMatchObject({ timestamp: "2026-10-18T13:00:00.000Z", isDaylight: false });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("groups images by the camera-local calendar day", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCameraWithImages(repos, {
+      timezone: "America/Edmonton",
+      timestamps: ["2026-10-18T00:12:00Z"],
+    });
+
+    const local17 = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-17` });
+    expect(local17.statusCode).toBe(200);
+    expect(local17.json().images).toHaveLength(1);
+    expect(local17.json().images[0].timestamp).toBe("2026-10-18T00:12:00.000Z");
+
+    const local18 = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
+    expect(local18.statusCode).toBe(200);
+    expect(local18.json().images).toHaveLength(0);
     await (app as { close: () => Promise<void> }).close();
   });
 
@@ -170,7 +198,7 @@ describe("public routes", () => {
       timestamps: ["2026-10-18T04:00:00Z"],
     });
 
-    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-17` });
     expect(res.statusCode).toBe(200);
     const images = res.json().images as Record<string, unknown>[];
     expect(images).toHaveLength(1);
@@ -187,7 +215,7 @@ describe("public routes", () => {
       timezone: "Europe/Oslo",
       latitude: 69.65,
       longitude: 18.96,
-      timestamps: ["2026-06-21T10:00:00Z", "2026-06-21T22:00:00Z"],
+      timestamps: ["2026-06-21T10:00:00Z", "2026-06-21T21:00:00Z"],
     });
 
     const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-06-21` });
@@ -291,8 +319,8 @@ describe("public routes", () => {
     const t = await repos.createTenant({ name: "T", slug: "t-one" });
     const cam = await repos.createCamera(t.id, {
       name: "Zulu", feedType: "static_url", feedUrl: "https://e.com/z.jpg",
-      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC", theme: "dark",
-      showNight: true,
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59",
+      timezone: "America/Edmonton", theme: "dark", showNight: true,
     });
     const off = await repos.createCamera(t.id, {
       name: "Off", feedType: "static_url", feedUrl: "https://e.com/o.jpg",
@@ -305,7 +333,9 @@ describe("public routes", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.group.slug).toBe("g-one");
-    expect(body.cameras).toEqual([{ id: cam.id, name: "Zulu", theme: "dark", showNight: true }]);
+    expect(body.cameras).toEqual([
+      { id: cam.id, name: "Zulu", theme: "dark", timezone: "America/Edmonton", showNight: true },
+    ]);
   });
 
   it("404s for unknown public group with a group-specific detail", async () => {
@@ -341,5 +371,24 @@ describe("public routes", () => {
 
     const missing = await app.inject({ method: "GET", url: "/api/v1/cameras/00000000-0000-0000-0000-000000000000/latest" });
     expect(missing.statusCode).toBe(404);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("returns the camera-local date for a latest capture near UTC midnight", async () => {
+    const { app, repos } = makeApp();
+    const t = await repos.createTenant({ name: "T", slug: "t-latest-tz" });
+    const cam = await repos.createCamera(t.id, {
+      name: "C", feedType: "static_url", feedUrl: "https://e.com/c.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "America/Edmonton",
+    });
+    await repos.insertImage({
+      cameraId: cam.id, timestamp: new Date("2026-10-18T02:00:00Z"),
+      storageKey: "org/x/2026-10-17/200000.jpg", sizeBytes: 1,
+    });
+
+    const res = await app.inject({ method: "GET", url: `/api/v1/cameras/${cam.id}/latest` });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ date: "2026-10-17", timestamp: "2026-10-18T02:00:00.000Z" });
+    await (app as { close: () => Promise<void> }).close();
   });
 });

@@ -106,6 +106,7 @@ export function createRepos(db: Db): Repos {
           id: cameras.id,
           name: cameras.name,
           theme: cameras.theme,
+          timezone: cameras.timezone,
           retentionMonths: tenants.planMonths,
           latitude: cameras.latitude,
           longitude: cameras.longitude,
@@ -120,6 +121,7 @@ export function createRepos(db: Db): Repos {
             id: row.id,
             name: row.name,
             theme: row.theme,
+            timezone: row.timezone,
             retentionMonths: Number(row.retentionMonths ?? 12),
             latitude: row.latitude,
             longitude: row.longitude,
@@ -260,6 +262,7 @@ export function createRepos(db: Db): Repos {
           cameraId: cameras.id,
           cname: cameras.name,
           ctheme: cameras.theme,
+          ctimezone: cameras.timezone,
           cenabled: cameras.enabled,
           cshowNight: cameras.showNight,
         })
@@ -272,7 +275,13 @@ export function createRepos(db: Db): Repos {
       const group = { id: rows[0]!.groupId, name: rows[0]!.gname, slug: rows[0]!.gslug };
       const cams = rows
         .filter((r) => r.cameraId && r.cenabled)
-        .map((r) => ({ id: r.cameraId!, name: r.cname!, theme: r.ctheme!, showNight: r.cshowNight! }))
+        .map((r) => ({
+          id: r.cameraId!,
+          name: r.cname!,
+          theme: r.ctheme!,
+          timezone: r.ctimezone!,
+          showNight: r.cshowNight!,
+        }))
         .sort((a, b) => a.name.localeCompare(b.name));
       return { group, cameras: cams };
     },

@@ -64,6 +64,7 @@ export interface PublicCamera {
   id: string;
   name: string;
   theme: string;
+  timezone: string;
   retentionMonths: number;
   latitude: number | null;
   longitude: number | null;
@@ -150,6 +151,7 @@ export interface PublicGroupCamera {
   id: string;
   name: string;
   theme: string;
+  timezone: string;
   showNight: boolean;
 }
 

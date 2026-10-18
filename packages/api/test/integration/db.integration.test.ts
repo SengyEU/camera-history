@@ -68,6 +68,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     const pub = await repos.getPublicCamera(withCoords.id);
     expect(pub?.latitude).toBeCloseTo(51.425);
     expect(pub?.longitude).toBeCloseTo(-116.177);
+    expect(pub?.timezone).toBe("America/Edmonton");
 
     const plain = await repos.createCamera(tenant.id, {
       name: "Plain", feedType: "static_url", feedUrl: "https://e.com/plain.jpg",
@@ -109,6 +110,7 @@ describe.skipIf(!RUN)("PG integration", () => {
 
     const pub = await repos.getPublicCamera(night.id);
     expect(pub?.showNight).toBe(true);
+    expect(pub?.timezone).toBe("UTC");
 
     const plain = await repos.createCamera(tenant.id, {
       name: "Plain", feedType: "static_url", feedUrl: "https://e.com/p.jpg",
@@ -152,6 +154,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     expect(pub?.group.slug).toBe("summit");
     expect(pub?.cameras.map((c) => c.id)).toEqual([a.id]); // disabled Beta excluded
     expect(pub?.cameras[0]?.showNight).toBe(true); // per-camera showNight reaches the group DTO
+    expect(pub?.cameras[0]?.timezone).toBe("UTC"); // camera timezone reaches the group DTO
     expect(await repos.getGroupBySlug(tenant.slug, "nope")).toBeNull();
 
     const noop = await repos.updateGroup(g.id, {});

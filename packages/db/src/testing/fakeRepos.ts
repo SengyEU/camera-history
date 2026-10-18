@@ -126,6 +126,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         id: cam.id,
         name: cam.name,
         theme: cam.theme,
+        timezone: cam.timezone,
         retentionMonths: tenant?.planMonths ?? 12,
         latitude: cam.latitude,
         longitude: cam.longitude,
@@ -231,7 +232,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         .filter((m) => m.cameraGroupId === group.id)
         .map((m) => db.cameras.find((c) => c.id === m.cameraId))
         .filter((c): c is Camera => !!c && c.enabled)
-        .map((c) => ({ id: c.id, name: c.name, theme: c.theme, showNight: c.showNight }))
+        .map((c) => ({ id: c.id, name: c.name, theme: c.theme, timezone: c.timezone, showNight: c.showNight }))
         .sort((a, b) => a.name.localeCompare(b.name));
       return { group: { id: group.id, name: group.name, slug: group.slug }, cameras: cams };
     },

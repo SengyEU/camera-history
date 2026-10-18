@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import {
-  dayRangeUtc,
+  dayRangeInZone,
   gatedRange,
   localDateInZone,
   localHourInZone,
@@ -45,7 +45,7 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           .send(rfc7807(400, "bad_request", "date must be YYYY-MM-DD"));
       }
 
-      const range = dayRangeUtc(date);
+      const range = dayRangeInZone(date, cam.timezone);
       const cutoff = retentionCutoff(cam.retentionMonths);
       const gated = gatedRange(range.start, range.end, cutoff);
       const data =
@@ -53,7 +53,6 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           ? []
           : await repos.imagesForCameraDay(cam.id, gated.start, gated.end);
 
-      const timezone = (await repos.getCameraById(cam.id))?.timezone ?? "UTC";
       const coords =
         cam.latitude !== null && cam.longitude !== null
           ? { latitude: cam.latitude, longitude: cam.longitude }
@@ -62,7 +61,7 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
 
       const isDaylightAt = (ts: Date): boolean => {
         if (coords) {
-          const localDate = localDateInZone(ts, timezone);
+          const localDate = localDateInZone(ts, cam.timezone);
           if (!sunTimesCache.has(localDate)) {
             sunTimesCache.set(
               localDate,
@@ -72,7 +71,7 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           const times = sunTimesCache.get(localDate) ?? null;
           if (times) return ts >= times.sunrise && ts <= times.sunset;
         }
-        const h = localHourInZone(ts, timezone);
+        const h = localHourInZone(ts, cam.timezone);
         return h >= 6 && h < 20;
       };
 
@@ -104,7 +103,7 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           .send(rfc7807(400, "bad_request", "invalid path"));
       }
 
-      const range = dayRangeUtc(date);
+      const range = dayRangeInZone(date, cam.timezone);
       const cutoff = retentionCutoff(cam.retentionMonths);
       const gated = gatedRange(range.start, range.end, cutoff);
       const data =
@@ -146,7 +145,7 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
     const latest = await repos.latestImageForCamera(req.params.id);
     if (!latest) return { date: null };
     const d = latest.timestamp;
-    const date = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    const date = localDateInZone(d, cam.timezone);
     return { date, timestamp: d.toISOString() };
   });
 };

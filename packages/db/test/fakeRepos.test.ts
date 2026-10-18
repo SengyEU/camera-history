@@ -61,6 +61,7 @@ describe("fakeRepos", () => {
     });
     const pub = await repos.getPublicCamera(camera.id);
     expect(pub?.retentionMonths).toBe(24);
+    expect(pub?.timezone).toBe("UTC");
   });
 
   it("creates camera with default status and updates it", async () => {
@@ -167,9 +168,9 @@ describe("fakeRepos", () => {
     const group = await repos.createGroup(tenant.id, { name: "G", slug: "g" });
     await repos.setGroupCameras(group.id, [plain.id, night.id]);
     const pub = await repos.getGroupBySlug("acme", "g");
-    expect(pub?.cameras.map((c) => [c.name, c.showNight])).toEqual([
-      ["Night", true],
-      ["Plain", false],
+    expect(pub?.cameras.map((c) => [c.name, c.showNight, c.timezone])).toEqual([
+      ["Night", true, "UTC"],
+      ["Plain", false, "UTC"],
     ]);
   });
 
