@@ -10,14 +10,21 @@
     <div class="reveal">
       <div class="slides">
         <section class="dark" data-background-color="#0b1220">
+          <div class="slide-marker">01/12</div>
+          <svg class="ridge" viewBox="0 0 1280 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+            <path d="M0 150 L130 92 L260 132 L400 60 L540 122 L680 52 L840 128 L980 82 L1130 138 L1280 96 L1280 220 L0 220 Z" fill="#0f1a2e" />
+            <path d="M0 176 L160 124 L310 164 L480 102 L640 158 L820 92 L980 152 L1140 118 L1280 164 L1280 220 L0 220 Z" fill="#13223d" />
+            <path d="M0 200 L180 154 L350 190 L540 138 L720 184 L910 132 L1090 178 L1280 148 L1280 220 L0 220 Z" fill="#172a4a" />
+          </svg>
           <p class="eyebrow">Camera History</p>
           <h1>Your webcam only shows now. <span class="accent">We add the history.</span></h1>
           <p class="sub">A browsable archive for every public webcam — embedded in your site in minutes.</p>
         </section>
 
         <section>
+          <div class="slide-marker">02/12</div>
           <h2>The problem</h2>
-          <ul>
+          <ul class="two-col">
             <li>A webcam shows one moment — then it is gone.</li>
             <li>Visitors who missed the powder day, the sunset or the storm never come back.</li>
             <li>Your live feed earns a glance, not a place in your visitors' plans.</li>
@@ -25,8 +32,9 @@
         </section>
 
         <section>
+          <div class="slide-marker">03/12</div>
           <h2>The solution</h2>
-          <ul>
+          <ul class="two-col">
             <li>We capture your camera every few minutes and keep the archive for you.</li>
             <li>You embed one <code>&lt;iframe&gt;</code> — visitors browse history by day.</li>
             <li>Camera groups, four themes, shareable links and long retention included.</li>
@@ -34,19 +42,24 @@
         </section>
 
         <section>
+          <div class="slide-marker">04/12</div>
           <h2>Live demo</h2>
-          <p>This deck embeds the real product running right now.</p>
-          <iframe
-            src="/group/alpine-summit/summit"
-            title="Camera History live demo"
-            width="100%"
-            height="520"
-            style="border: 0"
-            data-prevent-swipe="true"
-          ></iframe>
+          <p class="muted">This deck embeds the real product running right now.</p>
+          <div class="cam-frame">
+            <span class="ts-chip">LIVE</span>
+            <iframe
+              src="/group/alpine-summit/summit"
+              title="Camera History live demo"
+              width="960"
+              height="540"
+              style="border: 0"
+              data-prevent-swipe="true"
+            ></iframe>
+          </div>
         </section>
 
         <section>
+          <div class="slide-marker">05/12</div>
           <h2>How it works</h2>
           <div class="flow">
             <div class="flow-step"><strong>1. Capture</strong><span>Your camera is fetched every few minutes, around the clock.</span></div>
@@ -58,6 +71,7 @@
         </section>
 
         <section>
+          <div class="slide-marker">06/12</div>
           <h2>Features</h2>
           <div class="grid-2">
             <div><strong>Any feed type</strong><br />JPEG, MJPEG, HLS, RTSP or custom WebSocket.</div>
@@ -70,40 +84,52 @@
         </section>
 
         <section>
+          <div class="slide-marker">07/12</div>
           <h2>Admin dashboard</h2>
-          <p>Self-service: add cameras, check status, grab your embed snippet.</p>
-          <img class="shot" src="/admin-cameras.png" alt="Camera History admin dashboard" />
+          <p class="muted">Self-service: add cameras, check status, grab your embed snippet.</p>
+          <div class="shot-wrap">
+            <img class="shot" src="/admin-cameras.png" alt="Camera History admin dashboard" />
+            <div class="shot-caption"><span class="ts-chip">ADMIN — CAMERAS</span></div>
+          </div>
         </section>
 
         <section>
+          <div class="slide-marker">08/12</div>
           <h2>Integrations</h2>
-          <ul>
-            <li><strong>WordPress plugin</strong> — install, paste your camera ID, done.</li>
-            <li><strong>Any website</strong> — one iframe snippet from your dashboard.</li>
-            <li><strong>Camera groups</strong> — embed a whole resort with a switcher.</li>
-          </ul>
-          <img class="shot" src="/admin-groups.png" alt="Camera groups with embed snippet in the admin" />
+          <div class="split">
+            <ul>
+              <li><strong>WordPress plugin</strong> — install, paste your camera ID, done.</li>
+              <li><strong>Any website</strong> — one iframe snippet from your dashboard.</li>
+              <li><strong>Camera groups</strong> — embed a whole resort with a switcher.</li>
+            </ul>
+            <div class="shot-wrap">
+              <img class="shot" src="/admin-groups.png" alt="Camera groups with embed snippet in the admin" />
+              <div class="shot-caption"><span class="ts-chip">ADMIN — GROUPS</span></div>
+            </div>
+          </div>
         </section>
 
         <section>
+          <div class="slide-marker">09/12</div>
           <h2>Pricing</h2>
           <p class="muted">EUR per camera, VAT excl.</p>
           <table class="price-table">
             <tbody>
-              <tr><td>14 days</td><td>€5</td></tr>
-              <tr><td>1 month</td><td>€9</td></tr>
-              <tr><td>3 months</td><td>€15</td></tr>
-              <tr><td>6 months</td><td>€22</td></tr>
-              <tr><td>12 months</td><td>€29</td></tr>
-              <tr><td>24 months</td><td>€49</td></tr>
-              <tr><td>36 months</td><td>€69</td></tr>
+              <tr><td>14 days</td><td>€5</td><td class="flag-col"></td></tr>
+              <tr><td>1 month</td><td>€9</td><td class="flag-col"></td></tr>
+              <tr><td>3 months</td><td>€15</td><td class="flag-col"></td></tr>
+              <tr><td>6 months</td><td>€22</td><td class="flag-col"></td></tr>
+              <tr class="popular"><td>12 months</td><td>€29</td><td class="flag-col"><span class="ts-chip">MOST POPULAR</span></td></tr>
+              <tr><td>24 months</td><td>€49</td><td class="flag-col"></td></tr>
+              <tr><td>36 months</td><td>€69</td><td class="flag-col"></td></tr>
             </tbody>
           </table>
         </section>
 
         <section>
+          <div class="slide-marker">10/12</div>
           <h2>Who it is for</h2>
-          <ul>
+          <ul class="two-col">
             <li>Ski resorts &amp; mountain destinations</li>
             <li>Beaches, marinas &amp; kite spots</li>
             <li>Tourist attractions &amp; landmarks</li>
@@ -113,8 +139,9 @@
         </section>
 
         <section>
+          <div class="slide-marker">11/12</div>
           <h2>Why Camera History</h2>
-          <ul>
+          <ul class="two-col">
             <li>Self-service product — live today, not a prototype.</li>
             <li>Zero maintenance on your side — no servers, no ffmpeg.</li>
             <li>Your branding stays yours — the widget is neutral and fits in.</li>
@@ -122,6 +149,12 @@
         </section>
 
         <section class="dark" data-background-color="#0b1220">
+          <div class="slide-marker">12/12</div>
+          <svg class="ridge" viewBox="0 0 1280 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+            <path d="M0 150 L130 92 L260 132 L400 60 L540 122 L680 52 L840 128 L980 82 L1130 138 L1280 96 L1280 220 L0 220 Z" fill="#0f1a2e" />
+            <path d="M0 176 L160 124 L310 164 L480 102 L640 158 L820 92 L980 152 L1140 118 L1280 164 L1280 220 L0 220 Z" fill="#13223d" />
+            <path d="M0 200 L180 154 L350 190 L540 138 L720 184 L910 132 L1090 178 L1280 148 L1280 220 L0 220 Z" fill="#172a4a" />
+          </svg>
           <h2>See your history, not just now</h2>
           <p class="sub">
             <a class="btn" href="/group/alpine-summit/summit">Open the live demo</a>

@@ -7,7 +7,7 @@ const deck = new Reveal({
   slideNumber: true,
   controls: true,
   progress: true,
-  transition: "slide",
+  transition: "fade",
   width: 1280,
   height: 720,
 });

@@ -1,38 +1,274 @@
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+
 :root {
-  --bg: #f8fafc;
-  --ink: #0f172a;
-  --muted: #64748b;
-  --line: #e2e8f0;
-  --accent: #38bdf8;
-  --accent-ink: #0284c7;
+  --snow: #f7f9fb;
+  --surface: #ffffff;
+  --ink: #101828;
+  --muted: #5b6b7c;
+  --line: #e3e9ef;
+  --glacier: #0891b2;
+  --glacier-deep: #0e7490;
+  --glacier-weak: #e0f2fe;
+  --night: #0b1220;
+  --pine: #15803d;
+  --amber: #b45309;
+  --red: #b91c1c;
+  --radius: 10px;
+  --font-ui: "Archivo Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
+
 .reveal {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-ui);
+  /* deck design size is 1280x720; Reveal themes use ~40px base, this keeps
+     the em scale predictable (h2 1.9em ~ 57px) without a theme import */
+  font-size: 30px;
   color: var(--ink);
 }
 .reveal .slides { text-align: left; }
-.reveal .slides section { background: var(--bg); }
-.reveal section.dark { color: #f1f5f9; background: #0b1220; }
-.reveal h1 { font-size: 2.1em; line-height: 1.12; letter-spacing: -0.02em; text-transform: none; }
-.reveal h2 { font-size: 1.6em; letter-spacing: -0.01em; text-transform: none; }
-.reveal .accent { color: var(--accent); display: block; }
-.reveal .eyebrow { color: var(--accent); letter-spacing: 0.18em; text-transform: uppercase; font-size: 0.5em; }
-.reveal .sub { color: var(--muted); font-size: 0.7em; max-width: 26em; }
-.reveal section.dark .sub { color: #94a3b8; }
-.reveal ul { display: block; }
-.reveal li { font-size: 0.72em; margin: 0.35em 0; }
-.reveal code { background: #e2e8f0; border-radius: 6px; padding: 0 6px; font-size: 0.9em; }
-.reveal .muted { color: var(--muted); }
-.reveal .shot { width: 100%; max-height: 420px; object-fit: cover; object-position: top; border: 1px solid var(--line); border-radius: 10px; }
-.reveal .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em 2em; font-size: 0.68em; }
-.reveal .flow { display: flex; gap: 0.8em; align-items: stretch; }
-.reveal .flow-step { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 0.6em; font-size: 0.6em; display: flex; flex-direction: column; gap: 0.3em; background: #fff; }
-.reveal .flow-arrow { align-self: center; color: var(--accent-ink); font-size: 1em; }
-.reveal .price-table { width: 100%; border-collapse: collapse; font-size: 0.62em; background: #fff; }
-.reveal .price-table td { border-bottom: 1px solid var(--line); padding: 0.25em 0.6em; }
-.reveal .btn {
-  display: inline-block; background: var(--accent-ink); color: #fff; border-radius: 999px;
-  padding: 0.5em 1.1em; font-size: 0.6em; margin-right: 0.5em; text-decoration: none;
+
+/* vertically centered content (Reveal center:true), signage max width */
+.reveal .slides section {
+  background: var(--snow);
+  box-sizing: border-box;
+  padding: 32px 90px;
 }
+.reveal .slides section > * { max-width: 1100px; }
+
+.reveal section.dark {
+  color: #f1f5f9;
+  background: #0b1220;
+  text-align: center;
+}
+
+/* OSD chrome — slide marker, top-right, mono, muted */
+.reveal .slide-marker {
+  position: absolute;
+  top: 0.9em;
+  right: 1.4em;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 0.5em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.reveal section.dark .slide-marker { color: #64748b; }
+
+/* OSD chip (BINDING markup/CSS from the plan) */
+.ts-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f1f5f9;
+  background: rgba(11, 18, 32, 0.72);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.reveal .ts-chip { font-size: 0.4em; }
+
+/* ridge silhouette pinned to the bottom of dark slides */
+.reveal .ridge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: none;
+  height: 30%;
+  z-index: 0;
+  pointer-events: none;
+}
+.reveal .dark > * { position: relative; z-index: 1; }
+.reveal .dark > .ridge { position: absolute; z-index: 0; }
+.reveal .dark > .slide-marker { position: absolute; z-index: 3; }
+
+/* display headings (Archivo expanded) */
+.reveal h1 {
+  font-size: 2.3em;
+  line-height: 1.1;
+  font-weight: 700;
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+.reveal h2 {
+  font-size: 1.9em;
+  line-height: 1.15;
+  font-weight: 700;
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  margin: 0 0 0.35em;
+}
+.reveal .accent { color: var(--glacier); display: block; }
+.reveal .eyebrow {
+  font-family: var(--font-mono);
+  color: var(--glacier);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.55em;
+  margin: 0 0 0.8em;
+}
+.reveal .sub { color: var(--muted); font-size: 0.62em; line-height: 1.5; max-width: 26em; }
+.reveal section.dark .sub { color: #94a3b8; }
+.reveal .muted { color: var(--muted); font-size: 0.6em; margin: 0 0 0.6em; }
+
+/* two-column list slides */
+.reveal ul.two-col {
+  list-style: none;
+  padding: 0;
+  margin: 0.4em 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6em 2em;
+  width: 100%;
+}
+.reveal ul.two-col li {
+  font-size: 0.78em;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 1.1em;
+  position: relative;
+}
+.reveal ul.two-col li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.45em;
+  height: 0.45em;
+  border-radius: 2px;
+  background: var(--glacier);
+}
+
+.reveal code {
+  background: #e2e8f0;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* demo frame (slide 4) */
+.reveal .cam-frame {
+  position: relative;
+  width: fit-content;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.08);
+}
+.reveal .cam-frame .ts-chip { position: absolute; top: 16px; left: 16px; z-index: 2; }
+.reveal .cam-frame iframe { display: block; border-radius: 6px; }
+
+/* screenshots with OSD captions (slides 7, 8) */
+.reveal .shot-wrap { display: flex; flex-direction: column; gap: 0.4em; width: 100%; }
+.reveal .shot {
+  width: 100%;
+  max-height: 6.6em;
+  object-fit: cover;
+  object-position: top;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.reveal .shot-caption { line-height: 1; }
+
+/* list + screenshot split (slide 8) */
+.reveal .split {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 2em;
+  align-items: center;
+  width: 100%;
+}
+.reveal .split ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.7em; }
+.reveal .split li { font-size: 0.72em; line-height: 1.5; padding-left: 1.1em; position: relative; }
+.reveal .split li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.45em;
+  height: 0.45em;
+  border-radius: 2px;
+  background: var(--glacier);
+}
+.reveal .split .shot { max-height: 5.6em; }
+
+/* flow diagram (slide 5) — enlarged */
+.reveal .flow { display: flex; gap: 0.9em; align-items: stretch; width: 100%; margin-top: 0.4em; }
+.reveal .flow-step {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.9em 1em;
+  font-size: 0.82em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  background: var(--surface);
+  text-align: left;
+}
+.reveal .flow-step strong { color: var(--glacier-deep); }
+.reveal .flow-step span { color: var(--muted); font-size: 0.85em; line-height: 1.45; }
+.reveal .flow-arrow { align-self: center; color: var(--glacier); font-size: 1.3em; }
+
+/* features grid (slide 6) — enlarged */
+.reveal .grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6em 1.4em;
+  font-size: 0.78em;
+  width: 100%;
+  margin-top: 0.4em;
+}
+.reveal .grid-2 > div {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.7em 0.9em;
+  line-height: 1.45;
+}
+.reveal .grid-2 strong { color: var(--ink); }
+
+/* pricing — IBM Plex Mono table */
+.reveal .price-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.66em;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.reveal .price-table td { border-bottom: 1px solid var(--line); padding: 0.35em 1em; }
+.reveal .price-table td:nth-child(2) { text-align: right; }
+.reveal .price-table .flag-col { width: 1%; white-space: nowrap; text-align: right; }
+.reveal .price-table tr.popular td { background: var(--glacier-weak); font-weight: 600; }
+.reveal .price-table tr:last-child td { border-bottom: 0; }
+.reveal .price-table .ts-chip { font-size: 0.6em; }
+
+.reveal .btn {
+  display: inline-block;
+  background: var(--glacier);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.5em 1.2em;
+  font-size: 0.6em;
+  font-weight: 600;
+  margin-right: 0.6em;
+  text-decoration: none;
+}
+.reveal .btn:hover { background: var(--glacier-deep); }
 .reveal .btn.ghost { background: transparent; color: inherit; border: 1px solid #475569; }
-.reveal .footer-note { margin-top: 1em; font-size: 0.5em; color: #64748b; }
+.reveal .btn.ghost:hover { background: transparent; border-color: var(--glacier); }
+.reveal .footer-note { margin-top: 1.2em; font-size: 0.5em; color: #64748b; }

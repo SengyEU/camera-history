@@ -37,6 +37,13 @@ describe("deck", () => {
     expect(html).toContain("mailto:hello@sengycraft.cz");
   });
 
+  it("marks every slide with an OSD slide marker", () => {
+    const markers = html.match(/<div class="slide-marker">\d{2}\/12<\/div>/g) ?? [];
+    expect(markers.length).toBe(12);
+    expect(html).toContain('<div class="slide-marker">01/12</div>');
+    expect(html).toContain('<div class="slide-marker">12/12</div>');
+  });
+
   it("lists the audiences including weather & nature streams", () => {
     for (const item of [
       "Ski resorts &amp; mountain destinations",
