@@ -41,11 +41,22 @@ interface WidgetBodyProps {
   theme: string;
   images: ImageDto[];
   minDate?: string;
+  shareCameraId?: string | null;
   switcher?: ReactNode;
   children?: ReactNode;
 }
 
-function WidgetBody({ title, date, setDate, theme, images, minDate, switcher, children }: WidgetBodyProps) {
+function WidgetBody({
+  title,
+  date,
+  setDate,
+  theme,
+  images,
+  minDate,
+  shareCameraId,
+  switcher,
+  children,
+}: WidgetBodyProps) {
   const [openImage, setOpenImage] = useState<string | null>(() => {
     const p = new URLSearchParams(window.location.search);
     return p.get("img") ?? null;
@@ -61,6 +72,7 @@ function WidgetBody({ title, date, setDate, theme, images, minDate, switcher, ch
   const buildShareUrl = (img: ImageDto) => {
     const p = new URLSearchParams({ date, img: img.id });
     p.set("theme", theme);
+    if (shareCameraId) p.set("camera", shareCameraId);
     return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
   };
 
@@ -175,7 +187,12 @@ export function App() {
     getGroup(groupRoute.tenant, groupRoute.slug)
       .then((g) => {
         setGroup(g);
-        setSelectedCameraId((prev) => prev ?? g.cameras[0]?.id ?? null);
+        const requested = new URLSearchParams(window.location.search).get("camera");
+        setSelectedCameraId((prev) => {
+          if (prev) return prev;
+          if (requested && g.cameras.some((c) => c.id === requested)) return requested;
+          return g.cameras[0]?.id ?? null;
+        });
       })
       .catch(() => setGroup(null));
   }, [groupRoute]);
@@ -231,6 +248,7 @@ export function App() {
         setDate={setDate}
         theme={theme}
         images={images}
+        shareCameraId={selectedCameraId}
         switcher={
           group ? (
             <select

@@ -43,6 +43,16 @@ describe("App widget", () => {
     expect(screen.getByText(/img=img-1/)).toBeInTheDocument();
   });
 
+  it("does not add a camera param to a single-widget share link", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const first = await screen.findByTestId("image-img-1");
+    await user.click(first);
+    await user.click(await screen.findByText("Copy link"));
+    expect(screen.getByText(/date=2026-09-18/)).toBeInTheDocument();
+    expect(screen.queryByText(/camera=/)).not.toBeInTheDocument();
+  });
+
   it("opens the shared image from an ?img deep link", async () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&img=img-2");
     render(<App />);
@@ -197,5 +207,57 @@ describe("App group widget", () => {
     expect(screen.getByText("No cameras in this group.")).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(vi.mocked(getImages)).not.toHaveBeenCalled();
+  });
+
+  it("copies a group share link that includes the selected camera", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
+      { id: `${cameraId}-${date}`, timestamp: `${date}T09:00:00Z`, url: `/api/v1/${cameraId}.jpg` },
+    ]);
+    vi.mocked(getCameraLatest).mockResolvedValue(null);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    const select = await screen.findByTestId("camera-switcher");
+    await user.selectOptions(select, "cam-b");
+    await user.click(await screen.findByTestId("image-cam-b-2026-10-10"));
+    await user.click(await screen.findByText("Copy link"));
+
+    expect(screen.getByText(/camera=cam-b/)).toBeInTheDocument();
+    expect(screen.getByText(/date=2026-10-10/)).toBeInTheDocument();
+    expect(screen.getByText(/theme=dark/)).toBeInTheDocument();
+  });
+
+  it("opens the camera named by ?camera on load and shows its images", async () => {
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
+      { id: `${cameraId}-${date}`, timestamp: `${date}T09:00:00Z`, url: `/api/v1/${cameraId}.jpg` },
+    ]);
+    vi.mocked(getCameraLatest).mockResolvedValue(null);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10&camera=cam-b");
+    render(<App />);
+
+    const select = await screen.findByTestId("camera-switcher");
+    await waitFor(() => expect(select).toHaveValue("cam-b"));
+    expect(await screen.findByTestId("image-cam-b-2026-10-10")).toBeInTheDocument();
+    expect(vi.mocked(getImages)).toHaveBeenCalledWith("cam-b", "2026-10-10");
+  });
+
+  it("falls back to the first camera when ?camera names an unknown camera", async () => {
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
+      { id: `${cameraId}-${date}`, timestamp: `${date}T09:00:00Z`, url: `/api/v1/${cameraId}.jpg` },
+    ]);
+    vi.mocked(getCameraLatest).mockResolvedValue(null);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10&camera=nope");
+    render(<App />);
+
+    const select = await screen.findByTestId("camera-switcher");
+    await waitFor(() => expect(select).toHaveValue("cam-a"));
+    expect(await screen.findByTestId("image-cam-a-2026-10-10")).toBeInTheDocument();
   });
 });
