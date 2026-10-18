@@ -26,6 +26,9 @@ const TENANTS = [
       { name: "Glacier Bowl", feedType: "static_url", feedUrl: "https://cams.skilouise.com/cam3.jpg", timezone: "America/Edmonton" },
       { name: "Lodge Base", feedType: "static_url", feedUrl: "https://cams.skilouise.com/cam6.jpg", timezone: "America/Edmonton" },
     ],
+    groups: [
+      { name: "Summit", slug: "summit", cameras: ["Gondola Summit", "Glacier Bowl", "Lodge Base"] },
+    ],
   },
   {
     name: "Harbor Kite Beach",
@@ -113,6 +116,66 @@ async function ensureCameras(jar, cfg) {
     created += 1;
     console.log(`   + ${cam.name} (${cam.feedType} → ${cam.feedUrl})`);
   }
+  return cameras;
+}
+
+async function ensureGroups(jar, cfg, cameras) {
+  const groups = cfg.groups ?? [];
+  if (groups.length === 0) return { created: 0, existing: 0 };
+
+  const listRes = await call("GET", "/admin/groups", { jar });
+  if (!listRes.ok) throw new Error(`GET /admin/groups → ${listRes.status}: ${await listRes.text()}`);
+  let existingGroups = (await listRes.json()).groups ?? [];
+
+  const nameToId = new Map(cameras.map((c) => [c.name, c.id]));
+
+  let created = 0;
+  let existing = 0;
+
+  for (const g of groups) {
+    let group = existingGroups.find((x) => x.slug === g.slug);
+    let wasCreated = false;
+    if (!group) {
+      const createRes = await call("POST", "/admin/groups", {
+        jar,
+        body: { name: g.name, slug: g.slug },
+      });
+      if (createRes.status === 409) {
+        const list2 = await call("GET", "/admin/groups", { jar });
+        if (!list2.ok) throw new Error(`GET /admin/groups → ${list2.status}: ${await list2.text()}`);
+        existingGroups = (await list2.json()).groups ?? [];
+        group = existingGroups.find((x) => x.slug === g.slug);
+        if (!group) throw new Error(`group ${g.slug} not found after 409`);
+        existing += 1;
+      } else if (!createRes.ok) {
+        throw new Error(`create group ${g.name} → ${createRes.status}: ${await createRes.text()}`);
+      } else {
+        const createdGroup = await createRes.json();
+        group = { id: createdGroup.id, slug: g.slug, name: g.name };
+        created += 1;
+        wasCreated = true;
+      }
+    } else {
+      existing += 1;
+    }
+    g._wasCreated = wasCreated;
+
+    const cameraIds = (g.cameras ?? [])
+      .map((n) => nameToId.get(n))
+      .filter((id) => typeof id !== "undefined");
+    const putRes = await call("PUT", `/admin/groups/${group.id}/cameras`, {
+      jar,
+      body: { cameraIds },
+    });
+    if (!putRes.ok) throw new Error(`PUT /admin/groups/${group.id}/cameras → ${putRes.status}: ${await putRes.text()}`);
+
+    if (g._wasCreated) {
+      console.log(`   + group ${g.name} (${cameraIds.length} cameras)`);
+    } else {
+      console.log(`   · group ${g.name} (exists)`);
+    }
+  }
+
   return { created, existing };
 }
 
@@ -121,8 +184,15 @@ console.log(`API: ${API}\n`);
 for (const cfg of TENANTS) {
   console.log(`${cfg.name} (${cfg.slug})`);
   const jar = await ensureTenant(cfg);
-  const { created, existing } = await ensureCameras(jar, cfg);
-  console.log(`   → ${created} created, ${existing} already present\n`);
+  const cameras = await ensureCameras(jar, cfg);
+  // recompute created/existing as before for summary
+  const have = new Set(cameras.map((c) => c.name));
+  let createdC = 0, existingC = 0;
+  for (const cam of cfg.cameras) {
+    if (have.has(cam.name)) existingC += 1; else createdC += 1;
+  }
+  await ensureGroups(jar, cfg, cameras);
+  console.log(`   → ${createdC} created, ${existingC} already present, groups: ${cfg.groups?.length ?? 0}\n`);
 }
 
 console.log("Hotovo. Worker doplňuje historii průběžně reálnými snímky (žádný syntetický backfill).");
