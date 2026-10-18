@@ -467,9 +467,19 @@ function GroupsView({
   };
 
   const copyEmbed = (g: AdminGroup) => {
-    const snippet = `<iframe src="${embedSrc(tenantSlug, g.slug)}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`;
-    void navigator.clipboard?.writeText(snippet);
-    setCopiedId(g.id);
+    if (!tenantSlug) return;
+    const url = embedSrc(tenantSlug, g.slug);
+    const snippet = `<iframe src="${url}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`;
+    const clip = navigator.clipboard;
+    if (!clip?.writeText) return;
+    void clip
+      .writeText(snippet)
+      .then(() => {
+        setCopiedId(g.id);
+      })
+      .catch(() => {
+        setCopiedId(null);
+      });
   };
 
   return (
@@ -594,19 +604,34 @@ function GroupsView({
               </div>
               <div className="group-embed">
                 <h4>Embed snippet</h4>
-                <iframe
-                  data-testid={`group-embed-${g.id}`}
-                  src={embedSrc(tenantSlug, g.slug)}
-                  title={`${g.name} embed`}
-                  width="640"
-                  height="360"
-                />
-                <div className="group-embed-actions">
-                  <button type="button" className="secondary" onClick={() => copyEmbed(g)} data-testid={`group-copy-${g.id}`}>
-                    Copy embed code
-                  </button>
-                  {copiedId === g.id && <span data-testid={`group-copied-${g.id}`}>Copied</span>}
-                </div>
+                {tenantSlug ? (
+                  <>
+                    <iframe
+                      data-testid={`group-embed-${g.id}`}
+                      src={embedSrc(tenantSlug, g.slug)}
+                      title={`${g.name} embed`}
+                      width="640"
+                      height="360"
+                    />
+                    <div className="group-embed-actions">
+                      <button type="button" className="secondary" onClick={() => copyEmbed(g)} data-testid={`group-copy-${g.id}`}>
+                        Copy embed code
+                      </button>
+                      {copiedId === g.id && <span data-testid={`group-copied-${g.id}`}>Copied</span>}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="embed-placeholder" data-testid={`group-embed-placeholder-${g.id}`}>
+                      Tenant not loaded
+                    </div>
+                    <div className="group-embed-actions">
+                      <button type="button" className="secondary" disabled data-testid={`group-copy-${g.id}`}>
+                        Copy embed code
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </li>
           ))}
@@ -627,6 +652,7 @@ export function App() {
   const [tenantSlug, setTenantSlug] = useState<string>("");
   const [view, setView] = useState<"cameras" | "groups" | "billing">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
+  const [groupNotice, setGroupNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const onHash = () => {
@@ -686,24 +712,46 @@ export function App() {
     input: CameraInput,
     groupUpdates?: { groupId: string; selected: boolean; cameraIds: string[] }[],
   ) => {
+    setGroupNotice(null);
     let camId = editingId;
-    if (editingId) {
-      await api.updateCamera(editingId, input);
-    } else {
-      const created = await api.createCamera(input);
-      camId = created.id;
+    try {
+      if (editingId) {
+        await api.updateCamera(editingId, input);
+      } else {
+        const created = await api.createCamera(input);
+        camId = created.id;
+      }
+    } catch (err) {
+      throw err;
     }
-    if (camId) {
+
+    const closeAndRefresh = async () => {
+      setEditing(null);
+      setEditingId(null);
+      await refresh();
+    };
+
+    if (!camId) {
+      await closeAndRefresh();
+      return;
+    }
+
+    let groupError: Error | null = null;
+    try {
       for (const upd of groupUpdates ?? []) {
         const has = upd.cameraIds.includes(camId);
         if (upd.selected === has) continue;
         const next = upd.selected ? [...upd.cameraIds, camId] : upd.cameraIds.filter((id) => id !== camId);
         await api.setGroupCameras(upd.groupId, next);
       }
+    } catch (err) {
+      groupError = err instanceof Error ? err : new Error("Updating groups failed");
+    } finally {
+      await closeAndRefresh();
     }
-    setEditing(null);
-    setEditingId(null);
-    await refresh();
+    if (groupError) {
+      setGroupNotice(groupError.message || "Updating groups failed");
+    }
   };
 
   const removeCamera = async (cam: AdminCamera) => {
@@ -756,11 +804,16 @@ export function App() {
           Sign out
         </button>
       </header>
-      {view === "billing" ? (
-        <BillingPage />
-      ) : view === "groups" ? (
-        <GroupsView cameras={cameras} groups={groups} tenantSlug={tenantSlug} onGroupsChange={reloadGroups} />
-      ) : (
+       {groupNotice && (
+         <p className="error" data-testid="group-notice">
+           {groupNotice}
+         </p>
+       )}
+       {view === "billing" ? (
+         <BillingPage />
+       ) : view === "groups" ? (
+         <GroupsView cameras={cameras} groups={groups} tenantSlug={tenantSlug} onGroupsChange={reloadGroups} />
+       ) : (
         <section className="panel">
           <div className="panel-head">
             <h2>Cameras</h2>

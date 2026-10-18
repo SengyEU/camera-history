@@ -518,4 +518,116 @@ describe("App groups", () => {
     const put = calls.find((c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT")!;
     expect(JSON.parse(String(put.init?.body))).toEqual({ cameraIds: ["cam-new"] });
   });
+
+  it("does not render malformed embed when tenant fails to load", async () => {
+    const _fn = groupServer([seedGroup()]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+        const u = String(url);
+        const method = init?.method ?? "GET";
+        if (u.endsWith("/api/v1/admin/cameras") && method === "GET") {
+          return jsonResponse({ cameras: [camera()] });
+        }
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({ detail: "failed" }, 500);
+        }
+        if (u.endsWith("/api/v1/admin/groups") && method === "GET") {
+          return jsonResponse({ groups: [seedGroup()] });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+    await userEvent.click(screen.getByTestId("nav-groups"));
+    await screen.findByTestId("group-grp-1");
+    expect(screen.queryByTestId("group-embed-grp-1")).not.toBeInTheDocument();
+    expect(screen.getByTestId("group-embed-placeholder-grp-1")).toHaveTextContent("Tenant not loaded");
+    const copyBtn = screen.getByTestId("group-copy-grp-1") as HTMLButtonElement;
+    expect(copyBtn).toBeDisabled();
+    await userEvent.click(copyBtn);
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("group-copied-grp-1")).not.toBeInTheDocument();
+    window.location.hash = "";
+  });
+
+  it("shows copied confirmation only when clipboard writeText resolves", async () => {
+    const { fn } = groupServer([seedGroup()], "acme");
+    vi.stubGlobal("fetch", fn);
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+    await userEvent.click(screen.getByTestId("nav-groups"));
+    await screen.findByTestId("group-grp-1");
+    const copyBtn = screen.getByTestId("group-copy-grp-1") as HTMLButtonElement;
+    await userEvent.click(copyBtn);
+    expect(await screen.findByTestId("group-copied-grp-1")).toHaveTextContent("Copied");
+    window.location.hash = "";
+  });
+
+  it("does not show copied confirmation when clipboard writeText rejects", async () => {
+    const { fn } = groupServer([seedGroup()], "acme");
+    vi.stubGlobal("fetch", fn);
+    const writeText = vi.fn(async () => {
+      throw new Error("fail");
+    });
+    Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+    await userEvent.click(screen.getByTestId("nav-groups"));
+    await screen.findByTestId("group-grp-1");
+    const copyBtn = screen.getByTestId("group-copy-grp-1") as HTMLButtonElement;
+    await userEvent.click(copyBtn);
+    await waitFor(() => expect(writeText).toHaveBeenCalled());
+    expect(screen.queryByTestId("group-copied-grp-1")).not.toBeInTheDocument();
+    window.location.hash = "";
+  });
+
+  it("closes form and refreshes if group updates fail after successful camera create", async () => {
+    const calls: Array<{ u: string; init?: RequestInit }> = [];
+    const _fn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(url);
+      const method = init?.method ?? "GET";
+      calls.push({ u, init });
+      if (u.endsWith("/api/v1/admin/cameras") && method === "GET") {
+        return jsonResponse({ cameras: [camera()] });
+      }
+      if (u.endsWith("/api/v1/admin/cameras") && method === "POST") {
+        return jsonResponse({ camera: camera({ id: "cam-new", name: "New cam" }) }, 201);
+      }
+      if (u.endsWith("/api/v1/admin/tenant")) {
+        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme" } });
+      }
+      if (u.endsWith("/api/v1/admin/groups") && method === "GET") {
+        return jsonResponse({ groups: [seedGroup()] });
+      }
+      const memberMatch = u.match(/\/api\/v1\/admin\/groups\/([^/]+)\/cameras$/);
+      if (memberMatch && method === "PUT") {
+        return jsonResponse({ detail: "group update failed" }, 500);
+      }
+      return jsonResponse({ detail: "not found" }, 404);
+    });
+    vi.stubGlobal("fetch", _fn);
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await screen.findByTestId("group-checkbox-grp-1");
+    await userEvent.type(screen.getByTestId("form-name"), "New cam");
+    await userEvent.click(screen.getByTestId("group-checkbox-grp-1"));
+    await userEvent.click(screen.getByTestId("form-submit"));
+    await waitFor(() =>
+      expect(calls.filter((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toHaveLength(1),
+    );
+    await waitFor(() => expect(screen.queryByTestId("camera-form")).not.toBeInTheDocument());
+    expect(await screen.findByTestId("group-notice")).toHaveTextContent("group update failed");
+    window.location.hash = "";
+  });
 });
