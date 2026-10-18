@@ -46,6 +46,52 @@ describe.skipIf(!RUN)("PG integration", () => {
     await pool.end();
   });
 
+  it("roundtrips camera coordinates and daylightOnly through create, read, update and public camera", async () => {
+    const cfg = loadConfig(process.env);
+    const db = createDb(cfg.databaseUrl);
+    const repos = createRepos(db);
+    const tenant = await repos.createTenant({ name: "COORD", slug: `coord-${Date.now()}` });
+    const withCoords = await repos.createCamera(tenant.id, {
+      name: "Geo", feedType: "static_url", feedUrl: "https://e.com/geo.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "America/Edmonton",
+      latitude: 51.425, longitude: -116.177, daylightOnly: true,
+    });
+    expect(withCoords.latitude).toBeCloseTo(51.425);
+    expect(withCoords.longitude).toBeCloseTo(-116.177);
+    expect(withCoords.daylightOnly).toBe(true);
+
+    const fetched = await repos.getCameraById(withCoords.id);
+    expect(fetched?.latitude).toBeCloseTo(51.425);
+    expect(fetched?.longitude).toBeCloseTo(-116.177);
+    expect(fetched?.daylightOnly).toBe(true);
+
+    const pub = await repos.getPublicCamera(withCoords.id);
+    expect(pub?.latitude).toBeCloseTo(51.425);
+    expect(pub?.longitude).toBeCloseTo(-116.177);
+
+    const plain = await repos.createCamera(tenant.id, {
+      name: "Plain", feedType: "static_url", feedUrl: "https://e.com/plain.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    expect(plain.latitude).toBeNull();
+    expect(plain.longitude).toBeNull();
+    expect(plain.daylightOnly).toBe(false);
+
+    const updated = await repos.updateCamera(plain.id, { latitude: 50.08, longitude: 14.42, daylightOnly: true });
+    expect(updated?.latitude).toBeCloseTo(50.08);
+    expect(updated?.longitude).toBeCloseTo(14.42);
+    expect(updated?.daylightOnly).toBe(true);
+
+    const cleared = await repos.updateCamera(plain.id, { latitude: null, longitude: null, daylightOnly: false });
+    expect(cleared?.latitude).toBeNull();
+    expect(cleared?.longitude).toBeNull();
+    expect(cleared?.daylightOnly).toBe(false);
+
+    await db.delete(tenants).where(eq(tenants.id, tenant.id));
+    const pool = db.$client as import("pg").Pool;
+    await pool.end();
+  });
+
   it("creates groups, sets membership idempotently, resolves public group by slug", async () => {
     const cfg = loadConfig(process.env);
     const db = createDb(cfg.databaseUrl);

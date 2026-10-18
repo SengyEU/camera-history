@@ -80,6 +80,57 @@ describe("fakeRepos", () => {
     expect(updated?.status).toBe("offline");
   });
 
+  it("defaults and roundtrips coordinates and daylightOnly", async () => {
+    const repos = createFakeRepos();
+    const tenant = await repos.createTenant(newTenant);
+    const plain = await repos.createCamera(tenant.id, {
+      name: "Plain",
+      feedType: "static_url",
+      feedUrl: "https://example.com/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    expect(plain.latitude).toBeNull();
+    expect(plain.longitude).toBeNull();
+    expect(plain.daylightOnly).toBe(false);
+
+    const plainPub = await repos.getPublicCamera(plain.id);
+    expect(plainPub?.latitude).toBeNull();
+    expect(plainPub?.longitude).toBeNull();
+
+    const withCoords = await repos.createCamera(tenant.id, {
+      name: "Geo",
+      feedType: "static_url",
+      feedUrl: "https://example.com/geo.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "America/Edmonton",
+      latitude: 51.425,
+      longitude: -116.177,
+      daylightOnly: true,
+    });
+    expect(withCoords.latitude).toBe(51.425);
+    expect(withCoords.longitude).toBe(-116.177);
+    expect(withCoords.daylightOnly).toBe(true);
+
+    const pub = await repos.getPublicCamera(withCoords.id);
+    expect(pub?.latitude).toBe(51.425);
+    expect(pub?.longitude).toBe(-116.177);
+
+    const updated = await repos.updateCamera(plain.id, { latitude: 50.08, longitude: 14.42, daylightOnly: true });
+    expect(updated?.latitude).toBe(50.08);
+    expect(updated?.longitude).toBe(14.42);
+    expect(updated?.daylightOnly).toBe(true);
+
+    const cleared = await repos.updateCamera(plain.id, { latitude: null, longitude: null, daylightOnly: false });
+    expect(cleared?.latitude).toBeNull();
+    expect(cleared?.longitude).toBeNull();
+    expect(cleared?.daylightOnly).toBe(false);
+  });
+
   it("counts cameras and reports usage stats for a tenant", async () => {
     const repos = createFakeRepos();
     const tenant = await repos.createTenant(newTenant);

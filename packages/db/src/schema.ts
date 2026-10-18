@@ -1,5 +1,6 @@
 import {
   boolean,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -73,6 +74,9 @@ export const cameras = pgTable("cameras", {
   timezone: text("timezone").notNull().default("UTC"),
   enabled: boolean("enabled").notNull().default(true),
   theme: text("theme").notNull().default("light"),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  daylightOnly: boolean("daylight_only").notNull().default(false),
   lastCaptureAt: timestamp("last_capture_at", { withTimezone: true }),
   lastError: text("last_error"),
   status: cameraStatusEnum("status").notNull().default("operational"),

@@ -75,6 +75,9 @@ export function createRepos(db: Db): Repos {
           timezone: input.timezone,
           enabled: input.enabled ?? true,
           theme: input.theme ?? "light",
+          latitude: input.latitude ?? null,
+          longitude: input.longitude ?? null,
+          daylightOnly: input.daylightOnly ?? false,
         })
         .returning();
       return row!;
@@ -103,12 +106,23 @@ export function createRepos(db: Db): Repos {
           name: cameras.name,
           theme: cameras.theme,
           retentionMonths: tenants.planMonths,
+          latitude: cameras.latitude,
+          longitude: cameras.longitude,
         })
         .from(cameras)
         .innerJoin(tenants, eq(cameras.tenantId, tenants.id))
         .where(eq(cameras.id, cameraId));
       const row = rows[0];
-      return row ? { id: row.id, name: row.name, theme: row.theme, retentionMonths: Number(row.retentionMonths ?? 12) } : null;
+      return row
+        ? {
+            id: row.id,
+            name: row.name,
+            theme: row.theme,
+            retentionMonths: Number(row.retentionMonths ?? 12),
+            latitude: row.latitude,
+            longitude: row.longitude,
+          }
+        : null;
     },
     async insertImage(input: NewImage): Promise<ImageRecord> {
       const [row] = await db.insert(images).values(input).returning();

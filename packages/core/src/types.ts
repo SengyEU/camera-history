@@ -43,6 +43,9 @@ export interface Camera {
   timezone: string;
   enabled: boolean;
   theme: string;
+  latitude: number | null;
+  longitude: number | null;
+  daylightOnly: boolean;
   lastCaptureAt: Date | null;
   lastError: string | null;
   status: CameraStatus;
@@ -61,6 +64,8 @@ export interface PublicCamera {
   name: string;
   theme: string;
   retentionMonths: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface NewTenant {
@@ -87,6 +92,9 @@ export interface NewCamera {
   timezone: string;
   enabled?: boolean;
   theme?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  daylightOnly?: boolean;
 }
 
 export interface CameraPatch {
@@ -100,6 +108,9 @@ export interface CameraPatch {
   timezone?: string;
   enabled?: boolean;
   theme?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  daylightOnly?: boolean;
   lastCaptureAt?: Date | null;
   lastError?: string | null;
   status?: CameraStatus;

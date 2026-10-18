@@ -87,6 +87,9 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         timezone: input.timezone,
         enabled: input.enabled ?? true,
         theme: input.theme ?? "light",
+        latitude: input.latitude ?? null,
+        longitude: input.longitude ?? null,
+        daylightOnly: input.daylightOnly ?? false,
         lastCaptureAt: null,
         lastError: null,
         status: "operational",
@@ -123,6 +126,8 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         name: cam.name,
         theme: cam.theme,
         retentionMonths: tenant?.planMonths ?? 12,
+        latitude: cam.latitude,
+        longitude: cam.longitude,
       };
     },
     async insertImage(input: NewImage): Promise<ImageRecord> {
