@@ -190,6 +190,7 @@ export function App() {
     latest: new Map(),
   });
   const deepLinkAppliedRef = useRef(false);
+  const nightDeepLinkRef = useRef(false);
 
   const cameraId = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
   const selectedCamera =
@@ -235,17 +236,20 @@ export function App() {
   const isGroup = !!groupRoute;
 
   useEffect(() => {
+    nightDeepLinkRef.current = false;
+    setOpenId(null);
+    setShareImage(null);
+  }, [cameraId]);
+
+  useEffect(() => {
+    if (nightDeepLinkRef.current) return;
     if (camera) setNightOn(camera.showNight);
   }, [camera]);
 
   useEffect(() => {
+    if (nightDeepLinkRef.current) return;
     if (selectedCamera) setNightOn(selectedCamera.showNight);
   }, [selectedCamera]);
-
-  useEffect(() => {
-    setOpenId(null);
-    setShareImage(null);
-  }, [cameraId]);
 
   useEffect(() => {
     if (!cameraId) {
@@ -307,7 +311,10 @@ export function App() {
     }
     deepLinkAppliedRef.current = true;
     if (match) {
-      if (match.isDaylight === false) setNightOn(true);
+      if (match.isDaylight === false) {
+        nightDeepLinkRef.current = true;
+        setNightOn(true);
+      }
       setOpenId(match.id);
     }
   }, [loading, images]);

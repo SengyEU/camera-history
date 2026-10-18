@@ -4,7 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
-import { getCamera, getCameraLatest, getGroup, getImages, type ImageDto } from "../api";
+import {
+  getCamera,
+  getCameraLatest,
+  getGroup,
+  getImages,
+  type ImageDto,
+  type PublicCamera,
+} from "../api";
 
 vi.mock("../api", () => ({
   getCamera: vi.fn(),
@@ -400,6 +407,7 @@ describe("App widget", () => {
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
     );
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
   });
 
   it("opens the capture from an older ?img deep link", async () => {
@@ -434,6 +442,76 @@ describe("App widget", () => {
     expect(open.querySelector("img")).toHaveAttribute("src", "/n1.jpg");
     expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true");
     expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
+  });
+
+  it("keeps a night deep link visible when the camera meta resolves after the images", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+    ]);
+    let resolveCamera!: (camera: PublicCamera) => void;
+    vi.mocked(getCamera).mockImplementation(
+      () =>
+        new Promise<PublicCamera>((resolve) => {
+          resolveCamera = resolve;
+        }),
+    );
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=22");
+    render(<App />);
+
+    const open = await screen.findByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/n1.jpg");
+
+    await act(async () => {
+      resolveCamera({
+        id: "cam-1",
+        name: "Pláž",
+        theme: "light",
+        retentionMonths: 12,
+        showNight: false,
+      });
+    });
+
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/n1.jpg");
+    expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("night-toggle"));
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("keeps a day deep link expanded with the toggle off when the camera meta resolves after the images", async () => {
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+    ]);
+    let resolveCamera!: (camera: PublicCamera) => void;
+    vi.mocked(getCamera).mockImplementation(
+      () =>
+        new Promise<PublicCamera>((resolve) => {
+          resolveCamera = resolve;
+        }),
+    );
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=9");
+    render(<App />);
+
+    const open = await screen.findByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+
+    await act(async () => {
+      resolveCamera({
+        id: "cam-1",
+        name: "Pláž",
+        theme: "light",
+        retentionMonths: 12,
+        showNight: false,
+      });
+    });
+
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
   });
 
   it("opens nothing when the ?hour deep link has no matching capture", async () => {
