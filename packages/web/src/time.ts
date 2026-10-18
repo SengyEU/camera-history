@@ -14,6 +14,27 @@ export function localDateInZone(now: Date, timeZone: string): string {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+export function safeMinDate(
+  retentionMonths: number | null | undefined,
+  timezone: string | null | undefined,
+): string | undefined {
+  if (
+    typeof retentionMonths !== "number" ||
+    !Number.isFinite(retentionMonths) ||
+    retentionMonths <= 0 ||
+    !timezone
+  ) {
+    return undefined;
+  }
+  const floor = new Date(Date.now() - retentionMonths * 30 * 24 * 3600 * 1000);
+  if (Number.isNaN(floor.getTime())) return undefined;
+  try {
+    return localDateInZone(floor, timezone);
+  } catch {
+    return undefined;
+  }
+}
+
 export function localHourParts(timestamp: string, timeZone: string): HourParts {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,

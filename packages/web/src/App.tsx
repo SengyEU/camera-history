@@ -10,7 +10,7 @@ import {
 } from "./api";
 import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
 import { SharePopup } from "./SharePopup";
-import { formatCameraHour, localDateInZone, localHourInZone } from "./time";
+import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
@@ -206,12 +206,7 @@ export function App() {
   const today = localDateInZone(new Date(), timezone);
 
   const retentionCamera = groupRoute ? selectedCamera : camera;
-  const minDate = retentionCamera
-    ? localDateInZone(
-        new Date(Date.now() - retentionCamera.retentionMonths * 30 * 24 * 3600 * 1000),
-        retentionCamera.timezone,
-      )
-    : undefined;
+  const minDate = safeMinDate(retentionCamera?.retentionMonths, timezone);
 
   const theme = useMemo(
     () =>

@@ -948,6 +948,33 @@ describe("App group widget", () => {
     expect(screen.getByLabelText("Previous day")).not.toBeDisabled();
   });
 
+  it("renders without a min or crash when the group camera lacks retentionMonths", async () => {
+    vi.mocked(getGroup).mockResolvedValue({
+      group: { id: "g1", name: "Summit", slug: "summit" },
+      cameras: [
+        {
+          id: "cam-a",
+          name: "Alpha",
+          theme: "light",
+          timezone: "UTC",
+          showNight: false,
+        },
+      ],
+    });
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("i1", "2026-10-10T09:00:00Z", "/i1.jpg"),
+    ]);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    expect(await screen.findByTestId("film-strip")).toBeInTheDocument();
+    expect(screen.getByTestId("frame-i1")).toBeInTheDocument();
+    const input = screen.getByLabelText("Date") as HTMLInputElement;
+    expect(input).not.toHaveAttribute("min");
+    expect(screen.getByLabelText("Previous day")).not.toBeDisabled();
+  });
+
   it("does not fetch the default day until the group and selected camera load", async () => {
     let resolveGroup!: (group: PublicGroup) => void;
     vi.mocked(getGroup).mockImplementation(

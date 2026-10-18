@@ -2,7 +2,7 @@ export interface PublicCamera {
   id: string;
   name: string;
   theme: string;
-  retentionMonths: number;
+  retentionMonths?: number;
   showNight: boolean;
   timezone: string;
 }
@@ -32,7 +32,7 @@ export interface GroupCamera {
   id: string;
   name: string;
   theme: string;
-  retentionMonths: number;
+  retentionMonths?: number;
   showNight: boolean;
   timezone: string;
 }
