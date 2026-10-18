@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   getCamera,
   getCameraLatest,
@@ -104,14 +104,16 @@ function WidgetBody({
           onShare={() => {}}
         />
       ) : images.length === 0 ? (
-        <>
+        <div className="empty-state" data-testid="empty-state">
           <p className="empty">No images for this date.</p>
           <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
-        </>
+        </div>
       ) : visibleImages.length === 0 ? (
-        <p className="empty" data-testid="day-only-empty">
-          No daytime captures for this date.
-        </p>
+        <div className="empty-state" data-testid="empty-state">
+          <p className="empty" data-testid="day-only-empty">
+            No daytime captures for this date.
+          </p>
+        </div>
       ) : (
         <FilmStrip
           images={visibleImages}
@@ -138,7 +140,11 @@ function WidgetBody({
           min={minDate || undefined}
           max={today}
           onChange={(event) => {
-            if (event.target.value) onDateChange(event.target.value);
+            const next = event.target.value;
+            if (!next) return;
+            if (minDate && next < minDate) return;
+            if (next > today) return;
+            onDateChange(next);
           }}
         />
         <button
@@ -199,10 +205,11 @@ export function App() {
     (groupRoute ? selectedCamera?.timezone : camera?.timezone) ?? VIEWER_TIMEZONE;
   const today = localDateInZone(new Date(), timezone);
 
-  const minDate = camera
+  const retentionCamera = groupRoute ? selectedCamera : camera;
+  const minDate = retentionCamera
     ? localDateInZone(
-        new Date(Date.now() - camera.retentionMonths * 30 * 24 * 3600 * 1000),
-        camera.timezone,
+        new Date(Date.now() - retentionCamera.retentionMonths * 30 * 24 * 3600 * 1000),
+        retentionCamera.timezone,
       )
     : undefined;
 
@@ -363,6 +370,7 @@ export function App() {
     if (!next) return;
     if (minDate && next < minDate) return;
     if (next > today) return;
+    fallbackRef.current.attempted.add(`${cameraId}:${next}`);
     dateTouchedRef.current = true;
     setDateReady(true);
     setDate(next);
@@ -375,17 +383,37 @@ export function App() {
     window.history.replaceState(null, "", `?${params.toString()}`);
   };
 
-  const shareUrl = useMemo(() => {
-    if (!shareImage) return "";
-    const params = new URLSearchParams();
-    const current = new URLSearchParams(window.location.search);
-    const themeParam = current.get("theme");
-    if (themeParam) params.set("theme", themeParam);
-    if (isGroup && selectedCameraId) params.set("camera", selectedCameraId);
-    params.set("date", date);
-    params.set("hour", String(localHourInZone(shareImage.timestamp, timezone)));
-    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-  }, [shareImage, date, isGroup, selectedCameraId, timezone]);
+  const buildShareUrl = useCallback(
+    (image: ImageDto) => {
+      const params = new URLSearchParams();
+      const current = new URLSearchParams(window.location.search);
+      const themeParam = current.get("theme");
+      if (themeParam) params.set("theme", themeParam);
+      if (isGroup && selectedCameraId) params.set("camera", selectedCameraId);
+      params.set("date", date);
+      params.set("hour", String(localHourInZone(image.timestamp, timezone)));
+      return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    },
+    [date, isGroup, selectedCameraId, timezone],
+  );
+
+  const shareUrl = useMemo(
+    () => (shareImage ? buildShareUrl(shareImage) : ""),
+    [shareImage, buildShareUrl],
+  );
+
+  const handleShare = (image: ImageDto) => {
+    if (typeof navigator.share === "function") {
+      void navigator
+        .share({
+          title: viewerCaptureLabel(image.timestamp, timezone),
+          url: buildShareUrl(image),
+        })
+        .catch(() => {});
+      return;
+    }
+    setShareImage(image);
+  };
 
   const handleOpenChange = (id: string | null) => {
     setOpenId(id);
@@ -407,6 +435,7 @@ export function App() {
         date={date}
         onDateChange={changeDate}
         today={today}
+        minDate={minDate}
         timezone={timezone}
         theme={theme}
         loading={loading}
@@ -414,7 +443,7 @@ export function App() {
         visibleImages={visibleImages}
         openId={openId}
         onOpenChange={handleOpenChange}
-        onShare={setShareImage}
+        onShare={handleShare}
         shareImage={shareImage}
         shareUrl={shareUrl}
         onCloseShare={() => setShareImage(null)}
@@ -452,7 +481,7 @@ export function App() {
       visibleImages={visibleImages}
       openId={openId}
       onOpenChange={handleOpenChange}
-      onShare={setShareImage}
+      onShare={handleShare}
       shareImage={shareImage}
       shareUrl={shareUrl}
       onCloseShare={() => setShareImage(null)}

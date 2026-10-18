@@ -152,6 +152,7 @@ export interface PublicGroupCamera {
   name: string;
   theme: string;
   timezone: string;
+  retentionMonths: number;
   showNight: boolean;
 }
 

@@ -265,6 +265,7 @@ export function createRepos(db: Db): Repos {
           ctimezone: cameras.timezone,
           cenabled: cameras.enabled,
           cshowNight: cameras.showNight,
+          cretentionMonths: tenants.planMonths,
         })
         .from(cameraGroups)
         .innerJoin(tenants, eq(tenants.id, cameraGroups.tenantId))
@@ -280,6 +281,7 @@ export function createRepos(db: Db): Repos {
           name: r.cname!,
           theme: r.ctheme!,
           timezone: r.ctimezone!,
+          retentionMonths: Number(r.cretentionMonths ?? 12),
           showNight: r.cshowNight!,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));

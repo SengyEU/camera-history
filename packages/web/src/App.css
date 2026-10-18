@@ -210,6 +210,27 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 .empty, .error { color: var(--muted); text-align: center; padding: 24px; }
 .empty-hint { color: var(--muted); text-align: center; font-size: 12px; padding: 0 24px; margin-top: -14px; }
 
+/* Empty states share the filmstrip's box so the widget height stays put */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 68vh;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.empty-state .empty,
+.empty-state .empty-hint {
+  padding: 0;
+  margin: 0;
+  max-width: 100%;
+}
+
 /* Date nav below the strip */
 .date-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 0; }
 .date-nav button {

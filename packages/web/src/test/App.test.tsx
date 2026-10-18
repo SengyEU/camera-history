@@ -96,6 +96,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  Reflect.deleteProperty(window.navigator, "share");
 });
 
 describe("App widget", () => {
@@ -264,6 +265,35 @@ describe("App widget", () => {
     const input = screen.getByDisplayValue(url);
     expect(input).toHaveAttribute("readonly");
     expect(screen.queryByDisplayValue(/camera=/)).not.toBeInTheDocument();
+  });
+
+  it("opens the native share sheet instead of the popup when navigator.share exists", async () => {
+    const user = userEvent.setup();
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "share", { value: share, configurable: true });
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-img-2"));
+    await user.click(screen.getByTestId("share-open"));
+
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+    expect(share).toHaveBeenCalledWith({
+      title: "September 18, 2026 · 12 PM",
+      url: `${window.location.origin}/widget/acme/cam-1?date=2026-09-18&hour=12`,
+    });
+    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+  });
+
+  it("ignores a canceled native share", async () => {
+    const user = userEvent.setup();
+    const share = vi.fn().mockRejectedValue(new DOMException("AbortError"));
+    Object.defineProperty(window.navigator, "share", { value: share, configurable: true });
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-img-1"));
+    await user.click(screen.getByTestId("share-open"));
+
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+    expect(screen.getByTestId("frame-open")).toBeInTheDocument();
   });
 
   it("labels captures and share links in the camera timezone", async () => {
@@ -600,6 +630,17 @@ describe("App widget", () => {
     expect(screen.queryByTestId("day-only-empty")).not.toBeInTheDocument();
   });
 
+  it("wraps the empty copy in a strip-sized centered box", async () => {
+    vi.mocked(getImages).mockResolvedValue([]);
+    render(<App />);
+    const emptyState = await screen.findByTestId("empty-state");
+    expect(emptyState).toHaveClass("empty-state");
+    expect(emptyState).toHaveTextContent("No images for this date.");
+    expect(emptyState).toHaveTextContent(
+      "Use the arrows or the date field to browse other days.",
+    );
+  });
+
   it("shows all night frames when the camera shows night images", async () => {
     vi.mocked(getCamera).mockResolvedValue(makeCamera({ showNight: true }));
     vi.mocked(getImages).mockResolvedValue([
@@ -632,6 +673,7 @@ describe("App widget", () => {
     expect(await screen.findByTestId("day-only-empty")).toHaveTextContent(
       "No daytime captures for this date.",
     );
+    expect(screen.getByTestId("empty-state")).toContainElement(screen.getByTestId("day-only-empty"));
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
     expect(screen.queryByText("No images for this date.")).not.toBeInTheDocument();
   });
@@ -669,8 +711,8 @@ describe("App widget", () => {
 const summitGroup = {
   group: { id: "g1", name: "Summit", slug: "summit" },
   cameras: [
-    { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", showNight: false },
-    { id: "cam-b", name: "Beta", theme: "dark", timezone: "UTC", showNight: false },
+    { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", retentionMonths: 12, showNight: false },
+    { id: "cam-b", name: "Beta", theme: "dark", timezone: "UTC", retentionMonths: 12, showNight: false },
   ],
 };
 
@@ -708,12 +750,13 @@ describe("App group widget", () => {
     vi.mocked(getGroup).mockResolvedValue({
       group: { id: "g1", name: "Summit", slug: "summit" },
       cameras: [
-        { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", showNight: false },
+        { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", retentionMonths: 12, showNight: false },
         {
           id: "cam-b",
           name: "Beta",
           theme: "dark",
           timezone: "America/Edmonton",
+          retentionMonths: 12,
           showNight: false,
         },
       ],
@@ -744,8 +787,8 @@ describe("App group widget", () => {
     vi.mocked(getGroup).mockResolvedValue({
       group: { id: "g1", name: "Summit", slug: "summit" },
       cameras: [
-        { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", showNight: true },
-        { id: "cam-b", name: "Beta", theme: "dark", timezone: "UTC", showNight: false },
+        { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", retentionMonths: 12, showNight: true },
+        { id: "cam-b", name: "Beta", theme: "dark", timezone: "UTC", retentionMonths: 12, showNight: false },
       ],
     });
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
@@ -833,6 +876,76 @@ describe("App group widget", () => {
     expect(vi.mocked(getCameraLatest)).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument();
     expect(vi.mocked(getImages)).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps an explicit no-image date change on the first attempt", async () => {
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    vi.mocked(getCameraLatest).mockResolvedValue("2026-10-01");
+    vi.mocked(getImages).mockImplementation(async (_cameraId, date) =>
+      date === "2026-10-10"
+        ? [makeImage(`i-${date}`, `${date}T09:00:00Z`, "/i.jpg")]
+        : [],
+    );
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-i-2026-10-10")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-05" } });
+
+    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2026-10-05")).toBeInTheDocument();
+    expect(vi.mocked(getCameraLatest)).not.toHaveBeenCalled();
+  });
+
+  it("bounds the group date picker by the selected camera's retention", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-10-18T05:30:00Z"));
+    vi.mocked(getGroup).mockResolvedValue({
+      group: { id: "g1", name: "Summit", slug: "summit" },
+      cameras: [
+        {
+          id: "cam-a",
+          name: "Alpha",
+          theme: "light",
+          timezone: "UTC",
+          retentionMonths: 2,
+          showNight: false,
+        },
+        {
+          id: "cam-b",
+          name: "Beta",
+          theme: "dark",
+          timezone: "UTC",
+          retentionMonths: 12,
+          showNight: false,
+        },
+      ],
+    });
+    vi.mocked(getImages).mockResolvedValue([makeImage("i1", "2026-08-19T09:00:00Z", "/i1.jpg")]);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-08-19");
+    render(<App />);
+
+    const input = (await screen.findByLabelText("Date")) as HTMLInputElement;
+    const minFor = (months: number) =>
+      cameraDate(new Date(Date.now() - months * 30 * 24 * 3600 * 1000), "UTC");
+    await waitFor(() => expect(input.min).toBe(minFor(2)));
+    expect(input.max).toBe("2026-10-18");
+    expect(screen.getByLabelText("Previous day")).toBeDisabled();
+
+    fireEvent.change(input, { target: { value: "2020-01-01" } });
+    expect(vi.mocked(getImages)).not.toHaveBeenCalledWith("cam-a", "2020-01-01");
+    expect(input).toHaveValue("2026-08-19");
+
+    fireEvent.change(input, { target: { value: "2027-01-01" } });
+    expect(vi.mocked(getImages)).not.toHaveBeenCalledWith("cam-a", "2027-01-01");
+    expect(input).toHaveValue("2026-08-19");
+
+    fireEvent.change(screen.getByTestId("camera-switcher"), { target: { value: "cam-b" } });
+    await waitFor(() => expect(input.min).toBe(minFor(12)));
+    expect(screen.getByLabelText("Previous day")).not.toBeDisabled();
   });
 
   it("does not fetch the default day until the group and selected camera load", async () => {

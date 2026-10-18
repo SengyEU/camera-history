@@ -168,9 +168,9 @@ describe("fakeRepos", () => {
     const group = await repos.createGroup(tenant.id, { name: "G", slug: "g" });
     await repos.setGroupCameras(group.id, [plain.id, night.id]);
     const pub = await repos.getGroupBySlug("acme", "g");
-    expect(pub?.cameras.map((c) => [c.name, c.showNight, c.timezone])).toEqual([
-      ["Night", true, "UTC"],
-      ["Plain", false, "UTC"],
+    expect(pub?.cameras.map((c) => [c.name, c.showNight, c.timezone, c.retentionMonths])).toEqual([
+      ["Night", true, "UTC", 12],
+      ["Plain", false, "UTC", 12],
     ]);
   });
 

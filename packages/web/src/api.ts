@@ -32,6 +32,7 @@ export interface GroupCamera {
   id: string;
   name: string;
   theme: string;
+  retentionMonths: number;
   showNight: boolean;
   timezone: string;
 }

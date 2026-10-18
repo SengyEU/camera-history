@@ -349,7 +349,7 @@ describe("public routes", () => {
 
   it("returns public group with enabled cameras ordered by name", async () => {
     const { app, repos } = makeApp();
-    const t = await repos.createTenant({ name: "T", slug: "t-one" });
+    const t = await repos.createTenant({ name: "T", slug: "t-one", planMonths: 24 });
     const cam = await repos.createCamera(t.id, {
       name: "Zulu", feedType: "static_url", feedUrl: "https://e.com/z.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59",
@@ -367,7 +367,14 @@ describe("public routes", () => {
     const body = res.json();
     expect(body.group.slug).toBe("g-one");
     expect(body.cameras).toEqual([
-      { id: cam.id, name: "Zulu", theme: "dark", timezone: "America/Edmonton", showNight: true },
+      {
+        id: cam.id,
+        name: "Zulu",
+        theme: "dark",
+        timezone: "America/Edmonton",
+        retentionMonths: 24,
+        showNight: true,
+      },
     ]);
   });
 

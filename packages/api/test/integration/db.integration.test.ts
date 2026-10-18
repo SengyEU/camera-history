@@ -155,6 +155,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     expect(pub?.cameras.map((c) => c.id)).toEqual([a.id]); // disabled Beta excluded
     expect(pub?.cameras[0]?.showNight).toBe(true); // per-camera showNight reaches the group DTO
     expect(pub?.cameras[0]?.timezone).toBe("UTC"); // camera timezone reaches the group DTO
+    expect(pub?.cameras[0]?.retentionMonths).toBe(12); // tenant retention reaches the group DTO
     expect(await repos.getGroupBySlug(tenant.slug, "nope")).toBeNull();
 
     const noop = await repos.updateGroup(g.id, {});
