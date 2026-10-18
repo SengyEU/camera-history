@@ -412,17 +412,6 @@ export function App() {
   );
 
   const handleShare = (image: ImageDto) => {
-    const isMobileOrTablet =
-      (window.matchMedia?.("(pointer: coarse)").matches ?? false) && navigator.maxTouchPoints > 0;
-    if (isMobileOrTablet && typeof navigator.share === "function") {
-      void navigator
-        .share({
-          title: viewerCaptureLabel(image.timestamp, timezone),
-          url: buildShareUrl(image),
-        })
-        .catch(() => {});
-      return;
-    }
     setShareImage(image);
   };
 

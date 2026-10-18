@@ -108,7 +108,6 @@ const stubPointer = (coarse: boolean) => {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  stubPointer(false);
   vi.mocked(getCamera).mockResolvedValue(makeCamera());
   vi.mocked(getImages).mockResolvedValue(defaultImages);
   vi.mocked(getCameraLatest).mockResolvedValue(null);
@@ -291,7 +290,7 @@ describe("App widget", () => {
     expect(screen.queryByDisplayValue(/camera=/)).not.toBeInTheDocument();
   });
 
-  it("opens the native share sheet on coarse pointers instead of the popup", async () => {
+  it("opens the popup on coarse pointers instead of the native share sheet", async () => {
     const user = userEvent.setup();
     const share = vi.fn().mockResolvedValue(undefined);
     stubPointer(true);
@@ -300,15 +299,12 @@ describe("App widget", () => {
     await user.click(await screen.findByTestId("frame-img-2"));
     await user.click(screen.getByTestId("share-open"));
 
-    await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
-    expect(share).toHaveBeenCalledWith({
-      title: "September 18, 2026 · 12 PM",
-      url: `${window.location.origin}/widget/acme/cam-1?date=2026-09-18&hour=12`,
-    });
-    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+    expect(await screen.findByTestId("share-popup")).toBeInTheDocument();
+    expect(share).not.toHaveBeenCalled();
+    expect(screen.getByTestId("share-other")).toHaveTextContent("Other…");
   });
 
-  it("ignores a canceled native share", async () => {
+  it("ignores a native share canceled from the Other button", async () => {
     const user = userEvent.setup();
     const share = vi.fn().mockRejectedValue(new DOMException("AbortError"));
     stubPointer(true);
@@ -317,8 +313,12 @@ describe("App widget", () => {
     await user.click(await screen.findByTestId("frame-img-1"));
     await user.click(screen.getByTestId("share-open"));
 
+    expect(await screen.findByTestId("share-popup")).toBeInTheDocument();
+    expect(share).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("share-other"));
     await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
-    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+    expect(screen.getByTestId("share-popup")).toBeInTheDocument();
     expect(screen.getByTestId("frame-open")).toBeInTheDocument();
   });
 
