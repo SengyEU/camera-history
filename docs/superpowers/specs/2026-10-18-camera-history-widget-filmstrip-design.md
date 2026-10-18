@@ -118,7 +118,7 @@ Struktura (nahrazuje mřížku i modal):
 ## 9. Demo seeder
 
 - Kamery Alpine: `intervalMinutes: 60`, `latitude/longitude: 51.425/−116.177`; Kite Cam: 60, 53.350/−6.267
-- Seeder nově: existující kamery **aktualizuje** (PUT s plným payloadem), pokud se config liší (interval/coords)
+- Seeder nově: existující kamery **aktualizuje** (PUT s pouze změněnými poli (partial patch)), pokud se config liší (interval/coords)
 - `daylight_only` zůstává false (24h capture dle rozhodnutí)
 
 ## 10. Testy a QA

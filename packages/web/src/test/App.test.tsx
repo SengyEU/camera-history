@@ -235,6 +235,30 @@ describe("App widget", () => {
     );
   });
 
+  it("auto-enables night images when a deep link points to a night capture", async () => {
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+    ]);
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=22");
+    render(<App />);
+
+    const open = await screen.findByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/n1.jpg");
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
+  });
+
+  it("opens nothing when the ?hour deep link has no matching capture", async () => {
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=7");
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
+    expect(screen.getByTestId("film-strip")).toBeInTheDocument();
+    expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument();
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
+  });
+
   it("changes the day from the date nav, refetches and clears the hour deep link", async () => {
     const user = userEvent.setup();
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=12");

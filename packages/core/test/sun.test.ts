@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localHourInZone, sunTimes } from "../src/sun.js";
+import { localDateInZone, localHourInZone, sunTimes } from "../src/sun.js";
 
 const min = (d: Date) => d.getUTCHours() * 60 + d.getUTCMinutes();
 
@@ -38,6 +38,14 @@ describe("sunTimes", () => {
   });
   it("polar midsummer returns null (Tromsø)", () => {
     expect(sunTimes("2026-06-21", 69.65, 18.96)).toBeNull();
+  });
+});
+
+describe("localDateInZone", () => {
+  it("maps a UTC instant near midnight to the zone's local date", () => {
+    const nearMidnightUtc = new Date("2026-10-18T00:00:00Z");
+    expect(localDateInZone(nearMidnightUtc, "America/Edmonton")).toBe("2026-10-17");
+    expect(localDateInZone(nearMidnightUtc, "UTC")).toBe("2026-10-18");
   });
 });
 

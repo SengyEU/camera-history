@@ -2,11 +2,13 @@ import type { FastifyPluginAsync } from "fastify";
 import {
   dayRangeUtc,
   gatedRange,
+  localDateInZone,
   localHourInZone,
   retentionCutoff,
   rfc7807,
   sunTimes,
 } from "@ch/core";
+import type { SunTimes } from "@ch/core";
 import type { ObjectStorage, Repos } from "@ch/db";
 
 export type PublicRouteDeps = {
@@ -51,19 +53,26 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           ? []
           : await repos.imagesForCameraDay(cam.id, gated.start, gated.end);
 
-      const times =
+      const timezone = (await repos.getCameraById(cam.id))?.timezone ?? "UTC";
+      const coords =
         cam.latitude !== null && cam.longitude !== null
-          ? sunTimes(date, cam.latitude, cam.longitude)
+          ? { latitude: cam.latitude, longitude: cam.longitude }
           : null;
-
-      let fallbackTimezone = "";
-      if (!times) {
-        fallbackTimezone = (await repos.getCameraById(cam.id))?.timezone ?? "UTC";
-      }
+      const sunTimesCache = new Map<string, SunTimes | null>();
 
       const isDaylightAt = (ts: Date): boolean => {
-        if (times) return ts >= times.sunrise && ts <= times.sunset;
-        const h = localHourInZone(ts, fallbackTimezone);
+        if (coords) {
+          const localDate = localDateInZone(ts, timezone);
+          if (!sunTimesCache.has(localDate)) {
+            sunTimesCache.set(
+              localDate,
+              sunTimes(localDate, coords.latitude, coords.longitude),
+            );
+          }
+          const times = sunTimesCache.get(localDate) ?? null;
+          if (times) return ts >= times.sunrise && ts <= times.sunset;
+        }
+        const h = localHourInZone(ts, timezone);
         return h >= 6 && h < 20;
       };
 

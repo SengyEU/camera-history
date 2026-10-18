@@ -125,6 +125,24 @@ describe("public routes", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("uses each image's local date for sun times at the UTC day boundary", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCameraWithImages(repos, {
+      timezone: "America/Edmonton",
+      latitude: 51.425,
+      longitude: -116.177,
+      timestamps: ["2026-10-18T00:00:00Z", "2026-10-18T13:00:00Z"],
+    });
+
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
+    expect(res.statusCode).toBe(200);
+    const images = res.json().images as Record<string, unknown>[];
+    expect(images).toHaveLength(2);
+    expect(images[0]).toMatchObject({ timestamp: "2026-10-18T00:00:00.000Z", isDaylight: true });
+    expect(images[1]).toMatchObject({ timestamp: "2026-10-18T13:00:00.000Z", isDaylight: false });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("marks images by local hour when the camera has no coordinates", async () => {
     const { app, repos } = makeApp();
     const camera = await seedCameraWithImages(repos, {
