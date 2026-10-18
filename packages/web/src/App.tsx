@@ -40,6 +40,7 @@ interface WidgetBodyProps {
   setDate: (d: string) => void;
   theme: string;
   images: ImageDto[];
+  loading: boolean;
   minDate?: string;
   shareCameraId?: string | null;
   switcher?: ReactNode;
@@ -52,6 +53,7 @@ function WidgetBody({
   setDate,
   theme,
   images,
+  loading,
   minDate,
   shareCameraId,
   switcher,
@@ -62,6 +64,10 @@ function WidgetBody({
     return p.get("img") ?? null;
   });
   const [modalUrl, setModalUrl] = useState<string>("");
+  const [copied, setCopied] = useState<boolean>(false);
+  const copyTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
 
   const shiftDay = (delta: number) => {
     const d = new Date(`${date}T12:00:00`);
@@ -100,18 +106,29 @@ function WidgetBody({
         </div>
       </div>
       <div className="widget-grid" data-testid="image-grid">
-        {images.length === 0 && <p className="empty">No images for this date.</p>}
-        {images.map((img) => (
-          <button
-            key={img.id}
-            className="widget-cell"
-            data-testid={`image-${img.id}`}
-            onClick={() => setOpenImage(openImage === img.id ? null : img.id)}
-          >
-            <img src={img.url} alt={img.timestamp} loading="lazy" />
-            <span>{new Date(img.timestamp).toLocaleTimeString()}</span>
-          </button>
-        ))}
+        {loading ? (
+          Array.from({ length: 8 }, (_, i) => (
+            <div key={`skeleton-${i}`} className="skeleton" aria-hidden="true" />
+          ))
+        ) : (
+          <>
+            {images.length === 0 && <p className="empty">No images for this date.</p>}
+            {images.map((img) => (
+              <button
+                key={img.id}
+                className="widget-cell"
+                data-testid={`image-${img.id}`}
+                onClick={() => {
+                  setCopied(false);
+                  setOpenImage(openImage === img.id ? null : img.id);
+                }}
+              >
+                <img src={img.url} alt={img.timestamp} loading="lazy" />
+                <span className="ts-chip">{new Date(img.timestamp).toLocaleTimeString()}</span>
+              </button>
+            ))}
+          </>
+        )}
       </div>
       {openImage && openImg && (
         <div className="modal" data-testid="share-modal" onClick={() => setOpenImage(null)}>
@@ -123,13 +140,18 @@ function WidgetBody({
             <div className="modal-actions">
               <button
                 onClick={() => {
-                  navigator.clipboard?.writeText(buildShareUrl(openImg));
-                  setModalUrl(buildShareUrl(openImg));
+                  const url = buildShareUrl(openImg);
+                  navigator.clipboard?.writeText(url);
+                  setModalUrl(url);
+                  setCopied(true);
+                  window.clearTimeout(copyTimer.current);
+                  copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
                 }}
               >
                 Copy link
               </button>
               <span className="share-url">{modalUrl}</span>
+              {copied && <span className="copied">Copied</span>}
             </div>
           </div>
         </div>
@@ -147,6 +169,7 @@ export function App() {
   const [group, setGroup] = useState<PublicGroup | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [images, setImages] = useState<ImageDto[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [date, setDate] = useState(() => {
     const p = new URLSearchParams(window.location.search);
     return p.get("date") ?? toLocalInputValue(new Date());
@@ -200,8 +223,12 @@ export function App() {
   const isGroup = !!groupRoute;
 
   useEffect(() => {
-    if (!cameraId) return;
+    if (!cameraId) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
+    setLoading(true);
     getImages(cameraId, date)
       .then(async (imgs) => {
         if (cancelled) return;
@@ -225,6 +252,9 @@ export function App() {
       })
       .catch(() => {
         if (!cancelled) setImages([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -248,6 +278,7 @@ export function App() {
         setDate={setDate}
         theme={theme}
         images={images}
+        loading={loading}
         shareCameraId={selectedCameraId}
         switcher={
           group ? (
@@ -277,6 +308,7 @@ export function App() {
       setDate={setDate}
       theme={theme}
       images={images}
+      loading={loading}
       minDate={minDate || undefined}
     >
       {!widgetRoute && <p className="error">Invalid widget URL. Use /widget/{"{tenant}"}/{"{camera_id}"}</p>}
