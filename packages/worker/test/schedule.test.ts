@@ -97,8 +97,24 @@ describe("isInDaylightWindow", () => {
 });
 
 describe("isCaptureDue with daylightOnly", () => {
+  const mountainTimeCam: Camera = {
+    ...baseCam,
+    latitude: 51.425,
+    longitude: -116.177,
+    timezone: "America/Edmonton",
+    activeFrom: "09:00",
+    activeTo: "17:00",
+  };
+
   it("due inside daylight", () => {
-    expect(isCaptureDue(lakeLouiseCam, new Date("2026-07-18T18:00:00Z"))).toBe(true);
+    // Active window 18:00–20:00 local excludes 12:00 local, so only the daylight branch can make this due.
+    const cam = { ...lakeLouiseCam, activeFrom: "18:00", activeTo: "20:00" };
+    expect(isCaptureDue(cam, new Date("2026-07-18T18:00:00Z"))).toBe(true);
+  });
+  it("uses the camera-local date for the daylight window, not the UTC date", () => {
+    // 2026-07-18T01:00Z = 19:00 MDT on Jul 17, inside Jul 17's daylight (11:46:43Z–Jul 18 03:54:42Z).
+    // A UTC-date implementation would check Jul 18 (sunrise 11:47:57Z) and return false.
+    expect(isCaptureDue(lakeLouiseCam, new Date("2026-07-18T01:00:00Z"))).toBe(true);
   });
   it("not due outside daylight even when active window would allow it", () => {
     expect(isCaptureDue(lakeLouiseCam, new Date("2026-07-18T08:00:00Z"))).toBe(false);
@@ -127,15 +143,11 @@ describe("isCaptureDue with daylightOnly", () => {
     expect(isCaptureDue(cam, new Date("2026-06-21T18:00:00Z"))).toBe(false);
   });
   it("unchanged active-window behavior when daylightOnly is false", () => {
-    const cam = {
-      ...baseCam,
-      latitude: 51.425,
-      longitude: -116.177,
-      timezone: "America/Edmonton",
-      activeFrom: "09:00",
-      activeTo: "17:00",
-    };
-    expect(isCaptureDue(cam, new Date("2026-07-18T16:00:00Z"))).toBe(true); // 10:00 local
-    expect(isCaptureDue(cam, new Date("2026-07-18T08:00:00Z"))).toBe(false); // 02:00 local
+    expect(isCaptureDue(mountainTimeCam, new Date("2026-07-18T16:00:00Z"))).toBe(true); // 10:00 local
+    expect(isCaptureDue(mountainTimeCam, new Date("2026-07-18T08:00:00Z"))).toBe(false); // 02:00 local
+  });
+  it("ignores daylight when daylightOnly is false", () => {
+    // 14:00Z = 08:00 local: inside daylight (sunrise 11:47:57Z) but outside the 09:00–17:00 window.
+    expect(isCaptureDue(mountainTimeCam, new Date("2026-07-18T14:00:00Z"))).toBe(false);
   });
 });
