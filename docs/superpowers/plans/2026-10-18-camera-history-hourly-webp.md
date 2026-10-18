@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** Make captures land exactly on interval boundaries (hourly for the demo), store every capture as WebP 1600px q75 (≈80–200 KB), hard-purge all off-hour captures across tenants, convert all remaining images to WebP, and add a per-camera admin switch that decides whether the widget shows night images by default.
+**Goal:** Make captures land exactly on interval boundaries (hourly for the demo), store every capture as WebP 1600px q75 (≈80–200 KB), keep one capture per camera per UTC hour (closest to :00) and hard-purge the rest across tenants, convert all remaining images to WebP, and add a per-camera admin switch that decides whether the widget shows night images by default.
 
 **Architecture:** New camera column `show_night` (migration 0005) exposed through public/admin DTOs and consumed by the widget as the night-toggle default. The worker converts every captured buffer with ffmpeg/libwebp before storage and switches `isCaptureDue` to interval-bucket alignment. The API file route serves `.webp` (and legacy `.jpg`). Two idempotent ops scripts (`scripts/purge-offhour.mjs`, `scripts/convert-webp.mjs`) perform the destructive cleanup and backfill against Postgres + MinIO using the root `.env`.
 
@@ -12,7 +12,7 @@ Spec: `docs/superpowers/specs/2026-10-18-camera-history-hourly-webp-design.md`
 
 - English only in UI/test copy; widget stays neutral (system fonts, 4 themes).
 - WebP settings verbatim: max width **1600 px** (`scale='min(1600,iw)':-2`), libwebp **quality 75**.
-- Purge scope: **all tenants/cameras**, `EXTRACT(MINUTE FROM timestamp) <> 0`, hard delete (MinIO object + DB row).
+- Purge scope: **all tenants/cameras** — keep exactly one capture per camera per UTC hour (closest to :00), hard delete the remaining captures (MinIO object + DB row).
 - Conversion: every remaining `.jpg` → `.webp` (same path, new extension), update `storage_key`, delete the original object.
 - Migrations via `npm run db:generate` → `packages/db/drizzle/0005_*.sql`; api container applies on startup.
 - Gates green: `npm run typecheck && npm test && npm run lint && npm run build`.
@@ -133,63 +133,24 @@ export function toWebp(input: Buffer): Promise<Buffer> {
 
 ---
 
-### Task 6: Ops scripts + deploy + purge + conversion + QA
+### Task 6: Ops scripts + deploy + purge (one per camera-hour) + conversion + QA
 
 **Files:**
 - Create: `scripts/purge-offhour.mjs`, `scripts/convert-webp.mjs`
 
 **Interfaces:** both read root `.env` (`DATABASE_URL`, `MINIO_ENDPOINT`, `MINIO_PORT`, `MINIO_USE_SSL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`); idempotent; `--dry-run`.
 
-- [ ] **Step 1: `scripts/purge-offhour.mjs`** (full code)
-```js
-#!/usr/bin/env node
-// Hard-delete every image whose capture minute is not :00 (DB row + MinIO object).
-// Usage: node scripts/purge-offhour.mjs [--dry-run]
-import { readFileSync } from "node:fs";
-import { Client as Pg } from "pg";
-import { Client as Minio } from "minio";
-
-const env = {};
-for (const line of readFileSync(new URL("../.env", import.meta.url), "utf8").split("\n")) {
-  const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
-  if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-}
-const dry = process.argv.includes("--dry-run");
-const db = new Pg({ connectionString: env.DATABASE_URL });
-await db.connect();
-
-const { rows } = await db.query(
-  "SELECT id, storage_key FROM images WHERE EXTRACT(MINUTE FROM timestamp) <> 0 ORDER BY timestamp",
-);
-console.log(`off-hour images: ${rows.length}`);
-if (rows.length > 0) console.log("sample:", rows.slice(0, 5).map((r) => r.storage_key).join(", "));
-
-if (!dry && rows.length > 0) {
-  const minio = new Minio({
-    endPoint: env.MINIO_ENDPOINT,
-    port: Number(env.MINIO_PORT ?? "9000"),
-    useSSL: env.MINIO_USE_SSL === "true",
-    accessKey: env.MINIO_ACCESS_KEY,
-    secretKey: env.MINIO_SECRET_KEY,
-  });
-  let objects = 0;
-  for (const row of rows) {
-    try {
-      await minio.removeObject(env.MINIO_BUCKET, row.storage_key);
-      objects += 1;
-    } catch (error) {
-      console.warn(`warn: remove ${row.storage_key}: ${error.message}`);
-    }
-  }
-  await db.query("DELETE FROM images WHERE EXTRACT(MINUTE FROM timestamp) <> 0");
-  const { rows: left } = await db.query(
-    "SELECT count(*)::int AS n FROM images WHERE EXTRACT(MINUTE FROM timestamp) <> 0",
-  );
-  console.log(`removed ${objects} objects, rows deleted; remaining off-hour: ${left[0].n}`);
-}
-if (dry) console.log("dry run — nothing deleted");
-await db.end();
-```
+- [ ] **Step 1: `scripts/purge-offhour.mjs`** — keep exactly one capture per camera per UTC hour
+  (the one closest to :00) and hard-delete the rest (implemented; see committed `scripts/purge-offhour.mjs`):
+  - Reads root `.env` (`DATABASE_URL`, `MINIO_*`), supports `--dry-run`.
+  - Candidate query ranks rows with
+    `row_number() OVER (PARTITION BY camera_id, date_trunc('hour', timestamp AT TIME ZONE 'UTC')
+    ORDER BY EXTRACT(MINUTE FROM timestamp AT TIME ZONE 'UTC') * 60 + EXTRACT(SECOND FROM timestamp AT TIME ZONE 'UTC'))`
+    and selects `rn > 1` — i.e. the closest-to-:00 capture per camera-hour is kept, the extras are candidates.
+  - Removes candidate MinIO objects, deletes the corresponding DB rows by id (`WHERE id = ANY($1::uuid[])`),
+    and logs extra captures, removed/failed objects, and remaining camera-hours with more than one frame.
+  - Verification query after a real run:
+    `SELECT count(*) FROM (SELECT camera_id, date_trunc('hour', timestamp AT TIME ZONE 'UTC') FROM images GROUP BY 1,2 HAVING count(*) > 1) dupes` = 0.
 - [ ] **Step 2: `scripts/convert-webp.mjs`** (full code)
 ```js
 #!/usr/bin/env node
@@ -278,7 +239,7 @@ await db.end();
   2. Deploy: `docker compose build api worker` (detached, log file) → `docker compose up -d api worker`; api logs `migrations applied`; health 200.
   3. Build UIs: `npm run build` (root).
   4. Run `node scripts/purge-offhour.mjs`; then `node scripts/convert-webp.mjs`.
-  5. Verify: no off-hour rows; no `.jpg` keys; widget strip = one frame per hour; night toggle shows hourly night frames (admin can flip the camera default); image bytes ≈80–200 KB (`curl -sI` on a frame); strip total weight down sharply.
+  5. Verify: every camera-hour (UTC) has exactly one row (its closest-to-:00 capture; no camera-hour with >1 frame); no `.jpg` keys; widget strip = one frame per hour; night toggle shows hourly night frames (admin can flip the camera default); image bytes ≈80–200 KB (`curl -sI` on a frame); strip total weight down sharply.
   6. Gates: `npm run typecheck && npm test && npm run lint && npm run build`.
   7. Visual QA screenshots (controller): day strip, night on, admin checkbox, mobile width.
 
@@ -287,5 +248,5 @@ await db.end();
 ## Self-Review
 
 - **Spec coverage:** §3 data → T1; §4.1 webp → T2 (+ route T3); §4.2 alignment → T2; §5 API → T3; §6 admin → T4; §7 widget → T5; §8 scripts → T6; §9 deploy/verification → T6; §10 risks covered (worker ffmpeg check, dry-runs, ordering).
-- **Placeholder scan:** scripts are complete code; API/worker/data contracts exact; no TBD.
+- **Placeholder scan:** purge semantics pinned to committed `scripts/purge-offhour.mjs` (keep one per camera-hour, closest to :00); convert script is complete code; API/worker/data contracts exact; no TBD.
 - **Type consistency:** `showNight` naming across core/db/api/admin/web; `.webp` key naming; `toWebp` signature; bucket formula; env names match `.env`/`.env.example` (`MINIO_*`, `DATABASE_URL`).

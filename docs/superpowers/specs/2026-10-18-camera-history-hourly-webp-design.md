@@ -74,9 +74,11 @@ default pro vybranou kameru). Repos real+fake: mapování sloupce; admin create/
 
 ## 8. Ops skripty (host, idempotentní)
 
-- `scripts/purge-offhour.mjs`: přes pg (DATABASE_URL z `.env`) vybere `images WHERE EXTRACT(MINUTE FROM timestamp) <> 0`,
-  smaže MinIO objekty (MINIO_* z `.env`) i DB řádky; loguje počty; `--dry-run` flag; po dokončení
-  vypíše summary. (Spouští controller po deployi workeru s alignmentem, aby mezitím nevznikla nová off-hour data.)
+- `scripts/purge-offhour.mjs`: přes pg (DATABASE_URL z `.env`) ponechá **1 snímek na kameru a UTC hodinu**
+  (nejblíž :00 — řazení dle `EXTRACT(MINUTE)*60 + EXTRACT(SECOND)` v UTC) a ostatní smaže:
+  MinIO objekty (MINIO_* z `.env`) i DB řádky; loguje počty (extra snímky, smazané objekty,
+  kamerohodiny s >1 snímkem); `--dry-run` flag; po dokončení vypíše summary.
+  (Spouští controller po deployi workeru s alignmentem, aby mezitím nevznikla nová off-hour data.)
 - `scripts/convert-webp.mjs`: pro každý snímek s `storage_key LIKE '%.jpg'`: stáhne objekt, přes host
   ffmpeg (`libwebp`, 1600px, q75) převede, uloží `.webp` se stejnou cestou (jiná přípona), updatne
   `storage_key`, smaže originál; idempotentní (skip .webp), `--dry-run`, průběžný log + summary
@@ -86,8 +88,9 @@ default pro vybranou kameru). Repos real+fake: mapování sloupce; admin create/
 
 1. Deploy: `docker compose up -d --build api worker` (migrace 0005; worker s WebP + alignmentem);
    build web/admin dist.
-2. **Purge** (controller): `node scripts/purge-offhour.mjs` → counts;
-   kontrola: `SELECT count(*) FILTER (WHERE EXTRACT(MINUTE FROM timestamp)<>0) = 0`.
+2. **Purge** (controller): `node scripts/purge-offhour.mjs` → counts (extra snímky / smazané objekty);
+   kontrola: žádná kamerohodina (UTC) nemá víc než 1 snímek a ponechaný snímek je nejblíž :00:
+   `SELECT count(*) FROM (SELECT camera_id, date_trunc('hour', timestamp AT TIME ZONE 'UTC') FROM images GROUP BY 1,2 HAVING count(*) > 1) dupes` = 0.
 3. **Convert**: `node scripts/convert-webp.mjs` → summary (počet, úspora); kontrola žádné .jpg.
 4. Widget QA: pás pro aktuální den = 1 snímek/hodina; night toggle → hodinové noční snímky (IR);
    načtení pásu výrazně rychlejší (součty kB); admin checkbox mění default toggle po reloadu.

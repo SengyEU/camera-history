@@ -222,6 +222,8 @@ describe("App camera CRUD", () => {
     await userEvent.click(screen.getByTestId("form-submit"));
 
     await waitFor(() => expect(calls.some((c) => c.u.includes("/cam-1") && c.init?.method === "PUT")).toBe(true));
+    const put = calls.find((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")!;
+    expect(JSON.parse(String(put.init?.body))).toMatchObject({ name: "Renamed cam", showNight: true });
   });
 
   it("deletes a camera", async () => {

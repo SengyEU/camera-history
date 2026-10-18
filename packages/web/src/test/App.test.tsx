@@ -933,4 +933,27 @@ describe("App group widget", () => {
     await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-a");
     await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"));
   });
+
+  it("keeps a manual night toggle across date changes", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
+      makeImage(`${cameraId}-${date}-d`, `${date}T09:00:00`, `/api/v1/${cameraId}-${date}-d.jpg`),
+      makeImage(`${cameraId}-${date}-n`, `${date}T22:00:00`, `/api/v1/${cameraId}-${date}-n.jpg`, false),
+    ]);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    const toggle = await screen.findByTestId("night-toggle");
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "false"));
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByTestId("frame-cam-a-2026-10-10-n")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-11" } });
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-a", "2026-10-11"));
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByTestId("frame-cam-a-2026-10-11-n")).toBeInTheDocument();
+  });
 });
