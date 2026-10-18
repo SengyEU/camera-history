@@ -54,6 +54,13 @@ export interface BillingDto {
   tiers: BillingTierDto[];
 }
 
+export interface AdminGroup {
+  id: string;
+  name: string;
+  slug: string;
+  cameraIds: string[];
+}
+
 export const FEED_LABELS: Record<FeedType, string> = {
   static_url: "Static image (HTTP)",
   mjpeg: "MJPEG stream",
@@ -120,4 +127,14 @@ export const api = {
       body: JSON.stringify({ planMonths }),
     }),
   billingPortal: () => json<{ url: string }>("/api/v1/admin/billing/portal", { method: "POST" }),
+  listGroups: () => json<{ groups: AdminGroup[] }>("/api/v1/admin/groups").then((r) => r.groups),
+  createGroup: (input: { name: string; slug: string }) =>
+    json<{ group: AdminGroup }>("/api/v1/admin/groups", { method: "POST", body: JSON.stringify(input) }).then((r) => r.group),
+  updateGroup: (id: string, patch: { name?: string; slug?: string }) =>
+    json<{ group: AdminGroup }>(`/api/v1/admin/groups/${id}`, { method: "PATCH", body: JSON.stringify(patch) }).then((r) => r.group),
+  deleteGroup: (id: string) => json<undefined>(`/api/v1/admin/groups/${id}`, { method: "DELETE" }),
+  setGroupCameras: (id: string, cameraIds: string[]) =>
+    json<undefined>(`/api/v1/admin/groups/${id}/cameras`, { method: "PUT", body: JSON.stringify({ cameraIds }) }),
+  getTenant: () =>
+    json<{ tenant: { id: string; name: string; slug: string } }>("/api/v1/admin/tenant").then((r) => r.tenant),
 };

@@ -1,4 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+/** @vitest-environment jsdom */
+import "@testing-library/jest-dom/vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
@@ -10,8 +12,12 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
+type SeedGroup = { id: string; name: string; slug: string; cameraIds: string[] };
+
 afterEach(() => {
+  cleanup();
   vi.unstubAllGlobals();
+  delete (window.navigator as { clipboard?: unknown }).clipboard;
 });
 
 describe("App login", () => {
@@ -297,5 +303,219 @@ describe("App registration", () => {
     await screen.findByTestId("login-form");
     expect(screen.queryByTestId("register-form")).not.toBeInTheDocument();
     window.location.hash = "";
+  });
+});
+
+describe("App groups", () => {
+  const camera = (over: Partial<Record<string, unknown>> = {}) => ({
+    id: "cam-1",
+    name: "Beach cam",
+    feedType: "static_url",
+    feedUrl: "https://placehold.co/600x400.jpg",
+    intervalMinutes: 5,
+    activeFrom: "00:00",
+    activeTo: "23:59",
+    timezone: "UTC",
+    enabled: true,
+    theme: "light",
+    status: "operational",
+    lastCaptureAt: null,
+    lastError: null,
+    ...over,
+  });
+
+  const seedGroup = (over: Partial<SeedGroup> = {}): SeedGroup => ({
+    id: "grp-1",
+    name: "Summit",
+    slug: "summit",
+    cameraIds: [],
+    ...over,
+  });
+
+  function groupServer(initialGroups: SeedGroup[] = [], tenantSlug = "acme") {
+    const state: { groups: SeedGroup[] } = {
+      groups: initialGroups.map((g) => ({ ...g, cameraIds: [...g.cameraIds] })),
+    };
+    const calls: Array<{ u: string; init?: RequestInit }> = [];
+    const fn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(url);
+      const method = init?.method ?? "GET";
+      calls.push({ u, init });
+      if (u.endsWith("/api/v1/admin/cameras") && method === "GET") {
+        return jsonResponse({ cameras: [camera()] });
+      }
+      if (u.endsWith("/api/v1/admin/cameras") && method === "POST") {
+        return jsonResponse({ camera: camera({ id: "cam-new", name: "New cam" }) }, 201);
+      }
+      if (u.includes("/api/v1/admin/cameras/cam-1") && method === "PUT") {
+        return jsonResponse({ camera: camera() });
+      }
+      if (u.endsWith("/api/v1/admin/tenant")) {
+        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: tenantSlug } });
+      }
+      if (u.endsWith("/api/v1/admin/groups") && method === "GET") {
+        return jsonResponse({ groups: state.groups });
+      }
+      if (u.endsWith("/api/v1/admin/groups") && method === "POST") {
+        const body = JSON.parse(String(init?.body)) as { name: string; slug: string };
+        const group: SeedGroup = { id: `grp-${state.groups.length + 1}`, ...body, cameraIds: [] };
+        state.groups.push(group);
+        return jsonResponse({ group }, 201);
+      }
+      const memberMatch = u.match(/\/api\/v1\/admin\/groups\/([^/]+)\/cameras$/);
+      if (memberMatch && method === "PUT") {
+        const body = JSON.parse(String(init?.body)) as { cameraIds: string[] };
+        const target = state.groups.find((g) => g.id === memberMatch[1]);
+        if (target) target.cameraIds = body.cameraIds;
+        return jsonResponse({ status: "ok" });
+      }
+      const idMatch = u.match(/\/api\/v1\/admin\/groups\/([^/]+)$/);
+      if (idMatch && method === "PATCH") {
+        const body = JSON.parse(String(init?.body)) as { name?: string; slug?: string };
+        const target = state.groups.find((g) => g.id === idMatch[1]);
+        if (target) Object.assign(target, body);
+        return jsonResponse({ group: target });
+      }
+      if (idMatch && method === "DELETE") {
+        state.groups = state.groups.filter((g) => g.id !== idMatch[1]);
+        return jsonResponse({ status: "ok" });
+      }
+      return jsonResponse({ detail: "not found" }, 404);
+    });
+    return { fn, calls, state };
+  }
+
+  it("creates a group from the Groups tab and shows its embed snippet", async () => {
+    const { fn, calls } = groupServer([], "acme");
+    const writeText = vi.fn(async (_text: string) => {});
+    Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
+    vi.stubGlobal("fetch", fn);
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("nav-groups"));
+    await screen.findByTestId("group-form");
+
+    await userEvent.type(screen.getByTestId("group-name"), "Summit Ridge");
+    expect((screen.getByTestId("group-slug") as HTMLInputElement).value).toBe("summit-ridge");
+    await userEvent.click(screen.getByTestId("group-create-submit"));
+
+    await screen.findByText("Summit Ridge");
+    const post = calls.find((c) => c.u.endsWith("/api/v1/admin/groups") && c.init?.method === "POST");
+    expect(post).toBeTruthy();
+    expect(JSON.parse(String(post!.init?.body))).toEqual({ name: "Summit Ridge", slug: "summit-ridge" });
+
+    const iframe = (await screen.findByTestId("group-embed-grp-1")) as HTMLIFrameElement;
+    expect(iframe.getAttribute("src")).toContain("/group/acme/summit-ridge");
+
+    expect(calls.some((c) => c.u.endsWith("/api/v1/admin/tenant"))).toBe(true);
+
+    await userEvent.click(screen.getByTestId("group-copy-grp-1"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/group/acme/summit-ridge"));
+
+    window.location.hash = "";
+  });
+
+  it("toggles a group camera checkbox and sends the updated membership", async () => {
+    const { fn, calls } = groupServer([seedGroup()]);
+    vi.stubGlobal("fetch", fn);
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("nav-groups"));
+    const checkbox = (await screen.findByTestId("group-camera-grp-1-cam-1")) as HTMLInputElement;
+    expect(checkbox).not.toBeChecked();
+    expect(screen.getByTestId("group-count-grp-1")).toHaveTextContent("0 cameras");
+
+    await userEvent.click(checkbox);
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT")).toBe(true),
+    );
+    const put = calls.find((c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT")!;
+    expect(JSON.parse(String(put.init?.body))).toEqual({ cameraIds: ["cam-1"] });
+    expect(screen.getByTestId("group-count-grp-1")).toHaveTextContent("1 camera");
+
+    window.location.hash = "";
+  });
+
+  it("renames and deletes a group", async () => {
+    const { fn, calls } = groupServer([seedGroup()]);
+    vi.stubGlobal("fetch", fn);
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("nav-groups"));
+    await screen.findByTestId("group-grp-1");
+
+    await userEvent.click(screen.getByTestId("group-edit-grp-1"));
+    const nameInput = (await screen.findByTestId("group-edit-name")) as HTMLInputElement;
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "Summit Ridge");
+    await userEvent.click(screen.getByTestId("group-edit-save"));
+
+    await screen.findByText("Summit Ridge");
+    const patch = calls.find((c) => c.u.endsWith("/api/v1/admin/groups/grp-1") && c.init?.method === "PATCH");
+    expect(patch).toBeTruthy();
+    expect(JSON.parse(String(patch!.init?.body))).toEqual({ name: "Summit Ridge", slug: "summit" });
+
+    await userEvent.click(screen.getByTestId("group-delete-grp-1"));
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/groups/grp-1") && c.init?.method === "DELETE")).toBe(true),
+    );
+    expect(screen.queryByTestId("group-grp-1")).not.toBeInTheDocument();
+
+    window.location.hash = "";
+  });
+
+  it("toggles group membership from the camera editor", async () => {
+    const { fn, calls } = groupServer([seedGroup()]);
+    vi.stubGlobal("fetch", fn);
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    const checkbox = (await screen.findByTestId("group-checkbox-grp-1")) as HTMLInputElement;
+    expect(checkbox).not.toBeChecked();
+    expect(screen.getByText("Summit")).toBeInTheDocument();
+
+    await userEvent.click(checkbox);
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")).toBe(true),
+    );
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT")).toBe(true),
+    );
+    const put = calls.find((c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT")!;
+    expect(JSON.parse(String(put.init?.body))).toEqual({ cameraIds: ["cam-1"] });
+  });
+
+  it("assigns a checked group to a newly created camera", async () => {
+    const { fn, calls } = groupServer([seedGroup()]);
+    vi.stubGlobal("fetch", fn);
+    window.location.hash = "";
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await screen.findByTestId("group-checkbox-grp-1");
+    await userEvent.type(screen.getByTestId("form-name"), "New cam");
+    await userEvent.click(screen.getByTestId("group-checkbox-grp-1"));
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true),
+    );
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT")).toBe(true),
+    );
+    const put = calls.find((c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT")!;
+    expect(JSON.parse(String(put.init?.body))).toEqual({ cameraIds: ["cam-new"] });
   });
 });
