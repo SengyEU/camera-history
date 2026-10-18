@@ -279,3 +279,84 @@ describe("admin camera preview", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 });
+
+describe("admin groups", () => {
+  it("creates, lists, updates, sets cameras and deletes a group", async () => {
+    const { app, repos } = makeApp();
+    const reg = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: { name: "G", slug: "grp-admin", email: "g@x.dev", password: "password1" },
+    });
+    const cookie = reg.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+    const tenantId = reg.json().tenantId as string;
+    const cam = await repos.createCamera(tenantId, {
+      name: "C1",
+      feedType: "static_url",
+      feedUrl: "https://e.com/c.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie },
+      payload: { name: "Summit", slug: "summit" },
+    });
+    expect(created.statusCode).toBe(201);
+    const gid = created.json().group.id as string;
+
+    const dup = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie },
+      payload: { name: "Dup", slug: "summit" },
+    });
+    expect(dup.statusCode).toBe(409);
+
+    await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/groups/${gid}/cameras`,
+      headers: { cookie },
+      payload: { cameraIds: [cam.id] },
+    });
+    await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/groups/${gid}/cameras`,
+      headers: { cookie },
+      payload: { cameraIds: [cam.id] },
+    });
+
+    const list = await app.inject({ method: "GET", url: "/api/v1/admin/groups", headers: { cookie } });
+    expect(list.statusCode).toBe(200);
+    expect(list.json().groups.find((g: { id: string }) => g.id === gid).cameraIds).toEqual([cam.id]);
+
+    const patched = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/admin/groups/${gid}`,
+      headers: { cookie },
+      payload: { name: "Summit2" },
+    });
+    expect(patched.json().group.name).toBe("Summit2");
+
+    const del = await app.inject({ method: "DELETE", url: `/api/v1/admin/groups/${gid}`, headers: { cookie } });
+    expect(del.statusCode).toBe(204);
+    expect((await app.inject({ method: "GET", url: `/api/v1/admin/groups/${gid}`, headers: { cookie } })).statusCode).toBe(404);
+  });
+
+  it("returns the tenant slug for embed snippets", async () => {
+    const { app } = makeApp();
+    const reg = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: { name: "T", slug: "slug-src", email: "s@x.dev", password: "password1" },
+    });
+    const cookie = reg.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+    const res = await app.inject({ method: "GET", url: "/api/v1/admin/tenant", headers: { cookie } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().tenant.slug).toBe("slug-src");
+  });
+});

@@ -132,4 +132,77 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
         : null,
     };
   });
+
+  const GROUP_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+  app.get("/api/v1/admin/groups", { preHandler: pre }, async (req) => {
+    return { groups: await deps.repos.listGroups(req.user!.tenantId) };
+  });
+
+  app.post("/api/v1/admin/groups", { preHandler: pre, config: { rateLimit: RATE_LIMIT } }, async (req, reply) => {
+    const body = req.body as { name?: string; slug?: string };
+    if (!body.name || !body.slug) throw new HttpError(400, "bad_request", "name and slug are required");
+    if (!GROUP_SLUG.test(body.slug)) throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
+    const all = await deps.repos.listGroups(req.user!.tenantId);
+    if (all.some((g) => g.slug === body.slug)) throw new HttpError(409, "conflict", "group slug already taken");
+    const group = await deps.repos.createGroup(req.user!.tenantId, { name: body.name, slug: body.slug });
+    return reply.code(201).send({ group });
+  });
+
+  app.get<{ Params: { id: string } }>("/api/v1/admin/groups/:id", { preHandler: pre }, async (req, reply) => {
+    const group = await deps.repos.getGroup(req.params.id);
+    if (!group || group.tenantId !== req.user!.tenantId) {
+      return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Group not found"));
+    }
+    const all = await deps.repos.listGroups(req.user!.tenantId);
+    return { group: all.find((g) => g.id === group.id)! };
+  });
+
+  app.patch<{ Params: { id: string } }>("/api/v1/admin/groups/:id", { preHandler: pre }, async (req, reply) => {
+    const group = await deps.repos.getGroup(req.params.id);
+    if (!group || group.tenantId !== req.user!.tenantId) {
+      return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Group not found"));
+    }
+    const body = req.body as { name?: string; slug?: string };
+    if (body.slug !== undefined && !GROUP_SLUG.test(body.slug)) {
+      throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
+    }
+    if (body.slug !== undefined) {
+      const all = await deps.repos.listGroups(req.user!.tenantId);
+      if (all.some((g) => g.slug === body.slug && g.id !== group.id)) {
+        throw new HttpError(409, "conflict", "group slug already taken");
+      }
+    }
+    await deps.repos.updateGroup(group.id, body);
+    const all2 = await deps.repos.listGroups(req.user!.tenantId);
+    return { group: all2.find((g) => g.id === group.id)! };
+  });
+
+  app.delete<{ Params: { id: string } }>("/api/v1/admin/groups/:id", { preHandler: pre }, async (req, reply) => {
+    const group = await deps.repos.getGroup(req.params.id);
+    if (!group || group.tenantId !== req.user!.tenantId) {
+      return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Group not found"));
+    }
+    await deps.repos.deleteGroup(group.id);
+    return reply.code(204).send();
+  });
+
+  app.put<{ Params: { id: string } }>("/api/v1/admin/groups/:id/cameras", { preHandler: pre }, async (req, reply) => {
+    const group = await deps.repos.getGroup(req.params.id);
+    if (!group || group.tenantId !== req.user!.tenantId) {
+      return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Group not found"));
+    }
+    const body = req.body as { cameraIds?: unknown };
+    if (!Array.isArray(body.cameraIds) || body.cameraIds.some((x) => typeof x !== "string")) {
+      throw new HttpError(400, "bad_request", "cameraIds must be an array of camera ids");
+    }
+    await deps.repos.setGroupCameras(group.id, body.cameraIds as string[]);
+    return reply.code(204).send();
+  });
+
+  app.get("/api/v1/admin/tenant", { preHandler: pre }, async (req, reply) => {
+    const t = await deps.repos.getTenantById(req.user!.tenantId);
+    if (!t) return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Tenant not found"));
+    return { tenant: { id: t.id, name: t.name, slug: t.slug } };
+  });
 }
