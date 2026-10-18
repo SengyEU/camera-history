@@ -1,0 +1,22 @@
+{
+  "name": "@ch/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 8081",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview --port 8081 --strictPort",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "screenshots": "node scripts/capture-admin-screenshots.mjs",
+    "deck:pdf": "node scripts/export-deck-pdf.mjs",
+    "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.3",
+    "vitest": "^3.0.0"
+  }
+}
