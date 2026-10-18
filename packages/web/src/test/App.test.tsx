@@ -540,6 +540,65 @@ describe("App widget", () => {
     expect(screen.getByDisplayValue("2026-09-20")).toBeInTheDocument();
   });
 
+  it("keeps the current frames during a date change instead of flashing skeletons", async () => {
+    const user = userEvent.setup();
+    const pending: Array<(images: ImageDto[]) => void> = [];
+    vi.mocked(getImages).mockImplementation(
+      () =>
+        new Promise<ImageDto[]>((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+    render(<App />);
+
+    expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
+
+    await act(async () => {
+      pending[0]!(defaultImages);
+    });
+    expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("Next day"));
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"));
+
+    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
+    expect(screen.getByTestId("frame-img-1")).toBeInTheDocument();
+
+    await act(async () => {
+      pending[1]!([]);
+    });
+    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
+  });
+
+  it("keeps the empty state during a date change instead of flashing skeletons", async () => {
+    const user = userEvent.setup();
+    const pending: Array<(images: ImageDto[]) => void> = [];
+    vi.mocked(getImages).mockImplementation(
+      () =>
+        new Promise<ImageDto[]>((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+    render(<App />);
+
+    await act(async () => {
+      pending[0]!([]);
+    });
+    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("Next day"));
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"));
+
+    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
+    expect(screen.getByText("No images for this date.")).toBeInTheDocument();
+
+    await act(async () => {
+      pending[1]!([]);
+    });
+    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+  });
+
   it("defaults the date to today in the camera timezone when the URL has no date", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-10-18T05:30:00Z"));
@@ -1032,6 +1091,39 @@ describe("App group widget", () => {
     expect(await screen.findByTestId("frame-cam-b-2026-10-10")).toBeInTheDocument();
     expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument();
     expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+  });
+
+  it("shows fresh skeletons when switching to a camera before its first response", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    const pending: Array<(images: ImageDto[]) => void> = [];
+    vi.mocked(getImages).mockImplementation(
+      () =>
+        new Promise<ImageDto[]>((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      pending[0]!([makeImage("a1", "2026-10-10T09:00:00Z", "/a1.jpg")]);
+    });
+    expect(await screen.findByTestId("frame-a1")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-b", "2026-10-10"));
+
+    expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
+    expect(screen.queryByTestId("frame-a1")).not.toBeInTheDocument();
+
+    await act(async () => {
+      pending[1]!([makeImage("b1", "2026-10-10T09:00:00Z", "/b1.jpg")]);
+    });
+    expect(await screen.findByTestId("frame-b1")).toBeInTheDocument();
+    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
   });
 
   it("includes the selected camera in the share link", async () => {

@@ -60,6 +60,7 @@ interface WidgetBodyProps {
   timezone: string;
   theme: string;
   loading: boolean;
+  hasLoadedOnce: boolean;
   images: ImageDto[];
   visibleImages: ImageDto[];
   openId: string | null;
@@ -80,6 +81,7 @@ function WidgetBody({
   timezone,
   theme,
   loading,
+  hasLoadedOnce,
   images,
   visibleImages,
   openId,
@@ -94,7 +96,7 @@ function WidgetBody({
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       {switcher && <div className="widget-header">{switcher}</div>}
-      {loading ? (
+      {loading && !hasLoadedOnce ? (
         <FilmStrip
           images={[]}
           loading
@@ -197,8 +199,10 @@ export function App() {
   const previousMetaReadyRef = useRef(false);
   const defaultDateAppliedRef = useRef(false);
   const dateTouchedRef = useRef(false);
+  const loadedCameraRef = useRef<string | null>(null);
 
   const cameraId = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
+  const hasLoadedOnce = cameraId !== "" && loadedCameraRef.current === cameraId;
   const selectedCamera =
     groupRoute && group ? (group.cameras.find((c) => c.id === selectedCameraId) ?? null) : null;
   const timezone =
@@ -311,7 +315,10 @@ export function App() {
         if (!cancelled) setImages([]);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          loadedCameraRef.current = cameraId;
+          setLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -434,6 +441,7 @@ export function App() {
         timezone={timezone}
         theme={theme}
         loading={loading}
+        hasLoadedOnce={hasLoadedOnce}
         images={images}
         visibleImages={visibleImages}
         openId={openId}
@@ -472,6 +480,7 @@ export function App() {
       timezone={timezone}
       theme={theme}
       loading={loading}
+      hasLoadedOnce={hasLoadedOnce}
       images={images}
       visibleImages={visibleImages}
       openId={openId}
