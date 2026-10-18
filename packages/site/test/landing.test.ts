@@ -34,4 +34,10 @@ describe("landing page", () => {
       expect(normalized).toContain(`<td>${label}</td> <td>${price}</td>`);
     }
   });
+
+  it("carries the resort-signage markers", () => {
+    expect(html).toContain('class="ts-chip"');
+    expect(html).toContain("LIVE — ALPINE SUMMIT");
+    expect(html).toContain("MOST POPULAR");
+  });
 });
