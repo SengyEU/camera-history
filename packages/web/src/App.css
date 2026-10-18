@@ -145,6 +145,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   border-radius: 6px;
   padding: 3px 10px;
   pointer-events: none;
+  white-space: nowrap;
 }
 .frame-arrow,
 .frame-share {
