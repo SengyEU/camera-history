@@ -5,17 +5,13 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { ImageDto } from "./api";
-import { formatCameraCaptureLabel, formatCameraHour, localHourParts } from "./time";
+import { formatCameraCaptureLabel, localHourParts } from "./time";
 
 export function viewerHourParts(
   timestamp: string,
   timezone: string,
 ): { hour: number; meridiem: "AM" | "PM" } {
   return localHourParts(timestamp, timezone);
-}
-
-export function viewerHourLabel(timestamp: string, timezone: string): string {
-  return formatCameraHour(timestamp, timezone);
 }
 
 export function viewerCaptureLabel(timestamp: string, timezone: string): string {

@@ -180,7 +180,15 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
     const latest = await repos.latestImageForCamera(req.params.id);
     if (!latest) return { date: null };
     const d = latest.timestamp;
-    const date = localDateInZone(d, cam.timezone);
+    let date: string;
+    try {
+      date = localDateInZone(d, cam.timezone);
+    } catch {
+      return reply
+        .code(400)
+        .type("application/problem+json")
+        .send(rfc7807(400, "bad_request", "camera timezone is invalid"));
+    }
     return { date, timestamp: d.toISOString() };
   });
 };

@@ -14,13 +14,13 @@ Sjednotit demo (a celý produkt) na **čistě hodinovou kadenci** a zrychlit na�
 3. **Komprese při capture** — WebP, max šířka 1600 px, kvalita 75 (dnes ~600 KB JPEG → ~80–200 KB).
 4. **Překonvertovat všechny stávající** (po purge) na WebP + nahradit originály.
 5. **Admin per-kamera přepínač**: defaultně se v widgetu ukazují jen denní snímky; v adminu lze per
-   kamera zapnout, že se zobrazují i noční (výchozí stav night toggle ve widgetu).
+   kamera zapnout, že se zobrazují i noční (viditelnost je řízena pouze adminem, viewer toggle neexistuje).
 
 ## 2. Klíčová rozhodnutí (uživatel)
 
 | Oblast | Rozhodnutí |
 |---|---|
-| Night default | Widget default = jen den; per-kamera checkbox v adminu „Show night images by default“; viewer toggle zůstává |
+| Night default | Widget default = jen den; per-kamera checkbox v adminu „Show night images by default“; viditelnost nočních snímků řídí pouze admin (žádný viewer toggle) |
 | Formát | **WebP, max 1600 px šířka, q75** (ffmpeg libwebp) |
 | Mazání | **Všechny tenanty/kamery**: z každé kamery-hodiny ponechat 1 snímek nejblíž :00, ostatní hard delete (DB řádek + MinIO objekt) — upřesněno uživatelem před během |
 | Alignment | Capture v interval-aligned buckety (60 min → na celou hodinu UTC; 5/15/30 taky aligned) |
@@ -62,14 +62,15 @@ default pro vybranou kameru). Repos real+fake: mapování sloupce; admin create/
 ## 6. Admin UI
 
 - `CameraForm` sekce „Location & schedule“ + nový checkbox `form-show-night`
-  „Show night images by default“, hint „Viewers can still toggle night images in the widget.“
+  „Show night images by default“, hint „Night images are shown in the widget only when this is enabled.“
 - `CameraInput`/`toInput`/payload + testy (additive).
 
 ## 7. Widget
 
-- Night toggle **výchozí stav** = `camera.showNight` (single route z `getCamera`; group route
-  z `PublicGroupCamera.showNight` vybrané kamery). Při přepnutí kamery ve skupině se default
-  resynchronizuje (viewer toggle v rámci jedné kamery přebíjí).
+- Viewer toggle neexistuje: noční snímky se ve widgetu zobrazují pouze když má kamera
+  `showNight = true` (single route z `getCamera`; group route z `PublicGroupCamera.showNight`
+  vybrané kamery). Při přepnutí kamery ve skupině se viditelnost resynchronizuje; mění ji
+  výhradně admin.
 - Chování filtru/`show-night` cesty beze změny.
 
 ## 8. Ops skripty (host, idempotentní)
@@ -92,12 +93,13 @@ default pro vybranou kameru). Repos real+fake: mapování sloupce; admin create/
    kontrola: žádná kamerohodina (UTC) nemá víc než 1 snímek a ponechaný snímek je nejblíž :00:
    `SELECT count(*) FROM (SELECT camera_id, date_trunc('hour', timestamp AT TIME ZONE 'UTC') FROM images GROUP BY 1,2 HAVING count(*) > 1) dupes` = 0.
 3. **Convert**: `node scripts/convert-webp.mjs` → summary (počet, úspora); kontrola žádné .jpg.
-4. Widget QA: pás pro aktuální den = 1 snímek/hodina; night toggle → hodinové noční snímky (IR);
-   načtení pásu výrazně rychlejší (součty kB); admin checkbox mění default toggle po reloadu.
+4. Widget QA: pás pro aktuální den = 1 snímek/hodina; se zapnutým admin checkboxem se zobrazují
+   hodinové noční snímky (IR); načtení pásu výrazně rychlejší (součty kB); admin checkbox řídí
+   viditelnost nočních snímků (projeví se po reloadu).
 5. Testy: worker (convertSpy/ffmpeg, bucket due), API (webp route + showNight), admin (checkbox),
    widget (default z camera.showNight; resync při switchi). Gates zelené.
 6. Demo (volitelně dle uživatele): na demo kamerách checkbox zapnout? **Ne** — default day-only dle
-   rozhodnutí; toggle zůstává pro návštěvníka.
+   rozhodnutí; noční snímky se ukážou jen, když je admin zapne.
 
 ## 10. Rizika
 

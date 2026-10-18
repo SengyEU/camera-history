@@ -424,4 +424,34 @@ describe("public routes", () => {
     expect(res.json()).toEqual({ date: "2026-10-17", timestamp: "2026-10-18T02:00:00.000Z" });
     await (app as { close: () => Promise<void> }).close();
   });
+
+  it("returns a 400 problem for an invalid camera timezone on latest and images", async () => {
+    const { app, repos } = makeApp();
+    const t = await repos.createTenant({ name: "T", slug: "t-bad-tz" });
+    const cam = await repos.createCamera(t.id, {
+      name: "Bad tz", feedType: "static_url", feedUrl: "https://e.com/b.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "Not/AZone",
+    });
+    await repos.insertImage({
+      cameraId: cam.id, timestamp: new Date("2026-10-10T09:00:00Z"),
+      storageKey: "org/x/2026-10-10/090000.jpg", sizeBytes: 1,
+    });
+
+    const latest = await app.inject({ method: "GET", url: `/api/v1/cameras/${cam.id}/latest` });
+    expect(latest.statusCode).toBe(400);
+    expect(latest.headers["content-type"]).toContain("application/problem+json");
+    expect(latest.json()).toMatchObject({
+      type: "about:blank",
+      title: "bad_request",
+      status: 400,
+      detail: "camera timezone is invalid",
+    });
+
+    const images = await app.inject({
+      url: `/api/v1/cameras/${cam.id}/images?date=2026-10-10`,
+    });
+    expect(images.statusCode).toBe(400);
+    expect(images.headers["content-type"]).toContain("application/problem+json");
+    await (app as { close: () => Promise<void> }).close();
+  });
 });

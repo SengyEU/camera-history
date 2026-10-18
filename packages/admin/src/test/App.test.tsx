@@ -272,7 +272,9 @@ describe("App camera CRUD", () => {
     expect(showNight).toHaveAttribute("type", "checkbox");
     expect(showNight).not.toBeChecked();
     expect(screen.getByLabelText("Show night images by default")).toBe(showNight);
-    expect(screen.getByText("Viewers can still toggle night images in the widget.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Night images are shown in the widget only when this is enabled."),
+    ).toBeInTheDocument();
   });
 
   it("creates a camera with showNight enabled", async () => {

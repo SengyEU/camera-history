@@ -224,7 +224,15 @@ export function App() {
 
   useEffect(() => {
     if (groupRoute || !cameraId) return;
-    getCamera(cameraId).then((c) => setCamera(c));
+    getCamera(cameraId)
+      .then((c) => setCamera(c))
+      .catch(() => {
+        defaultDateAppliedRef.current = true;
+        setDateReady(true);
+        if (!initialDateRef.current && !dateTouchedRef.current) {
+          setDate(localDateInZone(new Date(), VIEWER_TIMEZONE));
+        }
+      });
   }, [cameraId, groupRoute]);
 
   useEffect(() => {
@@ -239,7 +247,15 @@ export function App() {
           return g.cameras[0]?.id ?? null;
         });
       })
-      .catch(() => setGroup(null));
+      .catch(() => {
+        setGroup(null);
+        defaultDateAppliedRef.current = true;
+        setDateReady(true);
+        setLoading(false);
+        if (!initialDateRef.current && !dateTouchedRef.current) {
+          setDate(localDateInZone(new Date(), VIEWER_TIMEZONE));
+        }
+      });
   }, [groupRoute]);
 
   const isGroup = !!groupRoute;

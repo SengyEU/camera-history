@@ -406,7 +406,7 @@ function CameraForm({
             />
             Show night images by default
           </label>
-          <span className="field-hint">Viewers can still toggle night images in the widget.</span>
+          <span className="field-hint">Night images are shown in the widget only when this is enabled.</span>
         </div>
         {groups.length > 0 && (
           <div className="groups-section">

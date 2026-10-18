@@ -664,6 +664,20 @@ describe("App widget", () => {
     );
   });
 
+  it("settles on the viewer-timezone date when camera metadata fails", async () => {
+    vi.mocked(getCamera).mockRejectedValue(new Error("meta down"));
+    vi.mocked(getImages).mockResolvedValue([]);
+    window.history.pushState({}, "", "/widget/acme/cam-1");
+    render(<App />);
+
+    await waitFor(() => expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0));
+    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(vi.mocked(getImages)).toHaveBeenCalledWith(
+      "cam-1",
+      cameraDate(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"),
+    );
+  });
+
   it("shows eight skeleton slivers while loading", async () => {
     vi.mocked(getImages).mockImplementation(() => new Promise(() => {}));
     render(<App />);
