@@ -154,7 +154,7 @@ async function ensureGroups(jar, cfg, cameras) {
       } else if (!createRes.ok) {
         throw new Error(`create group ${g.name} → ${createRes.status}: ${await createRes.text()}`);
       } else {
-        const createdGroup = await createRes.json();
+        const createdGroup = (await createRes.json()).group;
         group = { id: createdGroup.id, slug: g.slug, name: g.name };
         created += 1;
         wasCreated = true;
