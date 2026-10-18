@@ -15,7 +15,7 @@ const db = new Pg({ connectionString: env.DATABASE_URL });
 await db.connect();
 
 const { rows } = await db.query(
-  "SELECT id, storage_key FROM images WHERE EXTRACT(MINUTE FROM timestamp) <> 0 ORDER BY timestamp",
+  "SELECT id, storage_key FROM images WHERE EXTRACT(MINUTE FROM timestamp AT TIME ZONE 'UTC') <> 0 ORDER BY timestamp",
 );
 console.log(`off-hour images: ${rows.length}`);
 if (rows.length > 0) console.log("sample:", rows.slice(0, 5).map((r) => r.storage_key).join(", "));
@@ -37,11 +37,13 @@ if (!dry && rows.length > 0) {
       console.warn(`warn: remove ${row.storage_key}: ${error.message}`);
     }
   }
-  await db.query("DELETE FROM images WHERE EXTRACT(MINUTE FROM timestamp) <> 0");
-  const { rows: left } = await db.query(
-    "SELECT count(*)::int AS n FROM images WHERE EXTRACT(MINUTE FROM timestamp) <> 0",
+  const deleted = await db.query(
+    "DELETE FROM images WHERE EXTRACT(MINUTE FROM timestamp AT TIME ZONE 'UTC') <> 0",
   );
-  console.log(`removed ${objects} objects, rows deleted; remaining off-hour: ${left[0].n}`);
+  const { rows: left } = await db.query(
+    "SELECT count(*)::int AS n FROM images WHERE EXTRACT(MINUTE FROM timestamp AT TIME ZONE 'UTC') <> 0",
+  );
+  console.log(`removed ${objects} objects, rows deleted: ${deleted.rowCount}; remaining off-hour: ${left[0].n}`);
 }
 if (dry) console.log("dry run — nothing deleted");
 await db.end();
