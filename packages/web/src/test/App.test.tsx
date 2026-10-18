@@ -115,6 +115,25 @@ describe("App widget", () => {
     expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9 AM");
   });
 
+  it("keeps the open frame when activating an arrow with the keyboard", async () => {
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
+      makeImage("d2", "2026-09-18T12:00:00", "/d2.jpg"),
+    ]);
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-d1"));
+
+    const next = screen.getByLabelText("Next capture");
+    next.focus();
+    expect(next).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    const open = screen.getByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
+  });
+
   it("opens the share popup with network links and a copy field", async () => {
     const user = userEvent.setup();
     stubClipboard();
@@ -246,6 +265,24 @@ describe("App widget", () => {
     expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
   });
 
+  it("switches to scroll mode for 29+ frames and keeps it while a frame is open", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue(
+      Array.from({ length: 29 }, (_, index) =>
+        makeImage(`s${index}`, "2026-09-18T09:00:00", `/s${index}.jpg`),
+      ),
+    );
+    render(<App />);
+    const strip = await screen.findByTestId("film-strip");
+    await waitFor(() => expect(strip).toHaveClass("film-strip-scroll"));
+
+    await user.click(screen.getByTestId("frame-s0"));
+    const open = screen.getByTestId("frame-open");
+    expect(open).toHaveClass("frame-open");
+    expect(strip).toHaveClass("film-strip-scroll");
+    expect(open.closest(".film-strip-scroll")).toBe(strip);
+  });
+
   it("shows the pinned empty copy for a day without images", async () => {
     vi.mocked(getImages).mockResolvedValue([]);
     render(<App />);
@@ -263,16 +300,28 @@ describe("App widget", () => {
 
     const toggle = screen.getByTestId("night-toggle");
     expect(toggle).toHaveTextContent("Night images");
-    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(toggle).toHaveAttribute("role", "switch");
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(toggle).not.toHaveAttribute("aria-pressed");
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
 
     await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(toggle).toHaveAttribute("aria-checked", "true");
     expect(screen.getByTestId("frame-n1")).toBeInTheDocument();
 
     await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(toggle).toHaveAttribute("aria-checked", "false");
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
+  });
+
+  it("treats a missing isDaylight flag as daylight", async () => {
+    vi.mocked(getImages).mockResolvedValue([
+      { id: "legacy", timestamp: "2026-09-18T09:00:00", url: "/legacy.jpg" } as ImageDto,
+    ]);
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-legacy")).toBeInTheDocument();
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
   });
 
   it("offers Show night images when every capture is a night shot", async () => {
@@ -288,7 +337,7 @@ describe("App widget", () => {
     await user.click(screen.getByTestId("show-night"));
     expect(screen.getByTestId("frame-n1")).toBeInTheDocument();
     expect(screen.queryByText("Every capture today is a night shot.")).not.toBeInTheDocument();
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true");
   });
 
   it("applies the camera theme as data-theme", async () => {
@@ -435,6 +484,28 @@ describe("App group widget", () => {
     expect(screen.getByText("No cameras in this group.")).toBeInTheDocument();
     expect(screen.queryByTestId("camera-switcher")).not.toBeInTheDocument();
     expect(vi.mocked(getImages)).not.toHaveBeenCalled();
+  });
+
+  it("clears the open capture and share popup when the camera changes", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
+      makeImage(`${cameraId}-${date}`, `${date}T09:00:00`, `/api/v1/${cameraId}.jpg`),
+    ]);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    await user.click(await screen.findByTestId("frame-cam-a-2026-10-10"));
+    expect(screen.getByTestId("frame-open")).toBeInTheDocument();
+    await user.click(screen.getByTestId("share-open"));
+    expect(screen.getByTestId("share-popup")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+
+    expect(await screen.findByTestId("frame-cam-b-2026-10-10")).toBeInTheDocument();
+    expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
   });
 
   it("includes the selected camera in the share link", async () => {

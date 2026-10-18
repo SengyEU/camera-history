@@ -82,6 +82,7 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
                 aria-label="Collapse capture"
                 onClick={() => onOpenChange(null)}
                 onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     onOpenChange(null);

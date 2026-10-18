@@ -98,7 +98,6 @@ function WidgetBody({
           data-testid="night-toggle"
           role="switch"
           aria-checked={nightOn}
-          aria-pressed={nightOn}
           onClick={onToggleNight}
         >
           <span className="night-toggle-track" aria-hidden="true">
@@ -236,6 +235,11 @@ export function App() {
   const isGroup = !!groupRoute;
 
   useEffect(() => {
+    setOpenId(null);
+    setShareImage(null);
+  }, [cameraId]);
+
+  useEffect(() => {
     if (!cameraId) {
       setLoading(false);
       return;
@@ -275,7 +279,7 @@ export function App() {
   }, [cameraId, date, isGroup]);
 
   const visibleImages = useMemo(
-    () => (nightOn ? images : images.filter((i) => i.isDaylight)),
+    () => (nightOn ? images : images.filter((i) => i.isDaylight !== false)),
     [images, nightOn],
   );
 
@@ -295,7 +299,7 @@ export function App() {
     }
     deepLinkAppliedRef.current = true;
     if (match) {
-      if (!match.isDaylight) setNightOn(true);
+      if (match.isDaylight === false) setNightOn(true);
       setOpenId(match.id);
     }
   }, [loading, images]);
