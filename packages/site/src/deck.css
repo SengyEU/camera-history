@@ -12,7 +12,7 @@
 }
 .reveal .slides { text-align: left; }
 .reveal .slides section { background: var(--bg); }
-.reveal section.dark { color: #f1f5f9; }
+.reveal section.dark { color: #f1f5f9; background: #0b1220; }
 .reveal h1 { font-size: 2.1em; line-height: 1.12; letter-spacing: -0.02em; text-transform: none; }
 .reveal h2 { font-size: 1.6em; letter-spacing: -0.01em; text-transform: none; }
 .reveal .accent { color: var(--accent); display: block; }
