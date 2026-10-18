@@ -21,6 +21,7 @@ const emptyInput = (): CameraInput => ({
   latitude: null,
   longitude: null,
   daylightOnly: false,
+  showNight: false,
 });
 
 function currentView(): "cameras" | "groups" | "billing" {
@@ -396,6 +397,16 @@ function CameraForm({
           <span className="field-hint">
             Requires latitude and longitude. The camera's active window is ignored while enabled.
           </span>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={input.showNight}
+              onChange={(e) => setInput((s) => ({ ...s, showNight: e.target.checked }))}
+              data-testid="form-show-night"
+            />
+            Show night images by default
+          </label>
+          <span className="field-hint">Viewers can still toggle night images in the widget.</span>
         </div>
         {groups.length > 0 && (
           <div className="groups-section">
@@ -886,6 +897,7 @@ export function App() {
     latitude: cam.latitude ?? null,
     longitude: cam.longitude ?? null,
     daylightOnly: cam.daylightOnly ?? false,
+    showNight: cam.showNight ?? false,
   });
 
   const saveCamera = async (

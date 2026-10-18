@@ -15,6 +15,7 @@ export interface AdminCamera {
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
+  showNight: boolean;
   status: CameraStatus;
   lastCaptureAt: string | null;
   lastError: string | null;
@@ -32,6 +33,7 @@ export interface CameraInput {
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
+  showNight: boolean;
 }
 
 export interface PreviewDto {

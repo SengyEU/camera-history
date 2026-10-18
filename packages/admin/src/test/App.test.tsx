@@ -149,6 +149,7 @@ describe("App camera CRUD", () => {
     latitude: null,
     longitude: null,
     daylightOnly: false,
+    showNight: true,
     ...over,
   });
 
@@ -257,6 +258,57 @@ describe("App camera CRUD", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders the show-night checkbox in the camera form", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+
+    const showNight = screen.getByTestId("form-show-night") as HTMLInputElement;
+    expect(showNight).toHaveAttribute("type", "checkbox");
+    expect(showNight).not.toBeChecked();
+    expect(screen.getByLabelText("Show night images by default")).toBe(showNight);
+    expect(screen.getByText("Viewers can still toggle night images in the widget.")).toBeInTheDocument();
+  });
+
+  it("creates a camera with showNight enabled", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await userEvent.type(screen.getByTestId("form-name"), "Night cam");
+    await userEvent.click(screen.getByTestId("form-show-night"));
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true),
+    );
+    const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
+    expect(JSON.parse(String(post.init?.body))).toMatchObject({ name: "Night cam", showNight: true });
+  });
+
+  it("sends showNight false when the checkbox is left unchecked", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await userEvent.type(screen.getByTestId("form-name"), "Day cam");
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true),
+    );
+    const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
+    const body = JSON.parse(String(post.init?.body)) as Record<string, unknown>;
+    expect(body.showNight).toBe(false);
+  });
+
   it("creates a camera with coordinates and daylight-only enabled", async () => {
     const { fn, calls } = listServer();
     vi.stubGlobal("fetch", fn);
@@ -325,6 +377,17 @@ describe("App camera CRUD", () => {
     expect((screen.getByTestId("form-latitude") as HTMLInputElement).value).toBe("47.376");
     expect((screen.getByTestId("form-longitude") as HTMLInputElement).value).toBe("8.541");
     expect(screen.getByTestId("form-daylight-only")).toBeChecked();
+  });
+
+  it("prefills showNight when editing a camera", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+
+    expect(screen.getByTestId("form-show-night")).toBeChecked();
   });
 
   it("clears coordinates and disables daylight-only when editing", async () => {
