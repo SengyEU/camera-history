@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { getCamera, getImages, type ImageDto } from "./api";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { getCamera, getCameraLatest, getGroup, getImages, type ImageDto, type PublicGroup } from "./api";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
@@ -23,48 +23,34 @@ function parseWidgetPath(path: string): { tenant: string; cameraId: string } | n
   return null;
 }
 
+function parseGroupPath(path: string): { tenant: string; slug: string } | null {
+  const parts = path.split("/").filter(Boolean);
+  if (parts[0] === "group" && parts.length === 3) return { tenant: parts[1]!, slug: parts[2]! };
+  return null;
+}
+
 function toLocalInputValue(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function App() {
-  const route = useMemo(() => parseWidgetPath(window.location.pathname), []);
-  const [camera, setCamera] = useState<{ name: string; retentionMonths: number; theme: string } | null>(null);
-  const [images, setImages] = useState<ImageDto[]>([]);
-  const [date, setDate] = useState(() => {
-    const p = new URLSearchParams(window.location.search);
-    return p.get("date") ?? toLocalInputValue(new Date());
-  });
+interface WidgetBodyProps {
+  title: string;
+  date: string;
+  setDate: (d: string) => void;
+  theme: string;
+  images: ImageDto[];
+  minDate?: string;
+  switcher?: ReactNode;
+  children?: ReactNode;
+}
+
+function WidgetBody({ title, date, setDate, theme, images, minDate, switcher, children }: WidgetBodyProps) {
   const [openImage, setOpenImage] = useState<string | null>(() => {
     const p = new URLSearchParams(window.location.search);
     return p.get("img") ?? null;
   });
   const [modalUrl, setModalUrl] = useState<string>("");
-
-  const cameraId = route?.cameraId ?? "";
-
-  const minDate = camera
-    ? toLocalInputValue(new Date(Date.now() - camera.retentionMonths * 30 * 24 * 3600 * 1000))
-    : "";
-
-  const theme = useMemo(() => resolveTheme(new URLSearchParams(window.location.search), camera?.theme), [camera]);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
-
-  useEffect(() => {
-    if (!cameraId) return;
-    getCamera(cameraId).then((c) => setCamera(c));
-  }, [cameraId]);
-
-  useEffect(() => {
-    if (!cameraId) return;
-    getImages(cameraId, date)
-      .then(setImages)
-      .catch(() => setImages([]));
-  }, [cameraId, date]);
 
   const shiftDay = (delta: number) => {
     const d = new Date(`${date}T12:00:00`);
@@ -83,7 +69,8 @@ export function App() {
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       <div className="widget-header">
-        <span className="widget-title">{camera?.name ?? "Camera"}</span>
+        <span className="widget-title">{title}</span>
+        {switcher}
         <div className="widget-nav">
           <button onClick={() => shiftDay(-1)} aria-label="Previous day">
             {"<"}
@@ -135,7 +122,134 @@ export function App() {
           </div>
         </div>
       )}
-      {!route && <p className="error">Invalid widget URL. Use /widget/{"{tenant}"}/{"{camera_id}"}</p>}
+      {children}
     </div>
+  );
+}
+
+export function App() {
+  const widgetRoute = useMemo(() => parseWidgetPath(window.location.pathname), []);
+  const groupRoute = useMemo(() => parseGroupPath(window.location.pathname), []);
+
+  const [camera, setCamera] = useState<{ name: string; retentionMonths: number; theme: string } | null>(null);
+  const [group, setGroup] = useState<PublicGroup | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [images, setImages] = useState<ImageDto[]>([]);
+  const [date, setDate] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get("date") ?? toLocalInputValue(new Date());
+  });
+  const latestFallbackRef = useRef<Record<string, string>>({});
+
+  const cameraId = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
+  const selectedCamera =
+    groupRoute && group ? (group.cameras.find((c) => c.id === selectedCameraId) ?? null) : null;
+
+  const minDate = camera
+    ? toLocalInputValue(new Date(Date.now() - camera.retentionMonths * 30 * 24 * 3600 * 1000))
+    : "";
+
+  const theme = useMemo(
+    () =>
+      resolveTheme(
+        new URLSearchParams(window.location.search),
+        groupRoute ? selectedCamera?.theme : camera?.theme,
+      ),
+    [groupRoute, camera, selectedCamera],
+  );
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    if (groupRoute || !cameraId) return;
+    getCamera(cameraId).then((c) => setCamera(c));
+  }, [cameraId, groupRoute]);
+
+  useEffect(() => {
+    if (!groupRoute) return;
+    getGroup(groupRoute.tenant, groupRoute.slug)
+      .then((g) => {
+        setGroup(g);
+        setSelectedCameraId((prev) => prev ?? g.cameras[0]?.id ?? null);
+      })
+      .catch(() => setGroup(null));
+  }, [groupRoute]);
+
+  useEffect(() => {
+    if (!cameraId) return;
+    let cancelled = false;
+    getImages(cameraId, date)
+      .then((imgs) => {
+        if (cancelled) return;
+        setImages(imgs);
+        if (!groupRoute || imgs.length > 0) return;
+        if (latestFallbackRef.current[cameraId] === date) return;
+        getCameraLatest(cameraId)
+          .then((latest) => {
+            if (cancelled || !latest) return;
+            latestFallbackRef.current[cameraId] = latest;
+            if (latest !== date) setDate(latest);
+          })
+          .catch(() => {});
+      })
+      .catch(() => {
+        if (!cancelled) setImages([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraId, date, groupRoute]);
+
+  if (groupRoute) {
+    if (group && group.cameras.length === 0) {
+      return (
+        <div className="widget" data-testid="widget" data-theme={theme}>
+          <p className="empty" data-testid="group-empty">
+            No cameras in this group.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <WidgetBody
+        title={group?.group.name ?? "Group"}
+        date={date}
+        setDate={setDate}
+        theme={theme}
+        images={images}
+        switcher={
+          group ? (
+            <select
+              className="camera-switcher"
+              data-testid="camera-switcher"
+              aria-label="Camera"
+              value={selectedCameraId ?? ""}
+              onChange={(e) => setSelectedCameraId(e.target.value)}
+            >
+              {group.cameras.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          ) : undefined
+        }
+      />
+    );
+  }
+
+  return (
+    <WidgetBody
+      title={camera?.name ?? "Camera"}
+      date={date}
+      setDate={setDate}
+      theme={theme}
+      images={images}
+      minDate={minDate || undefined}
+    >
+      {!widgetRoute && <p className="error">Invalid widget URL. Use /widget/{"{tenant}"}/{"{camera_id}"}</p>}
+    </WidgetBody>
   );
 }

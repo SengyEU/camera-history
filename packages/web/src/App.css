@@ -40,6 +40,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 .widget { max-width: 1000px; margin: 0 auto; padding: 16px; }
 .widget-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
 .widget-title { color: var(--accent); }
+.camera-switcher { max-width: 200px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); padding: 4px 8px; font: inherit; }
 .widget-nav { display: flex; gap: 8px; align-items: center; }
 .widget-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
 .widget-cell { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); cursor: pointer; padding: 0; position: relative; }
