@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { cameras, createDb, createRepos, tenants, users } from "@ch/db";
+import { cameraGroupMembers, cameras, createDb, createRepos, tenants, users } from "@ch/db";
 import { loadConfig } from "@ch/core";
 
 const RUN = process.env.RUN_INTEGRATION === "1";
@@ -76,6 +76,98 @@ describe.skipIf(!RUN)("PG integration", () => {
     expect(noop?.name).toBe("Summit");
 
     await db.delete(tenants).where(eq(tenants.id, tenant.id));
+    const pool = db.$client as import("pg").Pool;
+    await pool.end();
+  });
+
+  it("orders public group cameras by name regardless of creation order", async () => {
+    const cfg = loadConfig(process.env);
+    const db = createDb(cfg.databaseUrl);
+    const repos = createRepos(db);
+    const tenant = await repos.createTenant({ name: "ORD", slug: `ord-${Date.now()}` });
+    const zulu = await repos.createCamera(tenant.id, {
+      name: "Zulu", feedType: "static_url", feedUrl: "https://e.com/z.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    const alpha = await repos.createCamera(tenant.id, {
+      name: "Alpha", feedType: "static_url", feedUrl: "https://e.com/a.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    const g = await repos.createGroup(tenant.id, { name: "Order", slug: "order" });
+    await repos.setGroupCameras(g.id, [zulu.id, alpha.id]);
+
+    const pub = await repos.getGroupBySlug(tenant.slug, "order");
+    expect(pub?.cameras.map((c) => c.name)).toEqual(["Alpha", "Zulu"]);
+
+    await db.delete(tenants).where(eq(tenants.id, tenant.id));
+    const pool = db.$client as import("pg").Pool;
+    await pool.end();
+  });
+
+  it("enforces unique (tenant, slug) groups and allows the same slug for another tenant", async () => {
+    const cfg = loadConfig(process.env);
+    const db = createDb(cfg.databaseUrl);
+    const repos = createRepos(db);
+    const stamp = Date.now();
+    const t1 = await repos.createTenant({ name: "UNIQ1", slug: `uniq1-${stamp}` });
+    const t2 = await repos.createTenant({ name: "UNIQ2", slug: `uniq2-${stamp}` });
+    await repos.createGroup(t1.id, { name: "Summit", slug: "summit" });
+
+    await expect(repos.createGroup(t1.id, { name: "Dup", slug: "summit" })).rejects.toThrow();
+
+    const other = await repos.createGroup(t2.id, { name: "Summit", slug: "summit" });
+    expect(other.tenantId).toBe(t2.id);
+    expect((await repos.getGroupBySlug(t2.slug, "summit"))?.group.id).toBe(other.id);
+
+    await db.delete(tenants).where(eq(tenants.id, t1.id));
+    await db.delete(tenants).where(eq(tenants.id, t2.id));
+    const pool = db.$client as import("pg").Pool;
+    await pool.end();
+  });
+
+  it("cascades camera and group deletes across membership and keeps tenants isolated", async () => {
+    const cfg = loadConfig(process.env);
+    const db = createDb(cfg.databaseUrl);
+    const repos = createRepos(db);
+    const stamp = Date.now();
+    const t1 = await repos.createTenant({ name: "CASC1", slug: `casc1-${stamp}` });
+    const t2 = await repos.createTenant({ name: "CASC2", slug: `casc2-${stamp}` });
+    const cam1 = await repos.createCamera(t1.id, {
+      name: "C1", feedType: "static_url", feedUrl: "https://e.com/c1.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    const cam2 = await repos.createCamera(t1.id, {
+      name: "C2", feedType: "static_url", feedUrl: "https://e.com/c2.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    const otherCam = await repos.createCamera(t2.id, {
+      name: "Other", feedType: "static_url", feedUrl: "https://e.com/o.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    const g1 = await repos.createGroup(t1.id, { name: "One", slug: "one" });
+    const g2 = await repos.createGroup(t2.id, { name: "Two", slug: "two" });
+    await repos.setGroupCameras(g1.id, [cam1.id, cam2.id]);
+    await repos.setGroupCameras(g2.id, [otherCam.id]);
+
+    await repos.deleteCamera(cam1.id);
+    expect((await repos.getGroupBySlug(t1.slug, "one"))?.cameras.map((c) => c.id)).toEqual([cam2.id]);
+    expect((await repos.getGroupBySlug(t2.slug, "two"))?.cameras.map((c) => c.id)).toEqual([otherCam.id]);
+
+    await repos.deleteGroup(g1.id);
+    expect(await repos.getGroupBySlug(t1.slug, "one")).toBeNull();
+    const members = await db
+      .select()
+      .from(cameraGroupMembers)
+      .where(eq(cameraGroupMembers.cameraGroupId, g1.id));
+    expect(members).toHaveLength(0);
+    const otherMembers = await db
+      .select()
+      .from(cameraGroupMembers)
+      .where(eq(cameraGroupMembers.cameraGroupId, g2.id));
+    expect(otherMembers.map((m) => m.cameraId)).toEqual([otherCam.id]);
+
+    await db.delete(tenants).where(eq(tenants.id, t1.id));
+    await db.delete(tenants).where(eq(tenants.id, t2.id));
     const pool = db.$client as import("pg").Pool;
     await pool.end();
   });
