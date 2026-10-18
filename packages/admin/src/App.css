@@ -355,6 +355,10 @@ button.link:hover {
   border: 1px solid var(--line);
 }
 
+.thumb-hidden {
+  display: none;
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -426,7 +430,14 @@ button.link:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cell-error-text {
   color: var(--red);
+}
+
+.dash {
+  color: var(--muted);
 }
 
 .cell-actions {

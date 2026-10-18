@@ -112,7 +112,12 @@ function WidgetBody({
           ))
         ) : (
           <>
-            {images.length === 0 && <p className="empty">No images for this date.</p>}
+            {images.length === 0 && (
+              <>
+                <p className="empty">No images for this date.</p>
+                <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
+              </>
+            )}
             {images.map((img) => (
               <button
                 key={img.id}

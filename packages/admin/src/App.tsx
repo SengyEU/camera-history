@@ -164,6 +164,7 @@ function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void;
           data-testid="register-slug"
           required
         />
+        <span className="field-hint">Lowercase letters, numbers and dashes.</span>
       </label>
       <label className="field" htmlFor="register-email">
         Email
@@ -367,6 +368,8 @@ function CameraRow({
   onDelete: () => void;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [thumbLoaded, setThumbLoaded] = useState(false);
+  const [thumbError, setThumbError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -401,9 +404,27 @@ function CameraRow({
         )}
       </td>
       <td data-testid={`last-error-${cam.id}`} className="cell-error">
-        {cam.lastError ?? "—"}
+        {cam.lastError ? <span className="cell-error-text">{cam.lastError}</span> : <span className="dash">—</span>}
       </td>
-      <td>{previewUrl ? <img className="thumb" src={previewUrl} alt={`preview ${cam.name}`} /> : "—"}</td>
+      <td>
+        {previewUrl && !thumbError ? (
+          <>
+            {!thumbLoaded && <span className="dash">—</span>}
+            <img
+              className={`thumb${thumbLoaded ? "" : " thumb-hidden"}`}
+              src={previewUrl}
+              alt={`preview ${cam.name}`}
+              ref={(node) => {
+                if (node?.complete) setThumbLoaded(true);
+              }}
+              onLoad={() => setThumbLoaded(true)}
+              onError={() => setThumbError(true)}
+            />
+          </>
+        ) : (
+          <span className="dash">—</span>
+        )}
+      </td>
       <td className="cell-actions">
         <button className="secondary" onClick={onEdit} data-testid={`edit-${cam.id}`}>
           Edit
@@ -423,11 +444,13 @@ function embedSrc(tenantSlug: string, slug: string): string {
 function GroupsView({
   cameras,
   groups,
+  loading,
   tenantSlug,
   onGroupsChange,
 }: {
   cameras: AdminCamera[];
   groups: AdminGroup[];
+  loading: boolean;
   tenantSlug: string;
   onGroupsChange: () => void | Promise<unknown>;
 }) {
@@ -561,9 +584,13 @@ function GroupsView({
         </p>
       )}
       {groups.length === 0 ? (
-        <p className="empty" data-testid="groups-empty">
-          No groups yet. Create a group to embed its camera page on your site.
-        </p>
+        loading ? (
+          <p className="loading">Loading…</p>
+        ) : (
+          <p className="empty" data-testid="groups-empty">
+            No groups yet. Create a group to embed its camera page on your site.
+          </p>
+        )
       ) : (
         <ul className="group-list">
           {groups.map((g) => (
@@ -715,6 +742,8 @@ export function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<AdminCamera | null>(null);
   const [groups, setGroups] = useState<AdminGroup[]>([]);
+  const [camerasLoading, setCamerasLoading] = useState(true);
+  const [groupsLoading, setGroupsLoading] = useState(true);
   const [tenantSlug, setTenantSlug] = useState<string>("");
   const [view, setView] = useState<"cameras" | "groups" | "billing">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
@@ -737,7 +766,15 @@ export function App() {
       .finally(() => setChecked(true));
   }, []);
 
-  const reloadGroups = useCallback(() => api.listGroups().then(setGroups).catch(() => undefined), []);
+  const reloadGroups = useCallback(
+    () =>
+      api
+        .listGroups()
+        .then(setGroups)
+        .catch(() => undefined)
+        .finally(() => setGroupsLoading(false)),
+    [],
+  );
 
   useEffect(() => {
     if (view === "groups") {
@@ -750,7 +787,11 @@ export function App() {
   }, [view, reloadGroups]);
 
   const refresh = useCallback(() => {
-    api.listCameras().then(setCameras).catch(() => setCameras([]));
+    api
+      .listCameras()
+      .then(setCameras)
+      .catch(() => setCameras([]))
+      .finally(() => setCamerasLoading(false));
   }, []);
 
   useEffect(() => {
@@ -878,7 +919,7 @@ export function App() {
        {view === "billing" ? (
          <BillingPage />
        ) : view === "groups" ? (
-         <GroupsView cameras={cameras} groups={groups} tenantSlug={tenantSlug} onGroupsChange={reloadGroups} />
+         <GroupsView cameras={cameras} groups={groups} loading={groupsLoading} tenantSlug={tenantSlug} onGroupsChange={reloadGroups} />
        ) : (
         <section className="panel">
           <div className="panel-head">
@@ -910,19 +951,23 @@ export function App() {
               {cameras.length === 0 && (
                 <tr>
                   <td colSpan={8} className="empty">
-                    <div className="empty-state" data-testid="empty-state">
-                      <p className="empty-title">No cameras yet</p>
-                      <p>Add your first camera to start building its history.</p>
-                      <button
-                        onClick={() => {
-                          setEditingId(null);
-                          setEditing(emptyInput());
-                        }}
-                        data-testid="empty-add-camera"
-                      >
-                        Add your first camera
-                      </button>
-                    </div>
+                    {camerasLoading ? (
+                      <p className="loading">Loading…</p>
+                    ) : (
+                      <div className="empty-state" data-testid="empty-state">
+                        <p className="empty-title">No cameras yet</p>
+                        <p>Add your first camera to start building its history.</p>
+                        <button
+                          onClick={() => {
+                            setEditingId(null);
+                            setEditing(emptyInput());
+                          }}
+                          data-testid="empty-add-camera"
+                        >
+                          Add your first camera
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )}

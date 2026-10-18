@@ -135,6 +135,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 }
 
 .empty, .error { color: var(--muted); text-align: center; padding: 24px; }
+.empty-hint { color: var(--muted); text-align: center; font-size: 12px; padding: 0 24px; margin-top: -14px; }
 
 /* Modal */
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 10; }
@@ -180,6 +181,7 @@ button { color: var(--ink); }
 /* Focus rings */
 .widget-cell:focus-visible,
 .widget-nav button:focus-visible,
+.widget-nav input[type="date"]:focus-visible,
 .camera-switcher:focus-visible,
 .modal-close:focus-visible,
 .modal-actions button:focus-visible {
