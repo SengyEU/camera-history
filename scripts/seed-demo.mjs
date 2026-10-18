@@ -116,7 +116,11 @@ async function ensureCameras(jar, cfg) {
     created += 1;
     console.log(`   + ${cam.name} (${cam.feedType} → ${cam.feedUrl})`);
   }
-  return cameras;
+  if (created === 0) return { cameras, created, existing };
+  const refetch = await call("GET", "/admin/cameras", { jar });
+  if (!refetch.ok) throw new Error(`GET /admin/cameras → ${refetch.status}: ${await refetch.text()}`);
+  const { cameras: all = [] } = await refetch.json();
+  return { cameras: all, created, existing };
 }
 
 async function ensureGroups(jar, cfg, cameras) {
@@ -158,8 +162,6 @@ async function ensureGroups(jar, cfg, cameras) {
     } else {
       existing += 1;
     }
-    g._wasCreated = wasCreated;
-
     const cameraIds = (g.cameras ?? [])
       .map((n) => nameToId.get(n))
       .filter((id) => typeof id !== "undefined");
@@ -169,7 +171,7 @@ async function ensureGroups(jar, cfg, cameras) {
     });
     if (!putRes.ok) throw new Error(`PUT /admin/groups/${group.id}/cameras → ${putRes.status}: ${await putRes.text()}`);
 
-    if (g._wasCreated) {
+    if (wasCreated) {
       console.log(`   + group ${g.name} (${cameraIds.length} cameras)`);
     } else {
       console.log(`   · group ${g.name} (exists)`);
@@ -184,15 +186,11 @@ console.log(`API: ${API}\n`);
 for (const cfg of TENANTS) {
   console.log(`${cfg.name} (${cfg.slug})`);
   const jar = await ensureTenant(cfg);
-  const cameras = await ensureCameras(jar, cfg);
-  // recompute created/existing as before for summary
-  const have = new Set(cameras.map((c) => c.name));
-  let createdC = 0, existingC = 0;
-  for (const cam of cfg.cameras) {
-    if (have.has(cam.name)) existingC += 1; else createdC += 1;
-  }
-  await ensureGroups(jar, cfg, cameras);
-  console.log(`   → ${createdC} created, ${existingC} already present, groups: ${cfg.groups?.length ?? 0}\n`);
+  const { cameras, created: createdC, existing: existingC } = await ensureCameras(jar, cfg);
+  const groups = await ensureGroups(jar, cfg, cameras);
+  console.log(
+    `   → ${createdC} created, ${existingC} already present, groups: ${groups.created} created, ${groups.existing} already present\n`,
+  );
 }
 
 console.log("Hotovo. Worker doplňuje historii průběžně reálnými snímky (žádný syntetický backfill).");
