@@ -42,27 +42,39 @@ function Login({ onSuccess, onRegister }: { onSuccess: (email: string) => void; 
   };
 
   return (
-    <form className="login" onSubmit={submit} data-testid="login-form">
+    <form className="auth-card" onSubmit={submit} data-testid="login-form">
+      <div className="auth-brand">
+        <span className="auth-brand-name">Camera History</span>
+        <span className="ts-chip">ADMIN</span>
+      </div>
       <h1>Camera History Admin</h1>
+      <label className="field" htmlFor="login-email">
+        Email
+        <input
+          id="login-email"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          data-testid="login-email"
+        />
+      </label>
+      <label className="field" htmlFor="login-password">
+        Password
+        <input
+          id="login-password"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          data-testid="login-password"
+        />
+      </label>
       {error && (
         <p className="error" data-testid="login-error">
           {error}
         </p>
       )}
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        data-testid="login-email"
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        data-testid="login-password"
-      />
       <button type="submit" data-testid="login-submit">
         Sign in
       </button>
@@ -122,46 +134,66 @@ function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void;
   };
 
   return (
-    <form className="login" onSubmit={submit} data-testid="register-form">
+    <form className="auth-card" onSubmit={submit} data-testid="register-form">
+      <div className="auth-brand">
+        <span className="auth-brand-name">Camera History</span>
+        <span className="ts-chip">SIGN UP</span>
+      </div>
       <h1>Create account</h1>
+      <label className="field" htmlFor="register-name">
+        Company name
+        <input
+          id="register-name"
+          placeholder="Company name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          data-testid="register-name"
+          required
+        />
+      </label>
+      <label className="field" htmlFor="register-slug">
+        Slug
+        <input
+          id="register-slug"
+          placeholder="Slug"
+          value={slug}
+          onChange={(e) => {
+            setSlugTouched(true);
+            setSlug(e.target.value);
+          }}
+          data-testid="register-slug"
+          required
+        />
+      </label>
+      <label className="field" htmlFor="register-email">
+        Email
+        <input
+          id="register-email"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          data-testid="register-email"
+          required
+        />
+      </label>
+      <label className="field" htmlFor="register-password">
+        Password
+        <input
+          id="register-password"
+          type="password"
+          placeholder="Password (min 8 characters)"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          data-testid="register-password"
+          required
+        />
+      </label>
       {error && (
         <p className="error" data-testid="register-error">
           {error}
         </p>
       )}
-      <input
-        placeholder="Company name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        data-testid="register-name"
-        required
-      />
-      <input
-        placeholder="Slug"
-        value={slug}
-        onChange={(e) => {
-          setSlugTouched(true);
-          setSlug(e.target.value);
-        }}
-        data-testid="register-slug"
-        required
-      />
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        data-testid="register-email"
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password (min 8 characters)"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        data-testid="register-password"
-        required
-      />
       <button type="submit" data-testid="register-submit">
         Create account
       </button>
@@ -764,7 +796,7 @@ export function App() {
 
   if (email === null) {
     return (
-      <main className="admin">
+      <main className="admin auth-screen">
         {registering ? (
           <Register
             onSuccess={setEmail}
@@ -787,15 +819,15 @@ export function App() {
   return (
     <main className="admin" data-testid="admin-app">
       <header className="topbar">
-        <span className="topbar-title">Camera History Admin</span>
+        <span className="topbar-brand">Camera History</span>
         <nav className="topbar-nav">
-          <a href="#/cameras" data-testid="nav-cameras">
+          <a href="#/cameras" className={view === "cameras" ? "active" : undefined} data-testid="nav-cameras">
             Cameras
           </a>
-          <a href="#/groups" data-testid="nav-groups">
+          <a href="#/groups" className={view === "groups" ? "active" : undefined} data-testid="nav-groups">
             Groups
           </a>
-          <a href="#/billing" data-testid="nav-billing">
+          <a href="#/billing" className={view === "billing" ? "active" : undefined} data-testid="nav-billing">
             Billing
           </a>
         </nav>
