@@ -544,6 +544,14 @@ button.link:hover {
   font-size: 0.9rem;
 }
 
+.modal-body label.checkbox-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 500;
+}
+
 .checkbox-label input {
   accent-color: var(--glacier);
 }
