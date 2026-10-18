@@ -92,6 +92,41 @@ describe.skipIf(!RUN)("PG integration", () => {
     await pool.end();
   });
 
+  it("roundtrips showNight through create, read, update and public camera", async () => {
+    const cfg = loadConfig(process.env);
+    const db = createDb(cfg.databaseUrl);
+    const repos = createRepos(db);
+    const tenant = await repos.createTenant({ name: "NIGHT", slug: `night-${Date.now()}` });
+    const night = await repos.createCamera(tenant.id, {
+      name: "Night", feedType: "static_url", feedUrl: "https://e.com/n.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+      showNight: true,
+    });
+    expect(night.showNight).toBe(true);
+
+    const fetched = await repos.getCameraById(night.id);
+    expect(fetched?.showNight).toBe(true);
+
+    const pub = await repos.getPublicCamera(night.id);
+    expect(pub?.showNight).toBe(true);
+
+    const plain = await repos.createCamera(tenant.id, {
+      name: "Plain", feedType: "static_url", feedUrl: "https://e.com/p.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    expect(plain.showNight).toBe(false);
+
+    const updated = await repos.updateCamera(plain.id, { showNight: true });
+    expect(updated?.showNight).toBe(true);
+
+    const reverted = await repos.updateCamera(plain.id, { showNight: false });
+    expect(reverted?.showNight).toBe(false);
+
+    await db.delete(tenants).where(eq(tenants.id, tenant.id));
+    const pool = db.$client as import("pg").Pool;
+    await pool.end();
+  });
+
   it("creates groups, sets membership idempotently, resolves public group by slug", async () => {
     const cfg = loadConfig(process.env);
     const db = createDb(cfg.databaseUrl);
@@ -100,6 +135,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     const a = await repos.createCamera(tenant.id, {
       name: "Alpha", feedType: "static_url", feedUrl: "https://e.com/a.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+      showNight: true,
     });
     const b = await repos.createCamera(tenant.id, {
       name: "Beta", feedType: "static_url", feedUrl: "https://e.com/b.jpg",
@@ -115,6 +151,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     const pub = await repos.getGroupBySlug(tenant.slug, "summit");
     expect(pub?.group.slug).toBe("summit");
     expect(pub?.cameras.map((c) => c.id)).toEqual([a.id]); // disabled Beta excluded
+    expect(pub?.cameras[0]?.showNight).toBe(true); // per-camera showNight reaches the group DTO
     expect(await repos.getGroupBySlug(tenant.slug, "nope")).toBeNull();
 
     const noop = await repos.updateGroup(g.id, {});

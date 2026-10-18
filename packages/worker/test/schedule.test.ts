@@ -18,6 +18,7 @@ const baseCam: Camera = {
   latitude: null,
   longitude: null,
   daylightOnly: false,
+  showNight: false,
   lastCaptureAt: null,
   lastError: null,
   status: "operational",

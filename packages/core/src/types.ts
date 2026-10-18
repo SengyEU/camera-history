@@ -46,6 +46,7 @@ export interface Camera {
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
+  showNight: boolean;
   lastCaptureAt: Date | null;
   lastError: string | null;
   status: CameraStatus;
@@ -66,6 +67,7 @@ export interface PublicCamera {
   retentionMonths: number;
   latitude: number | null;
   longitude: number | null;
+  showNight: boolean;
 }
 
 export interface NewTenant {
@@ -95,6 +97,7 @@ export interface NewCamera {
   latitude?: number | null;
   longitude?: number | null;
   daylightOnly?: boolean;
+  showNight?: boolean;
 }
 
 export interface CameraPatch {
@@ -111,6 +114,7 @@ export interface CameraPatch {
   latitude?: number | null;
   longitude?: number | null;
   daylightOnly?: boolean;
+  showNight?: boolean;
   lastCaptureAt?: Date | null;
   lastError?: string | null;
   status?: CameraStatus;
@@ -146,6 +150,7 @@ export interface PublicGroupCamera {
   id: string;
   name: string;
   theme: string;
+  showNight: boolean;
 }
 
 export interface PublicGroupWithCameras {

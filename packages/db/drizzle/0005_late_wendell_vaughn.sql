@@ -1,0 +1,1 @@
+ALTER TABLE "cameras" ADD COLUMN "show_night" boolean DEFAULT false NOT NULL;

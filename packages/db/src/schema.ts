@@ -77,6 +77,7 @@ export const cameras = pgTable("cameras", {
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
   daylightOnly: boolean("daylight_only").notNull().default(false),
+  showNight: boolean("show_night").notNull().default(false),
   lastCaptureAt: timestamp("last_capture_at", { withTimezone: true }),
   lastError: text("last_error"),
   status: cameraStatusEnum("status").notNull().default("operational"),

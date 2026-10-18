@@ -90,6 +90,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,
         daylightOnly: input.daylightOnly ?? false,
+        showNight: input.showNight ?? false,
         lastCaptureAt: null,
         lastError: null,
         status: "operational",
@@ -128,6 +129,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         retentionMonths: tenant?.planMonths ?? 12,
         latitude: cam.latitude,
         longitude: cam.longitude,
+        showNight: cam.showNight,
       };
     },
     async insertImage(input: NewImage): Promise<ImageRecord> {
@@ -229,7 +231,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         .filter((m) => m.cameraGroupId === group.id)
         .map((m) => db.cameras.find((c) => c.id === m.cameraId))
         .filter((c): c is Camera => !!c && c.enabled)
-        .map((c) => ({ id: c.id, name: c.name, theme: c.theme }))
+        .map((c) => ({ id: c.id, name: c.name, theme: c.theme, showNight: c.showNight }))
         .sort((a, b) => a.name.localeCompare(b.name));
       return { group: { id: group.id, name: group.name, slug: group.slug }, cameras: cams };
     },

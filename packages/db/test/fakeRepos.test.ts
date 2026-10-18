@@ -131,6 +131,48 @@ describe("fakeRepos", () => {
     expect(cleared?.daylightOnly).toBe(false);
   });
 
+  it("defaults and roundtrips showNight, including group resolve", async () => {
+    const repos = createFakeRepos();
+    const tenant = await repos.createTenant(newTenant);
+    const plain = await repos.createCamera(tenant.id, {
+      name: "Plain",
+      feedType: "static_url",
+      feedUrl: "https://example.com/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    expect(plain.showNight).toBe(false);
+    expect((await repos.getPublicCamera(plain.id))?.showNight).toBe(false);
+
+    const night = await repos.createCamera(tenant.id, {
+      name: "Night",
+      feedType: "static_url",
+      feedUrl: "https://example.com/night.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+      showNight: true,
+    });
+    expect(night.showNight).toBe(true);
+    expect((await repos.getPublicCamera(night.id))?.showNight).toBe(true);
+
+    const updated = await repos.updateCamera(plain.id, { showNight: true });
+    expect(updated?.showNight).toBe(true);
+    const reverted = await repos.updateCamera(plain.id, { showNight: false });
+    expect(reverted?.showNight).toBe(false);
+
+    const group = await repos.createGroup(tenant.id, { name: "G", slug: "g" });
+    await repos.setGroupCameras(group.id, [plain.id, night.id]);
+    const pub = await repos.getGroupBySlug("acme", "g");
+    expect(pub?.cameras.map((c) => [c.name, c.showNight])).toEqual([
+      ["Night", true],
+      ["Plain", false],
+    ]);
+  });
+
   it("counts cameras and reports usage stats for a tenant", async () => {
     const repos = createFakeRepos();
     const tenant = await repos.createTenant(newTenant);

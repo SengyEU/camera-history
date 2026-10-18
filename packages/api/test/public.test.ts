@@ -237,7 +237,7 @@ describe("public routes", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.group.slug).toBe("g-one");
-    expect(body.cameras).toEqual([{ id: cam.id, name: "Zulu", theme: "dark" }]);
+    expect(body.cameras).toEqual([{ id: cam.id, name: "Zulu", theme: "dark", showNight: false }]);
   });
 
   it("404s for unknown public group with a group-specific detail", async () => {

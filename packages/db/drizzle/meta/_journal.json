@@ -36,6 +36,13 @@
       "when": 1792335981679,
       "tag": "0004_military_sabra",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792343686481,
+      "tag": "0005_late_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }
