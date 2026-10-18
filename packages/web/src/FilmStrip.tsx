@@ -1,4 +1,9 @@
-import { useEffect, useRef } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import type { ImageDto } from "./api";
 
 export function viewerHourParts(timestamp: string): { hour: number; meridiem: "AM" | "PM" } {
@@ -15,12 +20,14 @@ export function viewerHourLabel(timestamp: string): string {
 }
 
 export function viewerCaptureLabel(timestamp: string): string {
-  const date = new Date(timestamp).toLocaleDateString("en-US", {
+  const date = new Date(timestamp);
+  const day = date.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
-  return `${date} · ${viewerHourLabel(timestamp)}`;
+  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return `${day} · ${time}`;
 }
 
 interface FilmStripProps {
@@ -42,15 +49,112 @@ function ShareGlyph() {
   );
 }
 
+function PlayGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
+      <path d="M8 5v14l11-7z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PauseGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
+      <path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor" />
+    </svg>
+  );
+}
+
+type NavDirection = "fade" | "next" | "prev";
+
 export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: FilmStripProps) {
   const openIndex = openId ? images.findIndex((image) => image.id === openId) : -1;
   const openImage = openIndex >= 0 ? images[openIndex] : undefined;
   const openRef = useRef<HTMLDivElement | null>(null);
+  const swipeRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const suppressClickRef = useRef(false);
+  const [playing, setPlaying] = useState(false);
+  const [prevOpenIndex, setPrevOpenIndex] = useState(openIndex);
+  const [nav, setNav] = useState<NavDirection>("fade");
+
+  if (openIndex !== prevOpenIndex) {
+    setPrevOpenIndex(openIndex);
+    setNav(openIndex >= 0 && prevOpenIndex >= 0 ? (openIndex > prevOpenIndex ? "next" : "prev") : "fade");
+  }
+
+  const userOpen = (id: string | null) => {
+    setPlaying(false);
+    onOpenChange(id);
+  };
 
   useEffect(() => {
     if (!openId) return;
     openRef.current?.scrollIntoView?.({ block: "nearest", inline: "center" });
   }, [openId]);
+
+  useEffect(() => {
+    setPlaying(false);
+  }, [images]);
+
+  useEffect(() => {
+    if (!openId) setPlaying(false);
+  }, [openId]);
+
+  useEffect(() => {
+    if (playing && openIndex >= 0 && openIndex >= images.length - 1) setPlaying(false);
+  }, [playing, openIndex, images.length]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const timer = window.setInterval(() => {
+      if (openIndex < 0 || openIndex >= images.length - 1) {
+        setPlaying(false);
+        return;
+      }
+      onOpenChange(images[openIndex + 1]!.id);
+    }, 700);
+    return () => window.clearInterval(timer);
+  }, [playing, openIndex, images, onOpenChange]);
+
+  useEffect(() => {
+    if (!openId) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement) return;
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      if (openIndex < 0) return;
+      const nextIndex = openIndex + (event.key === "ArrowRight" ? 1 : -1);
+      if (nextIndex < 0 || nextIndex >= images.length) return;
+      event.preventDefault();
+      userOpen(images[nextIndex]!.id);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [openId, openIndex, images]);
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    suppressClickRef.current = false;
+    if (event.pointerType !== "touch") return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    swipeRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+  };
+
+  const handlePointerCancel = () => {
+    swipeRef.current = null;
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = swipeRef.current;
+    swipeRef.current = null;
+    if (!start || start.pointerId !== event.pointerId || event.pointerType !== "touch") return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+    suppressClickRef.current = true;
+    const nextIndex = openIndex + (dx < 0 ? 1 : -1);
+    if (nextIndex < 0 || nextIndex >= images.length) return;
+    userOpen(images[nextIndex]!.id);
+  };
 
   return (
     <div
@@ -77,15 +181,25 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
                 ref={openRef}
                 className="frame frame-open"
                 data-testid="frame-open"
+                data-nav={nav}
                 role="button"
                 tabIndex={0}
                 aria-label="Collapse capture"
-                onClick={() => onOpenChange(null)}
+                onClick={() => {
+                  if (suppressClickRef.current) {
+                    suppressClickRef.current = false;
+                    return;
+                  }
+                  userOpen(null);
+                }}
+                onPointerDown={handlePointerDown}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerCancel}
                 onKeyDown={(event) => {
                   if (event.target !== event.currentTarget) return;
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    onOpenChange(null);
+                    userOpen(null);
                   }
                 }}
               >
@@ -98,7 +212,7 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
                     aria-label="Previous capture"
                     onClick={(event) => {
                       event.stopPropagation();
-                      onOpenChange(images[index - 1]!.id);
+                      userOpen(images[index - 1]!.id);
                     }}
                   >
                     ‹
@@ -111,7 +225,7 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
                     aria-label="Next capture"
                     onClick={(event) => {
                       event.stopPropagation();
-                      onOpenChange(images[index + 1]!.id);
+                      userOpen(images[index + 1]!.id);
                     }}
                   >
                     ›
@@ -119,11 +233,24 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
                 )}
                 <button
                   type="button"
+                  className="frame-play"
+                  data-testid="play-toggle"
+                  aria-label={playing ? "Pause time-lapse" : "Play time-lapse"}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setPlaying((value) => !value);
+                  }}
+                >
+                  {playing ? <PauseGlyph /> : <PlayGlyph />}
+                </button>
+                <button
+                  type="button"
                   className="frame-share"
                   data-testid="share-open"
                   aria-label="Share this capture"
                   onClick={(event) => {
                     event.stopPropagation();
+                    setPlaying(false);
                     onShare(image);
                   }}
                 >
@@ -142,7 +269,7 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
               data-testid={`frame-${image.id}`}
               aria-label={`Open capture ${hour.hour} ${hour.meridiem}`}
               style={{ backgroundImage: `url(${image.url})` }}
-              onClick={() => onOpenChange(image.id)}
+              onClick={() => userOpen(image.id)}
             >
               <span className="frame-hours">
                 <span className="chip-h">{hour.hour}</span>{" "}

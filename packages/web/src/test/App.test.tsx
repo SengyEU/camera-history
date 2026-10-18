@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
 import { getCamera, getCameraLatest, getGroup, getImages, type ImageDto } from "../api";
@@ -27,6 +27,28 @@ const defaultImages: ImageDto[] = [
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toLocalInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+const fireSwipe = (element: Element, fromX: number, toX: number, pointerType = "touch") => {
+  for (const [type, clientX] of [
+    ["pointerDown", fromX],
+    ["pointerUp", toX],
+  ] as const) {
+    const event = createEvent[type](element, {});
+    Object.defineProperties(event, {
+      pointerType: { value: pointerType },
+      pointerId: { value: 1 },
+      clientX: { value: clientX },
+      clientY: { value: 10 },
+    });
+    fireEvent(element, event);
+  }
+};
+
+const threeImages = () => [
+  makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
+  makeImage("d2", "2026-09-18T12:00:00", "/d2.jpg"),
+  makeImage("d3", "2026-09-18T15:27:00", "/d3.jpg"),
+];
 
 const stubClipboard = () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
@@ -81,7 +103,7 @@ describe("App widget", () => {
     await user.click(await screen.findByTestId("frame-img-1"));
 
     const open = screen.getByTestId("frame-open");
-    expect(open).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(open).toHaveTextContent("September 18, 2026 · 9:00 AM");
     expect(open.querySelector("img")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/090000.jpg",
@@ -103,16 +125,16 @@ describe("App widget", () => {
     render(<App />);
     await user.click(await screen.findByTestId("frame-d1"));
 
-    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9:00 AM");
     expect(screen.queryByLabelText("Previous capture")).not.toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Next capture"));
     const open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(open).toHaveTextContent("September 18, 2026 · 12:00 PM");
 
     await user.click(screen.getByLabelText("Previous capture"));
-    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9:00 AM");
   });
 
   it("keeps the open frame when activating an arrow with the keyboard", async () => {
@@ -131,7 +153,171 @@ describe("App widget", () => {
 
     const open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(open).toHaveTextContent("September 18, 2026 · 12:00 PM");
+  });
+
+  it("plays through the visible frames every 700ms and auto-pauses at the last", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue(threeImages());
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-d1"));
+
+    const play = screen.getByTestId("play-toggle");
+    expect(play).toHaveAttribute("aria-label", "Play time-lapse");
+
+    vi.useFakeTimers();
+    act(() => {
+      fireEvent.click(play);
+    });
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    let open = screen.getByTestId("frame-open");
+    expect(open).toHaveAttribute("data-nav", "next");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open).toHaveTextContent("September 18, 2026 · 12:00 PM");
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    open = screen.getByTestId("frame-open");
+    expect(open).toHaveAttribute("data-nav", "next");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d3.jpg");
+    expect(open).toHaveTextContent("September 18, 2026 · 3:27 PM");
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d3.jpg");
+  });
+
+  it("stops playing when the toggle is clicked again", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue(threeImages());
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-d1"));
+
+    vi.useFakeTimers();
+    act(() => {
+      fireEvent.click(screen.getByTestId("play-toggle"));
+    });
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+
+    act(() => {
+      fireEvent.click(screen.getByTestId("play-toggle"));
+    });
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
+    act(() => {
+      vi.advanceTimersByTime(1400);
+    });
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+  });
+
+  it("pauses time-lapse when share opens or the user navigates manually", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue(threeImages());
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-d1"));
+
+    vi.useFakeTimers();
+    act(() => {
+      fireEvent.click(screen.getByTestId("play-toggle"));
+    });
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
+
+    act(() => {
+      fireEvent.click(screen.getByTestId("share-open"));
+    });
+    expect(screen.getByTestId("share-popup")).toBeInTheDocument();
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
+    act(() => {
+      vi.advanceTimersByTime(1400);
+    });
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+
+    act(() => {
+      fireEvent.click(screen.getByTestId("share-close"));
+    });
+    act(() => {
+      fireEvent.click(screen.getByTestId("play-toggle"));
+    });
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
+    act(() => {
+      fireEvent.click(screen.getByLabelText("Next capture"));
+    });
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
+    act(() => {
+      vi.advanceTimersByTime(1400);
+    });
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+  });
+
+  it("does not carry the play state across date changes", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue(threeImages());
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-d1"));
+    await user.click(screen.getByTestId("play-toggle"));
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
+
+    await user.click(screen.getByLabelText("Next day"));
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"));
+    await user.click(await screen.findByTestId("frame-d1"));
+    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
+  });
+
+  it("navigates the open frame with ArrowLeft and ArrowRight", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue(threeImages());
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-d1"));
+
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    let open = screen.getByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open).toHaveAttribute("data-nav", "next");
+
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d3.jpg");
+
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d3.jpg");
+
+    fireEvent.keyDown(document, { key: "ArrowLeft" });
+    open = screen.getByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open).toHaveAttribute("data-nav", "prev");
+
+    await user.click(screen.getByTestId("share-open"));
+    const input = screen.getByLabelText("Share URL");
+    fireEvent.keyDown(input, { key: "ArrowRight" });
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+  });
+
+  it("navigates with horizontal touch swipes on the open frame", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue(threeImages());
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-d1"));
+
+    fireSwipe(screen.getByTestId("frame-open"), 200, 140);
+    let open = screen.getByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open).toHaveAttribute("data-nav", "next");
+
+    fireSwipe(screen.getByTestId("frame-open"), 140, 200);
+    open = screen.getByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    expect(open).toHaveAttribute("data-nav", "prev");
+
+    fireSwipe(screen.getByTestId("frame-open"), 200, 140, "mouse");
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg");
   });
 
   it("opens the share popup with network links and a copy field", async () => {
@@ -142,7 +328,7 @@ describe("App widget", () => {
     await user.click(screen.getByTestId("share-open"));
 
     const popup = await screen.findByTestId("share-popup");
-    expect(popup).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(popup).toHaveTextContent("September 18, 2026 · 12:00 PM");
 
     const url = `${window.location.origin}/widget/acme/cam-1?date=2026-09-18&hour=12`;
     const encoded = encodeURIComponent(url);
@@ -208,7 +394,7 @@ describe("App widget", () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=12");
     render(<App />);
     const open = await screen.findByTestId("frame-open");
-    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(open).toHaveTextContent("September 18, 2026 · 12:00 PM");
     expect(open.querySelector("img")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
