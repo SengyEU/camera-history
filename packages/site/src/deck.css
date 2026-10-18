@@ -1,0 +1,38 @@
+:root {
+  --bg: #f8fafc;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --accent: #38bdf8;
+  --accent-ink: #0284c7;
+}
+.reveal {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+}
+.reveal .slides { text-align: left; }
+.reveal .slides section { background: var(--bg); }
+.reveal section.dark { color: #f1f5f9; }
+.reveal h1 { font-size: 2.1em; line-height: 1.12; letter-spacing: -0.02em; text-transform: none; }
+.reveal h2 { font-size: 1.6em; letter-spacing: -0.01em; text-transform: none; }
+.reveal .accent { color: var(--accent); display: block; }
+.reveal .eyebrow { color: var(--accent); letter-spacing: 0.18em; text-transform: uppercase; font-size: 0.5em; }
+.reveal .sub { color: var(--muted); font-size: 0.7em; max-width: 26em; }
+.reveal section.dark .sub { color: #94a3b8; }
+.reveal ul { display: block; }
+.reveal li { font-size: 0.72em; margin: 0.35em 0; }
+.reveal code { background: #e2e8f0; border-radius: 6px; padding: 0 6px; font-size: 0.9em; }
+.reveal .muted { color: var(--muted); }
+.reveal .shot { width: 100%; max-height: 420px; object-fit: cover; object-position: top; border: 1px solid var(--line); border-radius: 10px; }
+.reveal .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em 2em; font-size: 0.68em; }
+.reveal .flow { display: flex; gap: 0.8em; align-items: stretch; }
+.reveal .flow-step { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 0.6em; font-size: 0.6em; display: flex; flex-direction: column; gap: 0.3em; background: #fff; }
+.reveal .flow-arrow { align-self: center; color: var(--accent-ink); font-size: 1em; }
+.reveal .price-table { width: 100%; border-collapse: collapse; font-size: 0.62em; background: #fff; }
+.reveal .price-table td { border-bottom: 1px solid var(--line); padding: 0.25em 0.6em; }
+.reveal .btn {
+  display: inline-block; background: var(--accent-ink); color: #fff; border-radius: 999px;
+  padding: 0.5em 1.1em; font-size: 0.6em; margin-right: 0.5em; text-decoration: none;
+}
+.reveal .btn.ghost { background: transparent; color: inherit; border: 1px solid #475569; }
+.reveal .footer-note { margin-top: 1em; font-size: 0.5em; color: #64748b; }
