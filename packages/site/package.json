@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "playwright": "1.59.0",
     "reveal.js": "^6.0.2",
     "typescript": "^5.6.3",
     "vite": "^6.0.3",
