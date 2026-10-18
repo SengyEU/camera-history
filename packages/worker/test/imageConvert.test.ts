@@ -16,10 +16,13 @@ function makeJpeg(width: number, height: number): Buffer {
 
 describe("WEBP_ARGS", () => {
   it("pins the WebP conversion parameters", () => {
-    const args = WEBP_ARGS.join(" ");
-    expect(args).toContain("-vf scale='min(1600,iw)':-2");
-    expect(args).toContain("-c:v libwebp -quality 75");
-    expect(args).toContain("-f webp pipe:1");
+    expect(WEBP_ARGS).toEqual([
+      "-hide_banner", "-loglevel", "error",
+      "-i", "pipe:0",
+      "-vf", "scale='min(1600,iw)':-2",
+      "-c:v", "libwebp", "-quality", "75",
+      "-f", "webp", "pipe:1",
+    ]);
   });
 });
 

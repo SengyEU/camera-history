@@ -159,6 +159,7 @@ describe("runSchedule", () => {
     expect(db.images).toHaveLength(0);
     expect(db.cameras[0]!.status).toBe("delayed");
     expect(db.cameras[0]!.lastError).toContain("ffmpeg webp failed");
+    expect(db.cameras[0]!.lastCaptureAt).toBeNull();
   });
 
   it("escalates a repeated failure to offline", async () => {

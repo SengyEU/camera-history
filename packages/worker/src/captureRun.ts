@@ -47,7 +47,9 @@ export async function runSchedule(deps: RunScheduleDeps): Promise<number> {
           const webp = await toWebp(jpeg);
           const tenant = await repos.getTenantById(cam.tenantId);
           if (!tenant) throw new Error(`tenant ${cam.tenantId} not found`);
-          const key = keyFor(tenant.slug, cam.id, now).replace(/\.jpg$/, ".webp");
+          const jpgKey = keyFor(tenant.slug, cam.id, now);
+          if (!jpgKey.endsWith(".jpg")) throw new Error(`unexpected storage key: ${jpgKey}`);
+          const key = jpgKey.slice(0, -4) + ".webp";
           await storage.put(key, webp);
           await repos.insertImage({
             cameraId: cam.id,
