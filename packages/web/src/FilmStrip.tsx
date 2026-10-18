@@ -1,7 +1,6 @@
 import {
   useEffect,
   useRef,
-  useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { ImageDto } from "./api";
@@ -38,22 +37,6 @@ function ShareGlyph() {
   );
 }
 
-function PlayGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
-      <path d="M8 5v14l11-7z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function PauseGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
-      <path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor" />
-    </svg>
-  );
-}
-
 export function FilmStrip({
   images,
   loading,
@@ -67,41 +50,11 @@ export function FilmStrip({
   const openRef = useRef<HTMLDivElement | null>(null);
   const swipeRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const suppressClickRef = useRef(false);
-  const [playing, setPlaying] = useState(false);
-
-  const userOpen = (id: string | null) => {
-    setPlaying(false);
-    onOpenChange(id);
-  };
 
   useEffect(() => {
     if (!openId) return;
     openRef.current?.scrollIntoView?.({ block: "nearest", inline: "center" });
   }, [openId]);
-
-  useEffect(() => {
-    setPlaying(false);
-  }, [images]);
-
-  useEffect(() => {
-    if (!openId) setPlaying(false);
-  }, [openId]);
-
-  useEffect(() => {
-    if (playing && openIndex >= 0 && openIndex >= images.length - 1) setPlaying(false);
-  }, [playing, openIndex, images.length]);
-
-  useEffect(() => {
-    if (!playing) return;
-    const timer = window.setInterval(() => {
-      if (openIndex < 0 || openIndex >= images.length - 1) {
-        setPlaying(false);
-        return;
-      }
-      onOpenChange(images[openIndex + 1]!.id);
-    }, 700);
-    return () => window.clearInterval(timer);
-  }, [playing, openIndex, images, onOpenChange]);
 
   useEffect(() => {
     if (!openId) return;
@@ -112,11 +65,11 @@ export function FilmStrip({
       const nextIndex = openIndex + (event.key === "ArrowRight" ? 1 : -1);
       if (nextIndex < 0 || nextIndex >= images.length) return;
       event.preventDefault();
-      userOpen(images[nextIndex]!.id);
+      onOpenChange(images[nextIndex]!.id);
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [openId, openIndex, images]);
+  }, [openId, openIndex, images, onOpenChange]);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return;
@@ -140,7 +93,7 @@ export function FilmStrip({
     suppressClickRef.current = true;
     const nextIndex = openIndex + (dx < 0 ? 1 : -1);
     if (nextIndex < 0 || nextIndex >= images.length) return;
-    userOpen(images[nextIndex]!.id);
+    onOpenChange(images[nextIndex]!.id);
   };
 
   return (
@@ -160,108 +113,90 @@ export function FilmStrip({
         ))}
       {!loading &&
         images.map((image, index) => {
-          if (openImage && image.id === openImage.id) {
-            const label = viewerCaptureLabel(image.timestamp, timezone);
-            return (
-              <div
-                key={image.id}
-                ref={openRef}
-                className="frame frame-open"
-                data-testid="frame-open"
-                role="button"
-                tabIndex={0}
-                aria-label="Collapse capture"
-                onClick={() => {
-                  if (suppressClickRef.current) {
-                    suppressClickRef.current = false;
-                    return;
-                  }
-                  userOpen(null);
-                }}
-                onPointerDown={handlePointerDown}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerCancel}
-                onKeyDown={(event) => {
-                  if (event.target !== event.currentTarget) return;
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    userOpen(null);
-                  }
-                }}
-              >
-                <img className="frame-img" src={image.url} alt={label} />
-                <span className="frame-osd">{label}</span>
-                {index > 0 && (
-                  <button
-                    type="button"
-                    className="frame-arrow frame-arrow-left"
-                    aria-label="Previous capture"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      userOpen(images[index - 1]!.id);
-                    }}
-                  >
-                    ‹
-                  </button>
-                )}
-                {index < images.length - 1 && (
-                  <button
-                    type="button"
-                    className="frame-arrow frame-arrow-right"
-                    aria-label="Next capture"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      userOpen(images[index + 1]!.id);
-                    }}
-                  >
-                    ›
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="frame-play"
-                  data-testid="play-toggle"
-                  aria-label={playing ? "Pause time-lapse" : "Play time-lapse"}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setPlaying((value) => !value);
-                  }}
-                >
-                  {playing ? <PauseGlyph /> : <PlayGlyph />}
-                </button>
-                <button
-                  type="button"
-                  className="frame-share"
-                  data-testid="share-open"
-                  aria-label="Share this capture"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setPlaying(false);
-                    onShare(image);
-                  }}
-                >
-                  <ShareGlyph />
-                </button>
-              </div>
-            );
-          }
-
+          const isOpen = openImage !== undefined && image.id === openImage.id;
           const hour = viewerHourParts(image.timestamp, timezone);
+          const label = isOpen ? viewerCaptureLabel(image.timestamp, timezone) : "";
           return (
-            <button
+            <div
               key={image.id}
-              type="button"
-              className="frame"
-              data-testid={`frame-${image.id}`}
-              aria-label={`Open capture ${hour.hour} ${hour.meridiem}`}
-              style={{ backgroundImage: `url(${image.url})` }}
-              onClick={() => userOpen(image.id)}
+              ref={isOpen ? openRef : undefined}
+              className={`frame${isOpen ? " frame-open" : ""}`}
+              data-testid={isOpen ? "frame-open" : `frame-${image.id}`}
+              role="button"
+              tabIndex={0}
+              aria-label={isOpen ? "Collapse capture" : `Open capture ${hour.hour} ${hour.meridiem}`}
+              style={isOpen ? undefined : { backgroundImage: `url(${image.url})` }}
+              onClick={() => {
+                if (!isOpen) {
+                  onOpenChange(image.id);
+                  return;
+                }
+                if (suppressClickRef.current) {
+                  suppressClickRef.current = false;
+                  return;
+                }
+                onOpenChange(null);
+              }}
+              onPointerDown={isOpen ? handlePointerDown : undefined}
+              onPointerUp={isOpen ? handlePointerUp : undefined}
+              onPointerCancel={isOpen ? handlePointerCancel : undefined}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                onOpenChange(isOpen ? null : image.id);
+              }}
             >
-              <span className="frame-hours">
-                <span className="chip-h">{hour.hour}</span>{" "}
-                <span className="chip-ap">{hour.meridiem}</span>
-              </span>
-            </button>
+              {isOpen ? (
+                <>
+                  <img className="frame-img" src={image.url} alt={label} />
+                  <span className="frame-osd">{label}</span>
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      className="frame-arrow frame-arrow-left"
+                      aria-label="Previous capture"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenChange(images[index - 1]!.id);
+                      }}
+                    >
+                      ‹
+                    </button>
+                  )}
+                  {index < images.length - 1 && (
+                    <button
+                      type="button"
+                      className="frame-arrow frame-arrow-right"
+                      aria-label="Next capture"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenChange(images[index + 1]!.id);
+                      }}
+                    >
+                      ›
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="frame-share"
+                    data-testid="share-open"
+                    aria-label="Share this capture"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onShare(image);
+                    }}
+                  >
+                    <ShareGlyph />
+                  </button>
+                </>
+              ) : (
+                <span className="frame-hours">
+                  <span className="chip-h">{hour.hour}</span>{" "}
+                  <span className="chip-ap">{hour.meridiem}</span>
+                </span>
+              )}
+            </div>
           );
         })}
     </div>

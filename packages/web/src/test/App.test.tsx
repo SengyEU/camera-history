@@ -99,11 +99,13 @@ afterEach(() => {
 });
 
 describe("App widget", () => {
-  it("renders the camera name and one frame per image", async () => {
+  it("renders one frame per image without a title or header", async () => {
     render(<App />);
-    expect(await screen.findByText("Pláž")).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByTestId(/^frame-img-/)).toHaveLength(2));
     expect(screen.getByTestId("film-strip")).toBeInTheDocument();
+    expect(screen.queryByText("Pláž")).not.toBeInTheDocument();
+    expect(document.querySelector(".widget-title")).toBeNull();
+    expect(document.querySelector(".widget-header")).toBeNull();
   });
 
   it("shows camera-timezone hour chips on the frames", async () => {
@@ -111,6 +113,7 @@ describe("App widget", () => {
     const morning = await screen.findByTestId("frame-img-1");
     const noon = screen.getByTestId("frame-img-2");
     expect(morning).toHaveTextContent("9 AM");
+    expect(morning.querySelector(".frame-hours")).toHaveTextContent("9 AM");
     expect(morning.querySelector(".chip-h")).toHaveTextContent("9");
     expect(morning.querySelector(".chip-ap")).toHaveTextContent("AM");
     expect(noon).toHaveTextContent("12 PM");
@@ -118,12 +121,12 @@ describe("App widget", () => {
     expect(noon.querySelector(".chip-ap")).toHaveTextContent("PM");
   });
 
-  it("places the date nav above the film strip", async () => {
+  it("places the date nav below the film strip", async () => {
     render(<App />);
     await screen.findByTestId("frame-img-1");
     const nav = screen.getByTestId("date-nav");
     const strip = screen.getByTestId("film-strip");
-    expect(nav.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(strip.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("expands a frame in place and collapses it again", async () => {
@@ -132,7 +135,7 @@ describe("App widget", () => {
     await user.click(await screen.findByTestId("frame-img-1"));
 
     const open = screen.getByTestId("frame-open");
-    expect(open).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(open.querySelector(".frame-osd")).toHaveTextContent("September 18, 2026 · 9 AM");
     expect(open.querySelector("img")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/090000.jpg",
@@ -183,125 +186,6 @@ describe("App widget", () => {
     const open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
     expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
-  });
-
-  it("plays through the visible frames every 700ms and auto-pauses at the last", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getImages).mockResolvedValue(threeImages());
-    render(<App />);
-    await user.click(await screen.findByTestId("frame-d1"));
-
-    const play = screen.getByTestId("play-toggle");
-    expect(play).toHaveAttribute("aria-label", "Play time-lapse");
-
-    vi.useFakeTimers();
-    act(() => {
-      fireEvent.click(play);
-    });
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
-
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
-    let open = screen.getByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
-
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
-    open = screen.getByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d3.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 3 PM");
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
-
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d3.jpg");
-  });
-
-  it("stops playing when the toggle is clicked again", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getImages).mockResolvedValue(threeImages());
-    render(<App />);
-    await user.click(await screen.findByTestId("frame-d1"));
-
-    vi.useFakeTimers();
-    act(() => {
-      fireEvent.click(screen.getByTestId("play-toggle"));
-    });
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-
-    act(() => {
-      fireEvent.click(screen.getByTestId("play-toggle"));
-    });
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
-    act(() => {
-      vi.advanceTimersByTime(1400);
-    });
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-  });
-
-  it("pauses time-lapse when share opens or the user navigates manually", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getImages).mockResolvedValue(threeImages());
-    render(<App />);
-    await user.click(await screen.findByTestId("frame-d1"));
-
-    vi.useFakeTimers();
-    act(() => {
-      fireEvent.click(screen.getByTestId("play-toggle"));
-    });
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
-
-    act(() => {
-      fireEvent.click(screen.getByTestId("share-open"));
-    });
-    expect(screen.getByTestId("share-popup")).toBeInTheDocument();
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
-    act(() => {
-      vi.advanceTimersByTime(1400);
-    });
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg");
-
-    act(() => {
-      fireEvent.click(screen.getByTestId("share-close"));
-    });
-    act(() => {
-      vi.advanceTimersByTime(200);
-    });
-    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
-
-    act(() => {
-      fireEvent.click(screen.getByTestId("play-toggle"));
-    });
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
-    act(() => {
-      fireEvent.click(screen.getByLabelText("Next capture"));
-    });
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
-    act(() => {
-      vi.advanceTimersByTime(1400);
-    });
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-  });
-
-  it("does not carry the play state across date changes", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getImages).mockResolvedValue(threeImages());
-    render(<App />);
-    await user.click(await screen.findByTestId("frame-d1"));
-    await user.click(screen.getByTestId("play-toggle"));
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
-
-    await user.click(screen.getByLabelText("Next day"));
-    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"));
-    await user.click(await screen.findByTestId("frame-d1"));
-    expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
   });
 
   it("navigates the open frame with ArrowLeft and ArrowRight", async () => {
@@ -507,7 +391,7 @@ describe("App widget", () => {
     render(<App />);
 
     expect(await screen.findByTestId("frame-d1")).toBeInTheDocument();
-    await screen.findByText("Pláž");
+    await act(async () => {});
     await waitFor(() => expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument());
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
   });
@@ -683,7 +567,7 @@ describe("App widget", () => {
     render(<App />);
     expect(screen.getByTestId("film-strip")).toBeInTheDocument();
     expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
-    await screen.findByText("Pláž");
+    await act(async () => {});
     expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
   });
 
@@ -760,7 +644,6 @@ describe("App widget", () => {
   it("applies the camera theme as data-theme", async () => {
     vi.mocked(getCamera).mockResolvedValue(makeCamera({ theme: "forest" }));
     render(<App />);
-    await screen.findByText("Pláž");
     await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "forest"));
     expect(document.documentElement.getAttribute("data-theme")).toBe("forest");
   });
@@ -768,7 +651,6 @@ describe("App widget", () => {
   it("overrides the theme via ?theme", async () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&theme=midnight");
     render(<App />);
-    await screen.findByText("Pláž");
     await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "midnight"));
   });
 
@@ -776,7 +658,6 @@ describe("App widget", () => {
     vi.mocked(getCamera).mockResolvedValue(makeCamera({ theme: "forest" }));
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&theme=neon");
     render(<App />);
-    await screen.findByText("Pláž");
     await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "forest"));
   });
 });
@@ -790,7 +671,7 @@ const summitGroup = {
 };
 
 describe("App group widget", () => {
-  it("renders the camera switcher and keeps the date on switch", async () => {
+  it("centers the camera switcher alone in the header and keeps the date on switch", async () => {
     const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
@@ -800,10 +681,14 @@ describe("App group widget", () => {
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
     render(<App />);
 
-    expect(await screen.findByText("Summit")).toBeInTheDocument();
-    const select = screen.getByTestId("camera-switcher") as HTMLSelectElement;
+    const select = (await screen.findByTestId("camera-switcher")) as HTMLSelectElement;
     expect(select.options.length).toBe(2);
     expect(select).toHaveValue("cam-a");
+    const header = select.closest(".widget-header");
+    expect(header).not.toBeNull();
+    expect(header?.children).toHaveLength(1);
+    expect(document.querySelector(".widget-title")).toBeNull();
+    expect(screen.queryByText("Summit")).not.toBeInTheDocument();
     expect(await screen.findByTestId("frame-cam-a-2026-10-10")).toBeInTheDocument();
 
     await user.selectOptions(select, "cam-b");

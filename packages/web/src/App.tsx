@@ -53,7 +53,6 @@ function shiftDay(date: string, delta: number): string {
 }
 
 interface WidgetBodyProps {
-  title: string;
   date: string;
   onDateChange: (date: string) => void;
   today: string;
@@ -74,7 +73,6 @@ interface WidgetBodyProps {
 }
 
 function WidgetBody({
-  title,
   date,
   onDateChange,
   today,
@@ -95,38 +93,7 @@ function WidgetBody({
 }: WidgetBodyProps) {
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
-      <div className="widget-header">
-        <span className="widget-title">{title}</span>
-        {switcher}
-      </div>
-      <div className="date-nav" data-testid="date-nav">
-        <button
-          type="button"
-          aria-label="Previous day"
-          disabled={minDate ? date <= minDate : false}
-          onClick={() => onDateChange(shiftDay(date, -1))}
-        >
-          ‹
-        </button>
-        <input
-          type="date"
-          aria-label="Date"
-          value={date}
-          min={minDate || undefined}
-          max={today}
-          onChange={(event) => {
-            if (event.target.value) onDateChange(event.target.value);
-          }}
-        />
-        <button
-          type="button"
-          aria-label="Next day"
-          disabled={date >= today}
-          onClick={() => onDateChange(shiftDay(date, 1))}
-        >
-          ›
-        </button>
-      </div>
+      {switcher && <div className="widget-header">{switcher}</div>}
       {loading ? (
         <FilmStrip
           images={[]}
@@ -155,6 +122,34 @@ function WidgetBody({
           onShare={onShare}
         />
       )}
+      <div className="date-nav" data-testid="date-nav">
+        <button
+          type="button"
+          aria-label="Previous day"
+          disabled={minDate ? date <= minDate : false}
+          onClick={() => onDateChange(shiftDay(date, -1))}
+        >
+          ‹
+        </button>
+        <input
+          type="date"
+          aria-label="Date"
+          value={date}
+          min={minDate || undefined}
+          max={today}
+          onChange={(event) => {
+            if (event.target.value) onDateChange(event.target.value);
+          }}
+        />
+        <button
+          type="button"
+          aria-label="Next day"
+          disabled={date >= today}
+          onClick={() => onDateChange(shiftDay(date, 1))}
+        >
+          ›
+        </button>
+      </div>
       {shareImage && (
         <SharePopup
           title={viewerCaptureLabel(shareImage.timestamp, timezone)}
@@ -407,7 +402,6 @@ export function App() {
     }
     return (
       <WidgetBody
-        title={group?.group.name ?? "Group"}
         date={date}
         onDateChange={changeDate}
         today={today}
@@ -445,7 +439,6 @@ export function App() {
 
   return (
     <WidgetBody
-      title={camera?.name ?? "Camera"}
       date={date}
       onDateChange={changeDate}
       today={today}

@@ -25,7 +25,7 @@ test("widget loads filmstrip and opens share popup", async ({ page }) => {
   );
 
   await page.goto("/widget/acme/cam-1?date=2026-09-18");
-  await expect(page.getByText("Pláž")).toBeVisible();
+  await expect(page.getByTestId("widget")).toBeVisible();
   await expect(page.getByTestId("film-strip")).toBeVisible();
   await expect(page.getByTestId("frame-img-1")).toBeVisible();
   await expect(page.getByTestId("frame-img-2")).toBeVisible();
