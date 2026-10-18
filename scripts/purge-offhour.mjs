@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Hard-delete every image whose capture minute is not :00 (DB row + MinIO object).
+// Keep exactly one capture per camera per UTC hour (the one closest to :00)
+// and hard-delete the rest (MinIO object + DB row).
 // Usage: node scripts/purge-offhour.mjs [--dry-run]
 import { readFileSync } from "node:fs";
 import { Client as Pg } from "pg";
@@ -14,10 +15,21 @@ const dry = process.argv.includes("--dry-run");
 const db = new Pg({ connectionString: env.DATABASE_URL });
 await db.connect();
 
-const { rows } = await db.query(
-  "SELECT id, storage_key FROM images WHERE EXTRACT(MINUTE FROM timestamp AT TIME ZONE 'UTC') <> 0 ORDER BY timestamp",
-);
-console.log(`off-hour images: ${rows.length}`);
+const CANDIDATES_SQL = `
+WITH ranked AS (
+  SELECT id, storage_key,
+         row_number() OVER (
+           PARTITION BY camera_id, date_trunc('hour', timestamp AT TIME ZONE 'UTC')
+           ORDER BY
+             EXTRACT(MINUTE FROM timestamp AT TIME ZONE 'UTC') * 60
+             + EXTRACT(SECOND FROM timestamp AT TIME ZONE 'UTC')
+         ) AS rn
+  FROM images
+)
+SELECT id, storage_key FROM ranked WHERE rn > 1 ORDER BY id`;
+
+const { rows } = await db.query(CANDIDATES_SQL);
+console.log(`extra captures (kept one per camera-hour): ${rows.length}`);
 if (rows.length > 0) console.log("sample:", rows.slice(0, 5).map((r) => r.storage_key).join(", "));
 
 if (!dry && rows.length > 0) {
@@ -29,21 +41,27 @@ if (!dry && rows.length > 0) {
     secretKey: env.MINIO_SECRET_KEY,
   });
   let objects = 0;
+  const failedRemovals = [];
   for (const row of rows) {
     try {
       await minio.removeObject(env.MINIO_BUCKET, row.storage_key);
       objects += 1;
     } catch (error) {
+      failedRemovals.push(row.storage_key);
       console.warn(`warn: remove ${row.storage_key}: ${error.message}`);
     }
   }
-  const deleted = await db.query(
-    "DELETE FROM images WHERE EXTRACT(MINUTE FROM timestamp AT TIME ZONE 'UTC') <> 0",
+  const ids = rows.map((r) => r.id);
+  const deleted = await db.query("DELETE FROM images WHERE id = ANY($1::uuid[])", [ids]);
+  const { rows: dupes } = await db.query(
+    `SELECT count(*)::int AS n FROM (
+       SELECT camera_id, date_trunc('hour', timestamp AT TIME ZONE 'UTC') AS h
+       FROM images GROUP BY 1, 2 HAVING count(*) > 1
+     ) x`,
   );
-  const { rows: left } = await db.query(
-    "SELECT count(*)::int AS n FROM images WHERE EXTRACT(MINUTE FROM timestamp AT TIME ZONE 'UTC') <> 0",
+  console.log(
+    `removed ${objects} objects (failed ${failedRemovals.length}), rows deleted: ${deleted.rowCount}; camera-hours with >1 frame: ${dupes[0].n}`,
   );
-  console.log(`removed ${objects} objects, rows deleted: ${deleted.rowCount}; remaining off-hour: ${left[0].n}`);
 }
 if (dry) console.log("dry run — nothing deleted");
 await db.end();

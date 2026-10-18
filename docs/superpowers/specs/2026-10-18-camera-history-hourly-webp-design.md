@@ -7,7 +7,7 @@
 ## 1. Cíl
 
 Sjednotit demo (a celý produkt) na **čistě hodinovou kadenci** a zrychlit načítání:
-1. **Smazat všechna nekvalitní (ne-celohodinová) data** — hard delete všech snímků s minutou ≠ :00,
+1. **Zredukovat data na 1 snímek/kameru/hodinu** — ponechat snímek nejblíž :00, ostatní hard delete
    ve **všech tenantech**, z DB i MinIO.
 2. **Nové capture zarovnat na celou hodinu** (interval-aligned buckety), aby pás měl 1 snímek/hodinu
    (den i noc) jako legacy.
@@ -22,7 +22,7 @@ Sjednotit demo (a celý produkt) na **čistě hodinovou kadenci** a zrychlit na�
 |---|---|
 | Night default | Widget default = jen den; per-kamera checkbox v adminu „Show night images by default“; viewer toggle zůstává |
 | Formát | **WebP, max 1600 px šířka, q75** (ffmpeg libwebp) |
-| Mazání | **Všechny tenanty/kamery**: minuta ≠ :00 → hard delete (DB řádek + MinIO objekt) |
+| Mazání | **Všechny tenanty/kamery**: z každé kamery-hodiny ponechat 1 snímek nejblíž :00, ostatní hard delete (DB řádek + MinIO objekt) — upřesněno uživatelem před během |
 | Alignment | Capture v interval-aligned buckety (60 min → na celou hodinu UTC; 5/15/30 taky aligned) |
 
 ## 3. Data
