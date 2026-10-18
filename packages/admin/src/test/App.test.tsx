@@ -186,7 +186,10 @@ describe("App camera CRUD", () => {
 
     await waitFor(() => expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true));
     const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
-    expect(JSON.parse(String(post.init?.body))).toMatchObject({ name: "New cam", feedType: "static_url", theme: "light" });
+    const body = JSON.parse(String(post.init?.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({ name: "New cam", feedType: "static_url", theme: "light" });
+    expect(body.latitude).toBeNull();
+    expect(body.longitude).toBeNull();
   });
 
   it("creates a camera with a selected theme", async () => {
@@ -248,9 +251,9 @@ describe("App camera CRUD", () => {
     expect(longitude).toHaveAttribute("type", "number");
     expect(daylight).toHaveAttribute("type", "checkbox");
     expect(daylight).not.toBeChecked();
-    expect(screen.getByText("Used to classify day and night captures.")).toBeInTheDocument();
+    expect(screen.getByText("Used to filter day/night images")).toBeInTheDocument();
     expect(
-      screen.getByText("Requires latitude and longitude. The active window is ignored while enabled."),
+      screen.getByText("Requires latitude and longitude. The camera's active window is ignored while enabled."),
     ).toBeInTheDocument();
   });
 
@@ -322,6 +325,28 @@ describe("App camera CRUD", () => {
     expect((screen.getByTestId("form-latitude") as HTMLInputElement).value).toBe("47.376");
     expect((screen.getByTestId("form-longitude") as HTMLInputElement).value).toBe("8.541");
     expect(screen.getByTestId("form-daylight-only")).toBeChecked();
+  });
+
+  it("clears coordinates and disables daylight-only when editing", async () => {
+    const { fn, calls } = listServer({ latitude: 47.376, longitude: 8.541, daylightOnly: true });
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    await userEvent.click(screen.getByTestId("form-daylight-only"));
+    await userEvent.clear(screen.getByTestId("form-latitude"));
+    await userEvent.clear(screen.getByTestId("form-longitude"));
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")).toBe(true),
+    );
+    const put = calls.find((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")!;
+    const body = JSON.parse(String(put.init?.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({ latitude: null, longitude: null, daylightOnly: false });
+    expect(body.latitude).toBeNull();
+    expect(body.longitude).toBeNull();
   });
 });
 

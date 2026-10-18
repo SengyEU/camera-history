@@ -383,7 +383,7 @@ function CameraForm({
               />
             </label>
           </div>
-          <span className="field-hint">Used to classify day and night captures.</span>
+          <span className="field-hint">Used to filter day/night images</span>
           <label className="checkbox-label">
             <input
               type="checkbox"
@@ -394,7 +394,7 @@ function CameraForm({
             Capture only during daylight
           </label>
           <span className="field-hint">
-            Requires latitude and longitude. The active window is ignored while enabled.
+            Requires latitude and longitude. The camera's active window is ignored while enabled.
           </span>
         </div>
         {groups.length > 0 && (
