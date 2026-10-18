@@ -27,13 +27,31 @@ const makeImage = (id: string, timestamp: string, url: string, isDaylight = true
   isDaylight,
 });
 
+const makeCamera = (overrides: Partial<PublicCamera> = {}): PublicCamera => ({
+  id: "cam-1",
+  name: "Pláž",
+  theme: "light",
+  retentionMonths: 12,
+  showNight: false,
+  timezone: "UTC",
+  ...overrides,
+});
+
 const defaultImages: ImageDto[] = [
-  makeImage("img-1", "2026-09-18T09:00:00", "/api/v1/cameras/cam-1/2026-09-18/090000.jpg"),
-  makeImage("img-2", "2026-09-18T12:00:00", "/api/v1/cameras/cam-1/2026-09-18/120000.jpg"),
+  makeImage("img-1", "2026-09-18T09:00:00Z", "/api/v1/cameras/cam-1/2026-09-18/090000.jpg"),
+  makeImage("img-2", "2026-09-18T12:00:00Z", "/api/v1/cameras/cam-1/2026-09-18/120000.jpg"),
 ];
 
-const pad = (n: number) => String(n).padStart(2, "0");
-const toLocalInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const cameraDate = (date: Date, timeZone: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+};
 
 const fireSwipe = (element: Element, fromX: number, toX: number, pointerType = "touch") => {
   for (const [type, clientX] of [
@@ -52,9 +70,9 @@ const fireSwipe = (element: Element, fromX: number, toX: number, pointerType = "
 };
 
 const threeImages = () => [
-  makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-  makeImage("d2", "2026-09-18T12:00:00", "/d2.jpg"),
-  makeImage("d3", "2026-09-18T15:27:00", "/d3.jpg"),
+  makeImage("d1", "2026-09-18T09:00:00Z", "/d1.jpg"),
+  makeImage("d2", "2026-09-18T12:00:00Z", "/d2.jpg"),
+  makeImage("d3", "2026-09-18T15:27:00Z", "/d3.jpg"),
 ];
 
 const stubClipboard = () => {
@@ -68,14 +86,8 @@ const stubClipboard = () => {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.mocked(getCamera).mockImplementation(async () => ({
-    id: "cam-1",
-    name: "Pláž",
-    theme: "light",
-    retentionMonths: 12,
-    showNight: false,
-  }));
-  vi.mocked(getImages).mockImplementation(async () => defaultImages);
+  vi.mocked(getCamera).mockResolvedValue(makeCamera());
+  vi.mocked(getImages).mockResolvedValue(defaultImages);
   vi.mocked(getCameraLatest).mockResolvedValue(null);
   window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18");
 });
@@ -93,7 +105,7 @@ describe("App widget", () => {
     expect(screen.getByTestId("film-strip")).toBeInTheDocument();
   });
 
-  it("shows viewer-local hour chips on the frames", async () => {
+  it("shows camera-timezone hour chips on the frames", async () => {
     render(<App />);
     const morning = await screen.findByTestId("frame-img-1");
     const noon = screen.getByTestId("frame-img-2");
@@ -105,13 +117,21 @@ describe("App widget", () => {
     expect(noon.querySelector(".chip-ap")).toHaveTextContent("PM");
   });
 
+  it("places the date nav above the film strip", async () => {
+    render(<App />);
+    await screen.findByTestId("frame-img-1");
+    const nav = screen.getByTestId("date-nav");
+    const strip = screen.getByTestId("film-strip");
+    expect(nav.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("expands a frame in place and collapses it again", async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(await screen.findByTestId("frame-img-1"));
 
     const open = screen.getByTestId("frame-open");
-    expect(open).toHaveTextContent("September 18, 2026 · 9:00 AM");
+    expect(open).toHaveTextContent("September 18, 2026 · 9 AM");
     expect(open.querySelector("img")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/090000.jpg",
@@ -125,30 +145,30 @@ describe("App widget", () => {
 
   it("steps through the filtered list with the arrow buttons", async () => {
     vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
-      makeImage("d2", "2026-09-18T12:00:00", "/d2.jpg"),
+      makeImage("d1", "2026-09-18T09:00:00Z", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00Z", "/n1.jpg", false),
+      makeImage("d2", "2026-09-18T12:00:00Z", "/d2.jpg"),
     ]);
     const user = userEvent.setup();
     render(<App />);
     await user.click(await screen.findByTestId("frame-d1"));
 
-    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9:00 AM");
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9 AM");
     expect(screen.queryByLabelText("Previous capture")).not.toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Next capture"));
     const open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 12:00 PM");
+    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
 
     await user.click(screen.getByLabelText("Previous capture"));
-    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9:00 AM");
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9 AM");
   });
 
   it("keeps the open frame when activating an arrow with the keyboard", async () => {
     vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("d2", "2026-09-18T12:00:00", "/d2.jpg"),
+      makeImage("d1", "2026-09-18T09:00:00Z", "/d1.jpg"),
+      makeImage("d2", "2026-09-18T12:00:00Z", "/d2.jpg"),
     ]);
     const user = userEvent.setup();
     render(<App />);
@@ -161,7 +181,7 @@ describe("App widget", () => {
 
     const open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 12:00 PM");
+    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
   });
 
   it("plays through the visible frames every 700ms and auto-pauses at the last", async () => {
@@ -183,17 +203,15 @@ describe("App widget", () => {
       vi.advanceTimersByTime(700);
     });
     let open = screen.getByTestId("frame-open");
-    expect(open).toHaveAttribute("data-nav", "next");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 12:00 PM");
+    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
 
     act(() => {
       vi.advanceTimersByTime(700);
     });
     open = screen.getByTestId("frame-open");
-    expect(open).toHaveAttribute("data-nav", "next");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d3.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 3:27 PM");
+    expect(open).toHaveTextContent("September 18, 2026 · 3 PM");
     expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Play time-lapse");
 
     act(() => {
@@ -253,6 +271,11 @@ describe("App widget", () => {
       fireEvent.click(screen.getByTestId("share-close"));
     });
     act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+
+    act(() => {
       fireEvent.click(screen.getByTestId("play-toggle"));
     });
     expect(screen.getByTestId("play-toggle")).toHaveAttribute("aria-label", "Pause time-lapse");
@@ -289,7 +312,6 @@ describe("App widget", () => {
     fireEvent.keyDown(document, { key: "ArrowRight" });
     let open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveAttribute("data-nav", "next");
 
     fireEvent.keyDown(document, { key: "ArrowRight" });
     expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d3.jpg");
@@ -300,7 +322,6 @@ describe("App widget", () => {
     fireEvent.keyDown(document, { key: "ArrowLeft" });
     open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveAttribute("data-nav", "prev");
 
     await user.click(screen.getByTestId("share-open"));
     const input = screen.getByLabelText("Share URL");
@@ -317,12 +338,10 @@ describe("App widget", () => {
     fireSwipe(screen.getByTestId("frame-open"), 200, 140);
     let open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveAttribute("data-nav", "next");
 
     fireSwipe(screen.getByTestId("frame-open"), 140, 200);
     open = screen.getByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
-    expect(open).toHaveAttribute("data-nav", "prev");
 
     fireSwipe(screen.getByTestId("frame-open"), 200, 140, "mouse");
     expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg");
@@ -336,7 +355,7 @@ describe("App widget", () => {
     await user.click(screen.getByTestId("share-open"));
 
     const popup = await screen.findByTestId("share-popup");
-    expect(popup).toHaveTextContent("September 18, 2026 · 12:00 PM");
+    expect(popup).toHaveTextContent("September 18, 2026 · 12 PM");
 
     const url = `${window.location.origin}/widget/acme/cam-1?date=2026-09-18&hour=12`;
     const encoded = encodeURIComponent(url);
@@ -356,6 +375,53 @@ describe("App widget", () => {
     const input = screen.getByDisplayValue(url);
     expect(input).toHaveAttribute("readonly");
     expect(screen.queryByDisplayValue(/camera=/)).not.toBeInTheDocument();
+  });
+
+  it("labels captures and share links in the camera timezone", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCamera).mockResolvedValue(makeCamera({ timezone: "America/Edmonton" }));
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("e1", "2026-10-18T00:12:00Z", "/e1.jpg"),
+    ]);
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-10-17&hour=18");
+    render(<App />);
+
+    const open = await screen.findByTestId("frame-open");
+    expect(open).toHaveTextContent("October 17, 2026 · 6 PM");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/e1.jpg");
+
+    await user.click(screen.getByTestId("share-open"));
+    expect(screen.getByTestId("share-popup")).toHaveTextContent("October 17, 2026 · 6 PM");
+    const shareUrl = new URL((screen.getByLabelText("Share URL") as HTMLInputElement).value);
+    expect(shareUrl.searchParams.get("date")).toBe("2026-10-17");
+    expect(shareUrl.searchParams.get("hour")).toBe("18");
+  });
+
+  it("falls back to the viewer timezone until camera metadata loads", async () => {
+    const timestamp = "2026-10-18T00:12:00Z";
+    let resolveCamera!: (camera: PublicCamera) => void;
+    vi.mocked(getCamera).mockImplementation(
+      () =>
+        new Promise<PublicCamera>((resolve) => {
+          resolveCamera = resolve;
+        }),
+    );
+    vi.mocked(getImages).mockResolvedValue([makeImage("e1", timestamp, "/e1.jpg")]);
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-10-17");
+    render(<App />);
+
+    const before = await screen.findByTestId("frame-e1");
+    const viewerLabel = new Date(timestamp).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      hour12: true,
+    });
+    expect(before).toHaveTextContent(viewerLabel);
+
+    await act(async () => {
+      resolveCamera(makeCamera({ timezone: "America/Edmonton" }));
+    });
+
+    await waitFor(() => expect(screen.getByTestId("frame-e1")).toHaveTextContent("6 PM"));
   });
 
   it("copies the share URL and reverts the label after two seconds", async () => {
@@ -381,33 +447,34 @@ describe("App widget", () => {
 
   it("closes the share popup via the close button, Esc and the overlay", async () => {
     const user = userEvent.setup();
+    const expectClosed = () =>
+      waitFor(() => expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument());
     render(<App />);
     await user.click(await screen.findByTestId("frame-img-1"));
 
     await user.click(screen.getByTestId("share-open"));
     expect(await screen.findByTestId("share-popup")).toBeInTheDocument();
     await user.click(screen.getByTestId("share-close"));
-    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+    await expectClosed();
 
     await user.click(screen.getByTestId("share-open"));
     await user.keyboard("{Escape}");
-    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+    await expectClosed();
 
     await user.click(screen.getByTestId("share-open"));
     fireEvent.click(screen.getByTestId("share-overlay"));
-    expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
+    await expectClosed();
   });
 
   it("opens the capture from an ?hour deep link", async () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=12");
     render(<App />);
     const open = await screen.findByTestId("frame-open");
-    expect(open).toHaveTextContent("September 18, 2026 · 12:00 PM");
+    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
     expect(open.querySelector("img")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
     );
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
   });
 
   it("opens the capture from an older ?img deep link", async () => {
@@ -430,61 +497,37 @@ describe("App widget", () => {
     );
   });
 
-  it("auto-enables night images when a deep link points to a night capture", async () => {
+  it("opens nothing for a night ?hour deep link when the camera hides night images", async () => {
     vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+      makeImage("d1", "2026-09-18T09:00:00Z", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00Z", "/n1.jpg", false),
+    ]);
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=22");
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-d1")).toBeInTheDocument();
+    await screen.findByText("Pláž");
+    await waitFor(() => expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument());
+    expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
+  });
+
+  it("opens a night ?hour deep link when the camera shows night images", async () => {
+    vi.mocked(getCamera).mockResolvedValue(makeCamera({ showNight: true }));
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00Z", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00Z", "/n1.jpg", false),
     ]);
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=22");
     render(<App />);
 
     const open = await screen.findByTestId("frame-open");
     expect(open.querySelector("img")).toHaveAttribute("src", "/n1.jpg");
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
   });
 
-  it("keeps a night deep link visible when the camera meta resolves after the images", async () => {
-    const user = userEvent.setup();
+  it("keeps a day deep link open when camera metadata resolves after the images", async () => {
     vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
-    ]);
-    let resolveCamera!: (camera: PublicCamera) => void;
-    vi.mocked(getCamera).mockImplementation(
-      () =>
-        new Promise<PublicCamera>((resolve) => {
-          resolveCamera = resolve;
-        }),
-    );
-    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=22");
-    render(<App />);
-
-    const open = await screen.findByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/n1.jpg");
-
-    await act(async () => {
-      resolveCamera({
-        id: "cam-1",
-        name: "Pláž",
-        theme: "light",
-        retentionMonths: 12,
-        showNight: false,
-      });
-    });
-
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/n1.jpg");
-    expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
-
-    await user.click(screen.getByTestId("night-toggle"));
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
-  });
-
-  it("keeps a day deep link expanded with the toggle off when the camera meta resolves after the images", async () => {
-    vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+      makeImage("d1", "2026-09-18T09:00:00Z", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00Z", "/n1.jpg", false),
     ]);
     let resolveCamera!: (camera: PublicCamera) => void;
     vi.mocked(getCamera).mockImplementation(
@@ -496,22 +539,56 @@ describe("App widget", () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=9");
     render(<App />);
 
-    const open = await screen.findByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    const before = await screen.findByTestId("frame-open");
+    expect(before.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
 
     await act(async () => {
-      resolveCamera({
-        id: "cam-1",
-        name: "Pláž",
-        theme: "light",
-        retentionMonths: 12,
-        showNight: false,
-      });
+      resolveCamera(makeCamera({ showNight: false }));
     });
 
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    await waitFor(() =>
+      expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg"),
+    );
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
+  });
+
+  it("re-matches the ?hour deep link once the camera timezone is known", async () => {
+    const e1Timestamp = "2026-10-18T00:12:00Z";
+    const e2Timestamp = "2026-10-18T18:12:00Z";
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("e1", e1Timestamp, "/e1.jpg"),
+      makeImage("e2", e2Timestamp, "/e2.jpg"),
+    ]);
+    let resolveCamera!: (camera: PublicCamera) => void;
+    vi.mocked(getCamera).mockImplementation(
+      () =>
+        new Promise<PublicCamera>((resolve) => {
+          resolveCamera = resolve;
+        }),
+    );
+    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-10-17&hour=18");
+    render(<App />);
+
+    await screen.findByTestId("frame-e1");
+    const viewerMatches = [e1Timestamp, e2Timestamp].some(
+      (timestamp) => new Date(timestamp).getHours() === 18,
+    );
+    if (viewerMatches) {
+      const before = await screen.findByTestId("frame-open");
+      expect(before.querySelector("img")).toHaveAttribute(
+        "src",
+        new Date(e1Timestamp).getHours() === 18 ? "/e1.jpg" : "/e2.jpg",
+      );
+    }
+
+    await act(async () => {
+      resolveCamera(makeCamera({ timezone: "America/Edmonton" }));
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/e1.jpg"),
+    );
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("October 17, 2026 · 6 PM");
   });
 
   it("opens nothing when the ?hour deep link has no matching capture", async () => {
@@ -521,7 +598,6 @@ describe("App widget", () => {
     expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
     expect(screen.getByTestId("film-strip")).toBeInTheDocument();
     expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument();
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
   });
 
   it("changes the day from the date nav, refetches and clears the hour deep link", async () => {
@@ -538,11 +614,26 @@ describe("App widget", () => {
 
     const input = screen.getByLabelText("Date") as HTMLInputElement;
     expect(input.min).not.toBe("");
-    expect(input.max).toBe(toLocalInput(new Date()));
+    expect(input.max).toBe(cameraDate(new Date(), "UTC"));
 
     fireEvent.change(input, { target: { value: "2026-09-20" } });
     await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-20"));
     expect(screen.getByDisplayValue("2026-09-20")).toBeInTheDocument();
+  });
+
+  it("defaults the date to today in the camera timezone when the URL has no date", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-10-18T05:30:00Z"));
+    vi.mocked(getCamera).mockResolvedValue(makeCamera({ timezone: "America/Edmonton" }));
+    window.history.pushState({}, "", "/widget/acme/cam-1");
+    render(<App />);
+
+    const input = screen.getByLabelText("Date") as HTMLInputElement;
+    await waitFor(() => expect(input).toHaveValue("2026-10-17"));
+    expect(input.max).toBe("2026-10-17");
+    await waitFor(() =>
+      expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-10-17"),
+    );
   });
 
   it("shows eight skeleton slivers while loading", async () => {
@@ -558,7 +649,7 @@ describe("App widget", () => {
     const user = userEvent.setup();
     vi.mocked(getImages).mockResolvedValue(
       Array.from({ length: 29 }, (_, index) =>
-        makeImage(`s${index}`, "2026-09-18T09:00:00", `/s${index}.jpg`),
+        makeImage(`s${index}`, "2026-09-18T09:00:00Z", `/s${index}.jpg`),
       ),
     );
     render(<App />);
@@ -578,122 +669,53 @@ describe("App widget", () => {
     expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
   });
 
-  it("hides night images by default and the night toggle reveals them", async () => {
+  it("shows all night frames when the camera shows night images", async () => {
+    vi.mocked(getCamera).mockResolvedValue(makeCamera({ showNight: true }));
     vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
+      makeImage("d1", "2026-09-18T09:00:00Z", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00Z", "/n1.jpg", false),
     ]);
-    const user = userEvent.setup();
     render(<App />);
-    await screen.findByTestId("frame-d1");
 
-    const toggle = screen.getByTestId("night-toggle");
-    expect(toggle).toHaveTextContent("Night images");
-    expect(toggle).toHaveAttribute("role", "switch");
-    expect(toggle).toHaveAttribute("aria-checked", "false");
-    expect(toggle).not.toHaveAttribute("aria-pressed");
-    expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
-
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(await screen.findByTestId("frame-d1")).toBeInTheDocument();
     expect(screen.getByTestId("frame-n1")).toBeInTheDocument();
+  });
 
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "false");
+  it("hides night frames when the camera does not show night images", async () => {
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("d1", "2026-09-18T09:00:00Z", "/d1.jpg"),
+      makeImage("n1", "2026-09-18T22:00:00Z", "/n1.jpg", false),
+    ]);
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-d1")).toBeInTheDocument();
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
+  });
+
+  it("shows the day-only empty copy when every capture is a night shot", async () => {
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("n1", "2026-09-18T22:00:00Z", "/n1.jpg", false),
+    ]);
+    render(<App />);
+
+    expect(await screen.findByTestId("day-only-empty")).toHaveTextContent(
+      "No daytime captures for this date.",
+    );
+    expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
+    expect(screen.queryByText("No images for this date.")).not.toBeInTheDocument();
   });
 
   it("treats a missing isDaylight flag as daylight", async () => {
     vi.mocked(getImages).mockResolvedValue([
-      { id: "legacy", timestamp: "2026-09-18T09:00:00", url: "/legacy.jpg" } as ImageDto,
+      { id: "legacy", timestamp: "2026-09-18T09:00:00Z", url: "/legacy.jpg" } as ImageDto,
     ]);
     render(<App />);
 
     expect(await screen.findByTestId("frame-legacy")).toBeInTheDocument();
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
-  });
-
-  it("offers Show night images when every capture is a night shot", async () => {
-    vi.mocked(getImages).mockResolvedValue([
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
-    ]);
-    const user = userEvent.setup();
-    render(<App />);
-
-    expect(await screen.findByText("Every capture today is a night shot.")).toBeInTheDocument();
-    expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
-
-    await user.click(screen.getByTestId("show-night"));
-    expect(screen.getByTestId("frame-n1")).toBeInTheDocument();
-    expect(screen.queryByText("Every capture today is a night shot.")).not.toBeInTheDocument();
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true");
-  });
-
-  it("defaults the night toggle to on when the camera shows night images by default", async () => {
-    vi.mocked(getCamera).mockResolvedValueOnce({
-      id: "cam-1",
-      name: "Pláž",
-      theme: "light",
-      retentionMonths: 12,
-      showNight: true,
-    });
-    vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
-    ]);
-    render(<App />);
-
-    await screen.findByText("Pláž");
-    await waitFor(() =>
-      expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "true"),
-    );
-    expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
-    expect(screen.getByTestId("frame-n1")).toBeInTheDocument();
-  });
-
-  it("defaults the night toggle to off when the camera does not show night images by default", async () => {
-    vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
-    ]);
-    render(<App />);
-
-    await screen.findByText("Pláž");
-    expect(screen.getByTestId("night-toggle")).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByTestId("frame-d1")).toBeInTheDocument();
-    expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
-  });
-
-  it("keeps a manual night toggle across date changes", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getImages).mockResolvedValue([
-      makeImage("d1", "2026-09-18T09:00:00", "/d1.jpg"),
-      makeImage("n1", "2026-09-18T22:00:00", "/n1.jpg", false),
-    ]);
-    render(<App />);
-    await screen.findByText("Pláž");
-
-    const toggle = screen.getByTestId("night-toggle");
-    expect(toggle).toHaveAttribute("aria-checked", "false");
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "true");
-
-    await user.click(screen.getByLabelText("Next day"));
-    await waitFor(() =>
-      expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"),
-    );
-    expect(toggle).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByTestId("frame-n1")).toBeInTheDocument();
   });
 
   it("applies the camera theme as data-theme", async () => {
-    vi.mocked(getCamera).mockResolvedValueOnce({
-      id: "cam-1",
-      name: "Pláž",
-      theme: "forest",
-      retentionMonths: 12,
-      showNight: false,
-    });
+    vi.mocked(getCamera).mockResolvedValue(makeCamera({ theme: "forest" }));
     render(<App />);
     await screen.findByText("Pláž");
     await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "forest"));
@@ -708,13 +730,7 @@ describe("App widget", () => {
   });
 
   it("falls back to the camera theme when ?theme is unknown", async () => {
-    vi.mocked(getCamera).mockResolvedValueOnce({
-      id: "cam-1",
-      name: "Pláž",
-      theme: "forest",
-      retentionMonths: 12,
-      showNight: false,
-    });
+    vi.mocked(getCamera).mockResolvedValue(makeCamera({ theme: "forest" }));
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&theme=neon");
     render(<App />);
     await screen.findByText("Pláž");
@@ -725,8 +741,8 @@ describe("App widget", () => {
 const summitGroup = {
   group: { id: "g1", name: "Summit", slug: "summit" },
   cameras: [
-    { id: "cam-a", name: "Alpha", theme: "light", showNight: false },
-    { id: "cam-b", name: "Beta", theme: "dark", showNight: false },
+    { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", showNight: false },
+    { id: "cam-b", name: "Beta", theme: "dark", timezone: "UTC", showNight: false },
   ],
 };
 
@@ -735,7 +751,7 @@ describe("App group widget", () => {
     const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
-      makeImage(`${cameraId}-${date}`, `${date}T09:00:00`, `/api/v1/${cameraId}.jpg`),
+      makeImage(`${cameraId}-${date}`, `${date}T09:00:00Z`, `/api/v1/${cameraId}.jpg`),
     ]);
 
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
@@ -755,16 +771,84 @@ describe("App group widget", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 
+  it("uses the selected camera's timezone for labels and share links", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue({
+      group: { id: "g1", name: "Summit", slug: "summit" },
+      cameras: [
+        { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", showNight: false },
+        {
+          id: "cam-b",
+          name: "Beta",
+          theme: "dark",
+          timezone: "America/Edmonton",
+          showNight: false,
+        },
+      ],
+    });
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("e1", "2026-10-18T00:12:00Z", "/e1.jpg"),
+    ]);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-17");
+    render(<App />);
+
+    const alphaFrame = await screen.findByTestId("frame-e1");
+    expect(alphaFrame).toHaveTextContent("12 AM");
+
+    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await waitFor(() => expect(screen.getByTestId("frame-e1")).toHaveTextContent("6 PM"));
+
+    await user.click(screen.getByTestId("frame-e1"));
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("October 17, 2026 · 6 PM");
+    await user.click(screen.getByTestId("share-open"));
+    expect(screen.getByTestId("share-popup")).toHaveTextContent("October 17, 2026 · 6 PM");
+    const url = new URL((screen.getByLabelText("Share URL") as HTMLInputElement).value);
+    expect(url.searchParams.get("hour")).toBe("18");
+  });
+
+  it("resyncs night visibility when switching cameras", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue({
+      group: { id: "g1", name: "Summit", slug: "summit" },
+      cameras: [
+        { id: "cam-a", name: "Alpha", theme: "light", timezone: "UTC", showNight: true },
+        { id: "cam-b", name: "Beta", theme: "dark", timezone: "UTC", showNight: false },
+      ],
+    });
+    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
+      makeImage(`${cameraId}-${date}-d`, `${date}T09:00:00Z`, `/api/v1/${cameraId}-d.jpg`),
+      makeImage(
+        `${cameraId}-${date}-n`,
+        `${date}T22:00:00Z`,
+        `/api/v1/${cameraId}-n.jpg`,
+        false,
+      ),
+    ]);
+
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-cam-a-2026-10-10-n")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    expect(await screen.findByTestId("frame-cam-b-2026-10-10-d")).toBeInTheDocument();
+    expect(screen.queryByTestId("frame-cam-b-2026-10-10-n")).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-a");
+    expect(await screen.findByTestId("frame-cam-a-2026-10-10-n")).toBeInTheDocument();
+  });
+
   it("falls back to the latest date once when the camera has no images", async () => {
     const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getCameraLatest).mockResolvedValue("2026-10-09");
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => {
       if (cameraId === "cam-a") {
-        return [makeImage("i1", `${date}T09:00:00`, "/api/v1/i1.jpg")];
+        return [makeImage("i1", `${date}T09:00:00Z`, "/api/v1/i1.jpg")];
       }
       if (date === "2026-10-09") {
-        return [makeImage("i2", `${date}T08:00:00`, "/api/v1/i2.jpg")];
+        return [makeImage("i2", `${date}T08:00:00Z`, "/api/v1/i2.jpg")];
       }
       return [];
     });
@@ -791,7 +875,7 @@ describe("App group widget", () => {
 
     await waitFor(() => expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument());
     await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenCalledTimes(2));
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
     expect(vi.mocked(getCameraLatest)).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument();
   });
@@ -802,7 +886,7 @@ describe("App group widget", () => {
     vi.mocked(getCameraLatest).mockResolvedValue("2026-10-09");
     vi.mocked(getImages).mockImplementation(async (cameraId) =>
       cameraId === "cam-a"
-        ? [makeImage("i1", "2026-10-10T09:00:00", "/api/v1/i1.jpg")]
+        ? [makeImage("i1", "2026-10-10T09:00:00Z", "/api/v1/i1.jpg")]
         : [],
     );
 
@@ -813,7 +897,7 @@ describe("App group widget", () => {
     await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
 
     expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
     expect(vi.mocked(getCameraLatest)).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument();
     expect(vi.mocked(getImages)).toHaveBeenCalledTimes(3);
@@ -838,7 +922,7 @@ describe("App group widget", () => {
     const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
-      makeImage(`${cameraId}-${date}`, `${date}T09:00:00`, `/api/v1/${cameraId}.jpg`),
+      makeImage(`${cameraId}-${date}`, `${date}T09:00:00Z`, `/api/v1/${cameraId}.jpg`),
     ]);
 
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
@@ -860,7 +944,7 @@ describe("App group widget", () => {
     const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
-      makeImage(`${cameraId}-${date}`, `${date}T09:00:00`, `/api/v1/${cameraId}.jpg`),
+      makeImage(`${cameraId}-${date}`, `${date}T09:00:00Z`, `/api/v1/${cameraId}.jpg`),
     ]);
 
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
@@ -881,7 +965,7 @@ describe("App group widget", () => {
   it("opens the camera named by ?camera on load", async () => {
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
-      makeImage(`${cameraId}-${date}`, `${date}T09:00:00`, `/api/v1/${cameraId}.jpg`),
+      makeImage(`${cameraId}-${date}`, `${date}T09:00:00Z`, `/api/v1/${cameraId}.jpg`),
     ]);
 
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10&camera=cam-b");
@@ -896,7 +980,7 @@ describe("App group widget", () => {
   it("falls back to the first camera when ?camera names an unknown camera", async () => {
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
-      makeImage(`${cameraId}-${date}`, `${date}T09:00:00`, `/api/v1/${cameraId}.jpg`),
+      makeImage(`${cameraId}-${date}`, `${date}T09:00:00Z`, `/api/v1/${cameraId}.jpg`),
     ]);
 
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10&camera=nope");
@@ -905,55 +989,5 @@ describe("App group widget", () => {
     const select = await screen.findByTestId("camera-switcher");
     await waitFor(() => expect(select).toHaveValue("cam-a"));
     expect(await screen.findByTestId("frame-cam-a-2026-10-10")).toBeInTheDocument();
-  });
-
-  it("syncs the night toggle to the selected camera's default", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getGroup).mockResolvedValue({
-      group: { id: "g1", name: "Summit", slug: "summit" },
-      cameras: [
-        { id: "cam-a", name: "Alpha", theme: "light", showNight: true },
-        { id: "cam-b", name: "Beta", theme: "dark", showNight: false },
-      ],
-    });
-    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
-      makeImage(`${cameraId}-${date}`, `${date}T09:00:00`, `/api/v1/${cameraId}.jpg`),
-    ]);
-
-    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
-    render(<App />);
-
-    await screen.findByTestId("frame-cam-a-2026-10-10");
-    const toggle = screen.getByTestId("night-toggle");
-    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"));
-
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
-    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "false"));
-
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-a");
-    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"));
-  });
-
-  it("keeps a manual night toggle across date changes", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getGroup).mockResolvedValue(summitGroup);
-    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
-      makeImage(`${cameraId}-${date}-d`, `${date}T09:00:00`, `/api/v1/${cameraId}-${date}-d.jpg`),
-      makeImage(`${cameraId}-${date}-n`, `${date}T22:00:00`, `/api/v1/${cameraId}-${date}-n.jpg`, false),
-    ]);
-
-    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
-    render(<App />);
-
-    const toggle = await screen.findByTestId("night-toggle");
-    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "false"));
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByTestId("frame-cam-a-2026-10-10-n")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-11" } });
-    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-a", "2026-10-11"));
-    expect(toggle).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByTestId("frame-cam-a-2026-10-11-n")).toBeInTheDocument();
   });
 });

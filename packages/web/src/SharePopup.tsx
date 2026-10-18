@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SharePopupProps {
   title: string;
@@ -31,17 +31,35 @@ const NETWORKS = [
 
 export function SharePopup({ title, url, onClose }: SharePopupProps) {
   const [copied, setCopied] = useState(false);
+  const [closing, setClosing] = useState(false);
   const copyTimer = useRef<number | undefined>(undefined);
+  const closeTimer = useRef<number | undefined>(undefined);
+  const closingRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(() => onCloseRef.current(), 160);
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") requestClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [requestClose]);
 
-  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(copyTimer.current);
+      window.clearTimeout(closeTimer.current);
+    },
+    [],
+  );
 
   const handleCopy = () => {
     void navigator.clipboard?.writeText(url);
@@ -52,8 +70,17 @@ export function SharePopup({ title, url, onClose }: SharePopupProps) {
 
   return (
     <>
-      <div className="share-overlay" data-testid="share-overlay" onClick={onClose} />
-      <div className="share-popup" data-testid="share-popup" role="dialog" aria-label={`Share ${title}`}>
+      <div
+        className={`share-overlay${closing ? " share-overlay-closing" : ""}`}
+        data-testid="share-overlay"
+        onClick={requestClose}
+      />
+      <div
+        className={`share-popup${closing ? " share-popup-closing" : ""}`}
+        data-testid="share-popup"
+        role="dialog"
+        aria-label={`Share ${title}`}
+      >
         <header>
           <span className="share-title">{title}</span>
           <button
@@ -61,7 +88,7 @@ export function SharePopup({ title, url, onClose }: SharePopupProps) {
             className="share-close"
             data-testid="share-close"
             aria-label="Close share popup"
-            onClick={onClose}
+            onClick={requestClose}
           >
             ×
           </button>

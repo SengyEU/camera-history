@@ -1,6 +1,15 @@
 import { expect, test } from "@playwright/test";
 
-const CAMERA = { camera: { id: "cam-1", name: "Pláž", theme: "light", retentionMonths: 12 } };
+const CAMERA = {
+  camera: {
+    id: "cam-1",
+    name: "Pláž",
+    theme: "light",
+    retentionMonths: 12,
+    timezone: "UTC",
+    showNight: false,
+  },
+};
 const IMAGES = {
   images: [
     { id: "img-1", timestamp: "2026-09-18T09:00:00Z", url: "/api/v1/cameras/cam-1/2026-09-18/090000.jpg", isDaylight: true },

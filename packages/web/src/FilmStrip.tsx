@@ -5,34 +5,27 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { ImageDto } from "./api";
+import { formatCameraCaptureLabel, formatCameraHour, localHourParts } from "./time";
 
-export function viewerHourParts(timestamp: string): { hour: number; meridiem: "AM" | "PM" } {
-  const hours = new Date(timestamp).getHours();
-  return {
-    hour: hours % 12 === 0 ? 12 : hours % 12,
-    meridiem: hours < 12 ? "AM" : "PM",
-  };
+export function viewerHourParts(
+  timestamp: string,
+  timezone: string,
+): { hour: number; meridiem: "AM" | "PM" } {
+  return localHourParts(timestamp, timezone);
 }
 
-export function viewerHourLabel(timestamp: string): string {
-  const { hour, meridiem } = viewerHourParts(timestamp);
-  return `${hour} ${meridiem}`;
+export function viewerHourLabel(timestamp: string, timezone: string): string {
+  return formatCameraHour(timestamp, timezone);
 }
 
-export function viewerCaptureLabel(timestamp: string): string {
-  const date = new Date(timestamp);
-  const day = date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  return `${day} · ${time}`;
+export function viewerCaptureLabel(timestamp: string, timezone: string): string {
+  return formatCameraCaptureLabel(timestamp, timezone);
 }
 
 interface FilmStripProps {
   images: ImageDto[];
   loading: boolean;
+  timezone: string;
   openId: string | null;
   onOpenChange: (id: string | null) => void;
   onShare: (image: ImageDto) => void;
@@ -65,22 +58,20 @@ function PauseGlyph() {
   );
 }
 
-type NavDirection = "fade" | "next" | "prev";
-
-export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: FilmStripProps) {
+export function FilmStrip({
+  images,
+  loading,
+  timezone,
+  openId,
+  onOpenChange,
+  onShare,
+}: FilmStripProps) {
   const openIndex = openId ? images.findIndex((image) => image.id === openId) : -1;
   const openImage = openIndex >= 0 ? images[openIndex] : undefined;
   const openRef = useRef<HTMLDivElement | null>(null);
   const swipeRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const suppressClickRef = useRef(false);
   const [playing, setPlaying] = useState(false);
-  const [prevOpenIndex, setPrevOpenIndex] = useState(openIndex);
-  const [nav, setNav] = useState<NavDirection>("fade");
-
-  if (openIndex !== prevOpenIndex) {
-    setPrevOpenIndex(openIndex);
-    setNav(openIndex >= 0 && prevOpenIndex >= 0 ? (openIndex > prevOpenIndex ? "next" : "prev") : "fade");
-  }
 
   const userOpen = (id: string | null) => {
     setPlaying(false);
@@ -174,14 +165,13 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
       {!loading &&
         images.map((image, index) => {
           if (openImage && image.id === openImage.id) {
-            const label = viewerCaptureLabel(image.timestamp);
+            const label = viewerCaptureLabel(image.timestamp, timezone);
             return (
               <div
                 key={image.id}
                 ref={openRef}
                 className="frame frame-open"
                 data-testid="frame-open"
-                data-nav={nav}
                 role="button"
                 tabIndex={0}
                 aria-label="Collapse capture"
@@ -260,7 +250,7 @@ export function FilmStrip({ images, loading, openId, onOpenChange, onShare }: Fi
             );
           }
 
-          const hour = viewerHourParts(image.timestamp);
+          const hour = viewerHourParts(image.timestamp, timezone);
           return (
             <button
               key={image.id}

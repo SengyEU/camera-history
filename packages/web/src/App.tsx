@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { getCamera, getCameraLatest, getGroup, getImages, type ImageDto, type PublicGroup } from "./api";
+import {
+  getCamera,
+  getCameraLatest,
+  getGroup,
+  getImages,
+  type ImageDto,
+  type PublicCamera,
+  type PublicGroup,
+} from "./api";
 import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
 import { SharePopup } from "./SharePopup";
+import { localDateInZone, localHourInZone } from "./time";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
+const VIEWER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 function isValidTheme(theme: string): boolean {
   return THEMES.includes(theme);
@@ -46,14 +56,13 @@ interface WidgetBodyProps {
   title: string;
   date: string;
   onDateChange: (date: string) => void;
+  today: string;
   minDate?: string;
+  timezone: string;
   theme: string;
   loading: boolean;
   images: ImageDto[];
   visibleImages: ImageDto[];
-  nightOn: boolean;
-  onToggleNight: () => void;
-  onShowNight: () => void;
   openId: string | null;
   onOpenChange: (id: string | null) => void;
   onShare: (image: ImageDto) => void;
@@ -68,14 +77,13 @@ function WidgetBody({
   title,
   date,
   onDateChange,
+  today,
   minDate,
+  timezone,
   theme,
   loading,
   images,
   visibleImages,
-  nightOn,
-  onToggleNight,
-  onShowNight,
   openId,
   onOpenChange,
   onShare,
@@ -85,50 +93,12 @@ function WidgetBody({
   switcher,
   children,
 }: WidgetBodyProps) {
-  const today = toLocalInputValue(new Date());
-
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       <div className="widget-header">
         <span className="widget-title">{title}</span>
         {switcher}
-        <button
-          type="button"
-          className="night-toggle"
-          data-testid="night-toggle"
-          role="switch"
-          aria-checked={nightOn}
-          onClick={onToggleNight}
-        >
-          <span className="night-toggle-track" aria-hidden="true">
-            <span className="night-toggle-thumb" />
-          </span>
-          Night images
-        </button>
       </div>
-      {loading ? (
-        <FilmStrip images={[]} loading openId={null} onOpenChange={() => {}} onShare={() => {}} />
-      ) : images.length === 0 ? (
-        <>
-          <p className="empty">No images for this date.</p>
-          <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
-        </>
-      ) : visibleImages.length === 0 ? (
-        <div className="night-empty">
-          <p>Every capture today is a night shot.</p>
-          <button type="button" className="show-night" data-testid="show-night" onClick={onShowNight}>
-            Show night images
-          </button>
-        </div>
-      ) : (
-        <FilmStrip
-          images={visibleImages}
-          loading={false}
-          openId={openId}
-          onOpenChange={onOpenChange}
-          onShare={onShare}
-        />
-      )}
       <div className="date-nav" data-testid="date-nav">
         <button
           type="button"
@@ -157,9 +127,37 @@ function WidgetBody({
           ›
         </button>
       </div>
+      {loading ? (
+        <FilmStrip
+          images={[]}
+          loading
+          timezone={timezone}
+          openId={null}
+          onOpenChange={() => {}}
+          onShare={() => {}}
+        />
+      ) : images.length === 0 ? (
+        <>
+          <p className="empty">No images for this date.</p>
+          <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
+        </>
+      ) : visibleImages.length === 0 ? (
+        <p className="empty" data-testid="day-only-empty">
+          No daytime captures for this date.
+        </p>
+      ) : (
+        <FilmStrip
+          images={visibleImages}
+          loading={false}
+          timezone={timezone}
+          openId={openId}
+          onOpenChange={onOpenChange}
+          onShare={onShare}
+        />
+      )}
       {shareImage && (
         <SharePopup
-          title={viewerCaptureLabel(shareImage.timestamp)}
+          title={viewerCaptureLabel(shareImage.timestamp, timezone)}
           url={shareUrl}
           onClose={onCloseShare}
         />
@@ -173,31 +171,41 @@ export function App() {
   const widgetRoute = useMemo(() => parseWidgetPath(window.location.pathname), []);
   const groupRoute = useMemo(() => parseGroupPath(window.location.pathname), []);
 
-  const [camera, setCamera] = useState<{ name: string; retentionMonths: number; theme: string; showNight: boolean } | null>(null);
+  const [camera, setCamera] = useState<PublicCamera | null>(null);
   const [group, setGroup] = useState<PublicGroup | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [images, setImages] = useState<ImageDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [nightOn, setNightOn] = useState<boolean>(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shareImage, setShareImage] = useState<ImageDto | null>(null);
-  const [date, setDate] = useState(() => {
-    const p = new URLSearchParams(window.location.search);
-    return p.get("date") ?? toLocalInputValue(new Date());
-  });
+  const initialDateRef = useRef<string | null>(
+    new URLSearchParams(window.location.search).get("date"),
+  );
+  const [date, setDate] = useState(
+    () => initialDateRef.current ?? toLocalInputValue(new Date()),
+  );
   const fallbackRef = useRef<{ attempted: Set<string>; latest: Map<string, string> }>({
     attempted: new Set(),
     latest: new Map(),
   });
   const deepLinkAppliedRef = useRef(false);
-  const nightDeepLinkRef = useRef(false);
+  const deepLinkOpenedIdRef = useRef<string | null>(null);
+  const previousMetaReadyRef = useRef(false);
+  const defaultDateAppliedRef = useRef(false);
+  const dateTouchedRef = useRef(false);
 
   const cameraId = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
   const selectedCamera =
     groupRoute && group ? (group.cameras.find((c) => c.id === selectedCameraId) ?? null) : null;
+  const timezone =
+    (groupRoute ? selectedCamera?.timezone : camera?.timezone) ?? VIEWER_TIMEZONE;
+  const today = localDateInZone(new Date(), timezone);
 
   const minDate = camera
-    ? toLocalInputValue(new Date(Date.now() - camera.retentionMonths * 30 * 24 * 3600 * 1000))
+    ? localDateInZone(
+        new Date(Date.now() - camera.retentionMonths * 30 * 24 * 3600 * 1000),
+        camera.timezone,
+      )
     : undefined;
 
   const theme = useMemo(
@@ -236,20 +244,21 @@ export function App() {
   const isGroup = !!groupRoute;
 
   useEffect(() => {
-    nightDeepLinkRef.current = false;
     setOpenId(null);
     setShareImage(null);
   }, [cameraId]);
 
   useEffect(() => {
-    if (nightDeepLinkRef.current) return;
-    if (camera) setNightOn(camera.showNight);
-  }, [camera]);
-
-  useEffect(() => {
-    if (nightDeepLinkRef.current) return;
-    if (selectedCamera) setNightOn(selectedCamera.showNight);
-  }, [selectedCamera]);
+    if (defaultDateAppliedRef.current) return;
+    if (initialDateRef.current || dateTouchedRef.current) {
+      defaultDateAppliedRef.current = true;
+      return;
+    }
+    const metaTimezone = groupRoute ? selectedCamera?.timezone : camera?.timezone;
+    if (!metaTimezone) return;
+    defaultDateAppliedRef.current = true;
+    setDate(localDateInZone(new Date(), metaTimezone));
+  }, [groupRoute, selectedCamera, camera]);
 
   useEffect(() => {
     if (!cameraId) {
@@ -290,10 +299,19 @@ export function App() {
     };
   }, [cameraId, date, isGroup]);
 
+  const showNight = groupRoute ? selectedCamera?.showNight === true : camera?.showNight === true;
   const visibleImages = useMemo(
-    () => (nightOn ? images : images.filter((i) => i.isDaylight !== false)),
-    [images, nightOn],
+    () => (showNight ? images : images.filter((image) => image.isDaylight !== false)),
+    [images, showNight],
   );
+
+  const metaReady = groupRoute ? selectedCamera !== null : camera !== null;
+
+  useEffect(() => {
+    if (!metaReady || previousMetaReadyRef.current) return;
+    previousMetaReadyRef.current = true;
+    deepLinkAppliedRef.current = false;
+  }, [metaReady]);
 
   useEffect(() => {
     if (loading || images.length === 0 || deepLinkAppliedRef.current) return;
@@ -304,25 +322,31 @@ export function App() {
     if (hourParam !== null) {
       const hour = Number.parseInt(hourParam, 10);
       if (Number.isFinite(hour)) {
-        match = images.find((image) => new Date(image.timestamp).getHours() === hour);
+        match = visibleImages.find(
+          (image) => localHourInZone(image.timestamp, timezone) === hour,
+        );
       }
     } else if (imgParam) {
-      match = images.find((image) => image.id === imgParam);
+      match = visibleImages.find((image) => image.id === imgParam);
     }
     deepLinkAppliedRef.current = true;
     if (match) {
-      if (match.isDaylight === false) {
-        nightDeepLinkRef.current = true;
-        setNightOn(true);
-      }
+      deepLinkOpenedIdRef.current = match.id;
       setOpenId(match.id);
+    } else {
+      const previouslyOpened = deepLinkOpenedIdRef.current;
+      deepLinkOpenedIdRef.current = null;
+      if (previouslyOpened) {
+        setOpenId((current) => (current === previouslyOpened ? null : current));
+      }
     }
-  }, [loading, images]);
+  }, [loading, metaReady, images, visibleImages, timezone]);
 
   const changeDate = (next: string) => {
     if (!next) return;
     if (minDate && next < minDate) return;
-    if (next > toLocalInputValue(new Date())) return;
+    if (next > today) return;
+    dateTouchedRef.current = true;
     setDate(next);
     setOpenId(null);
     setShareImage(null);
@@ -341,9 +365,9 @@ export function App() {
     if (themeParam) params.set("theme", themeParam);
     if (isGroup && selectedCameraId) params.set("camera", selectedCameraId);
     params.set("date", date);
-    params.set("hour", String(new Date(shareImage.timestamp).getHours()));
+    params.set("hour", String(localHourInZone(shareImage.timestamp, timezone)));
     return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-  }, [shareImage, date, isGroup, selectedCameraId]);
+  }, [shareImage, date, isGroup, selectedCameraId, timezone]);
 
   const handleOpenChange = (id: string | null) => {
     setOpenId(id);
@@ -365,13 +389,12 @@ export function App() {
         title={group?.group.name ?? "Group"}
         date={date}
         onDateChange={changeDate}
+        today={today}
+        timezone={timezone}
         theme={theme}
         loading={loading}
         images={images}
         visibleImages={visibleImages}
-        nightOn={nightOn}
-        onToggleNight={() => setNightOn((value) => !value)}
-        onShowNight={() => setNightOn(true)}
         openId={openId}
         onOpenChange={handleOpenChange}
         onShare={setShareImage}
@@ -404,14 +427,13 @@ export function App() {
       title={camera?.name ?? "Camera"}
       date={date}
       onDateChange={changeDate}
+      today={today}
       minDate={minDate}
+      timezone={timezone}
       theme={theme}
       loading={loading}
       images={images}
       visibleImages={visibleImages}
-      nightOn={nightOn}
-      onToggleNight={() => setNightOn((value) => !value)}
-      onShowNight={() => setNightOn(true)}
       openId={openId}
       onOpenChange={handleOpenChange}
       onShare={setShareImage}

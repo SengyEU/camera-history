@@ -61,45 +61,6 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   font: inherit;
 }
 
-/* Night images toggle */
-.night-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px 5px 6px;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-.night-toggle:hover { border-color: var(--accent); color: var(--ink); }
-.night-toggle[aria-checked="true"] { color: var(--ink); border-color: var(--accent); }
-.night-toggle-track {
-  position: relative;
-  flex: none;
-  width: 30px;
-  height: 16px;
-  border-radius: 999px;
-  background: var(--line);
-  transition: background 0.15s ease;
-}
-.night-toggle[aria-checked="true"] .night-toggle-track { background: var(--accent); }
-.night-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ffffff;
-  transition: transform 0.15s ease;
-}
-.night-toggle[aria-checked="true"] .night-toggle-thumb { transform: translateX(14px); }
-
 /* Filmstrip */
 .film-strip {
   display: flex;
@@ -130,7 +91,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   overflow: hidden;
   cursor: pointer;
   font: inherit;
-  transition: flex-basis 0.45s ease, width 0.45s ease;
+  transition: flex-basis 0.5s ease, width 0.5s ease;
 }
 .frame:hover { box-shadow: inset 0 0 0 2px var(--accent); }
 .frame:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -168,21 +129,11 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   height: 100%;
   object-fit: contain;
   pointer-events: none;
-  animation: frame-fade 0.35s ease both;
+  animation: frame-fade 0.25s ease both;
 }
-.frame-open[data-nav="next"] .frame-img { animation: frame-in-next 0.4s ease both; }
-.frame-open[data-nav="prev"] .frame-img { animation: frame-in-prev 0.4s ease both; }
 @keyframes frame-fade {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-@keyframes frame-in-next {
-  from { opacity: 0; transform: translateX(3%); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@keyframes frame-in-prev {
-  from { opacity: 0; transform: translateX(-3%); }
-  to { opacity: 1; transform: translateX(0); }
 }
 .frame-osd {
   position: absolute;
@@ -198,7 +149,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   border-radius: 6px;
   padding: 3px 10px;
   pointer-events: none;
-  animation: frame-fade 0.35s ease both;
+  animation: frame-fade 0.25s ease both;
 }
 .frame-arrow,
 .frame-play,
@@ -259,31 +210,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 .empty, .error { color: var(--muted); text-align: center; padding: 24px; }
 .empty-hint { color: var(--muted); text-align: center; font-size: 12px; padding: 0 24px; margin-top: -14px; }
 
-/* All-night day */
-.night-empty {
-  border: 1px dashed var(--line);
-  border-radius: 12px;
-  padding: 44px 16px;
-  text-align: center;
-  color: var(--muted);
-}
-.night-empty p { margin: 0 0 12px; }
-.show-night {
-  padding: 7px 14px;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  background: var(--accent);
-  color: #ffffff;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  transition: filter 0.15s ease;
-}
-.show-night:hover { filter: brightness(1.08); }
-.show-night:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* Date nav below the strip */
-.date-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; }
+/* Date nav above the strip */
+.date-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 12px; }
 .date-nav button {
   min-width: 36px;
   min-height: 36px;
@@ -308,7 +236,14 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 .date-nav input[type="date"] { font-size: 14px; }
 
 /* Share popup */
-.share-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 20; }
+.share-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 20;
+  animation: overlay-in 0.2s ease both;
+}
+.share-overlay-closing { animation: overlay-out 0.16s ease both; }
 .share-popup {
   position: fixed;
   top: 50%;
@@ -322,6 +257,36 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   border-radius: 14px;
   padding: 18px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  animation: popup-in 0.2s ease-in-out both;
+}
+.share-popup-closing { animation: popup-out 0.16s ease-in both; }
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 6%)) scale(1.2);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes popup-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
 }
 .share-popup header {
   display: flex;
@@ -391,12 +356,10 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 button { color: var(--ink); }
 
 /* Focus rings */
-.night-toggle:focus-visible,
 .frame:focus-visible,
 .frame-arrow:focus-visible,
 .frame-play:focus-visible,
 .frame-share:focus-visible,
-.show-night:focus-visible,
 .date-nav button:focus-visible,
 .date-nav input[type="date"]:focus-visible,
 .camera-switcher:focus-visible,
@@ -413,15 +376,14 @@ button { color: var(--ink); }
 @media (prefers-reduced-motion: reduce) {
   .film-skeleton { animation: none; }
   .frame-img,
-  .frame-open[data-nav="next"] .frame-img,
-  .frame-open[data-nav="prev"] .frame-img,
-  .frame-osd {
+  .frame-osd,
+  .share-overlay,
+  .share-overlay-closing,
+  .share-popup,
+  .share-popup-closing {
     animation: none;
   }
   .frame,
-  .night-toggle,
-  .night-toggle-track,
-  .night-toggle-thumb,
   .date-nav button,
   .share-close,
   .share-network,
