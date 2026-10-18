@@ -22,6 +22,40 @@ async function seedCamera(repos: import("@ch/db").Repos): Promise<Camera> {
   return camera;
 }
 
+async function seedCameraWithImages(
+  repos: import("@ch/db").Repos,
+  opts: {
+    timezone: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    timestamps: string[];
+  },
+): Promise<Camera> {
+  const tenant = await repos.createTenant({ name: "Daylight", slug: "daylight" });
+  const camera = await repos.createCamera(tenant.id, {
+    name: "Daylight cam",
+    feedType: "static_url",
+    feedUrl: "https://example.com/cam.jpg",
+    intervalMinutes: 15,
+    activeFrom: "00:00",
+    activeTo: "23:59",
+    timezone: opts.timezone,
+    latitude: opts.latitude ?? null,
+    longitude: opts.longitude ?? null,
+  });
+  for (const timestamp of opts.timestamps) {
+    const ts = new Date(timestamp);
+    const stamp = ts.toISOString().replace(/[-:]/g, "").replace("T", "").slice(0, 14);
+    await repos.insertImage({
+      cameraId: camera.id,
+      timestamp: ts,
+      storageKey: `org/daylight/${camera.id}/${ts.toISOString().slice(0, 10)}/${stamp}.jpg`,
+      sizeBytes: 1,
+    });
+  }
+  return camera;
+}
+
 describe("public routes", () => {
   it("returns camera info for widget", async () => {
     const { app, repos } = makeApp();
@@ -56,7 +90,69 @@ describe("public routes", () => {
     expect(body.cameraId).toBe(camera.id);
     expect(body.date).toBe("2026-09-18");
     expect(body.images.length).toBe(1);
-    expect(body.images[0]).toMatchObject({ url: expect.stringContaining("120000.jpg") });
+    expect(body.images[0]).toMatchObject({
+      url: expect.stringContaining("120000.jpg"),
+      isDaylight: true,
+    });
+    expect(Object.keys(body.images[0]).sort()).toEqual(["id", "isDaylight", "timestamp", "url"]);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("marks images daylight from sun times when the camera has coordinates", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCameraWithImages(repos, {
+      timezone: "America/Edmonton",
+      latitude: 51.425,
+      longitude: -116.177,
+      timestamps: ["2026-10-18T20:00:00Z", "2026-10-18T06:00:00Z"],
+    });
+
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
+    expect(res.statusCode).toBe(200);
+    const images = res.json().images as Record<string, unknown>[];
+    expect(images).toHaveLength(2);
+    expect(images[0]).toMatchObject({ timestamp: "2026-10-18T06:00:00.000Z", isDaylight: false });
+    expect(images[1]).toMatchObject({ timestamp: "2026-10-18T20:00:00.000Z", isDaylight: true });
+    for (const image of images) {
+      expect(image).toEqual({
+        id: expect.any(String),
+        timestamp: expect.any(String),
+        url: expect.any(String),
+        isDaylight: expect.any(Boolean),
+      });
+    }
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("marks images by local hour when the camera has no coordinates", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCameraWithImages(repos, {
+      timezone: "UTC",
+      timestamps: ["2026-10-18T10:00:00Z", "2026-10-18T20:00:00Z", "2026-10-18T22:00:00Z"],
+    });
+
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
+    expect(res.statusCode).toBe(200);
+    const images = res.json().images as Record<string, unknown>[];
+    expect(images).toHaveLength(3);
+    expect(images.map((img) => img.isDaylight)).toEqual([true, false, false]);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("falls back to the local-hour window when sun times are unavailable (polar day/night)", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCameraWithImages(repos, {
+      timezone: "Europe/Oslo",
+      latitude: 69.65,
+      longitude: 18.96,
+      timestamps: ["2026-06-21T10:00:00Z", "2026-06-21T22:00:00Z"],
+    });
+
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-06-21` });
+    expect(res.statusCode).toBe(200);
+    const images = res.json().images as Record<string, unknown>[];
+    expect(images).toHaveLength(2);
+    expect(images.map((img) => img.isDaylight)).toEqual([true, false]);
     await (app as { close: () => Promise<void> }).close();
   });
 

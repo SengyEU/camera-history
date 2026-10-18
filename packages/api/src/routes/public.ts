@@ -1,5 +1,12 @@
 import type { FastifyPluginAsync } from "fastify";
-import { dayRangeUtc, gatedRange, retentionCutoff, rfc7807 } from "@ch/core";
+import {
+  dayRangeUtc,
+  gatedRange,
+  localHourInZone,
+  retentionCutoff,
+  rfc7807,
+  sunTimes,
+} from "@ch/core";
 import type { ObjectStorage, Repos } from "@ch/db";
 
 export type PublicRouteDeps = {
@@ -44,6 +51,22 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           ? []
           : await repos.imagesForCameraDay(cam.id, gated.start, gated.end);
 
+      const times =
+        cam.latitude !== null && cam.longitude !== null
+          ? sunTimes(date, cam.latitude, cam.longitude)
+          : null;
+
+      let fallbackTimezone = "";
+      if (!times) {
+        fallbackTimezone = (await repos.getCameraById(cam.id))?.timezone ?? "UTC";
+      }
+
+      const isDaylightAt = (ts: Date): boolean => {
+        if (times) return ts >= times.sunrise && ts <= times.sunset;
+        const h = localHourInZone(ts, fallbackTimezone);
+        return h >= 6 && h < 20;
+      };
+
       return {
         cameraId: cam.id,
         name: cam.name,
@@ -52,6 +75,7 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           id: img.id,
           timestamp: img.timestamp,
           url: `${baseUrl}/api/v1/cameras/${cam.id}/${date}/${img.storageKey.split("/").pop()}`,
+          isDaylight: isDaylightAt(img.timestamp),
         })),
       };
     },

@@ -27,6 +27,18 @@ function publicImageUrl(baseUrl: string, cameraId: string, storageKey: string): 
   return `${baseUrl.replace(/\/+$/, "")}/api/v1/cameras/${cameraId}/${date}/${file}`;
 }
 
+function parseCoordinate(value: unknown, field: "latitude" | "longitude"): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new HttpError(400, "bad_request", `${field} must be a number`);
+  }
+  const limit = field === "latitude" ? 90 : 180;
+  if (value < -limit || value > limit) {
+    throw new HttpError(400, "bad_request", `${field} must be between -${limit} and ${limit}`);
+  }
+  return value;
+}
+
 export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
   const pre = requireAuth(app);
 
@@ -57,6 +69,17 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${feedType}"`);
     }
 
+    const latitude = parseCoordinate(body.latitude, "latitude");
+    const longitude = parseCoordinate(body.longitude, "longitude");
+    const daylightOnly = body.daylightOnly === undefined ? false : Boolean(body.daylightOnly);
+    if (daylightOnly && (latitude === null || longitude === null)) {
+      throw new HttpError(
+        400,
+        "bad_request",
+        "latitude and longitude are required when daylightOnly is enabled",
+      );
+    }
+
     const camera = await deps.repos.createCamera(req.user!.tenantId, {
       name,
       feedType: feedType as never,
@@ -67,6 +90,9 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       timezone: String(body.timezone ?? "UTC"),
       enabled: body.enabled === undefined ? true : Boolean(body.enabled),
       theme,
+      latitude,
+      longitude,
+      daylightOnly,
     });
     return reply.code(201).send({ camera });
   });
@@ -89,7 +115,20 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     const body = req.body as Record<string, unknown>;
     const patch = Object.fromEntries(
       Object.entries(body).filter(([k]) =>
-        ["name", "feedType", "feedUrl", "intervalMinutes", "activeFrom", "activeTo", "timezone", "enabled", "theme"].includes(k),
+        [
+          "name",
+          "feedType",
+          "feedUrl",
+          "intervalMinutes",
+          "activeFrom",
+          "activeTo",
+          "timezone",
+          "enabled",
+          "theme",
+          "latitude",
+          "longitude",
+          "daylightOnly",
+        ].includes(k),
       ),
     );
     const effectiveType = patch.feedType !== undefined ? String(patch.feedType) : camera.feedType;
@@ -100,6 +139,24 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (patch.theme !== undefined && !isValidTheme(String(patch.theme))) {
       throw new HttpError(400, "bad_request", `theme must be one of ${THEMES.join(", ")}`);
     }
+    const effectiveLatitude =
+      patch.latitude !== undefined ? parseCoordinate(patch.latitude, "latitude") : camera.latitude;
+    const effectiveLongitude =
+      patch.longitude !== undefined
+        ? parseCoordinate(patch.longitude, "longitude")
+        : camera.longitude;
+    const effectiveDaylightOnly =
+      patch.daylightOnly !== undefined ? Boolean(patch.daylightOnly) : camera.daylightOnly;
+    if (effectiveDaylightOnly && (effectiveLatitude === null || effectiveLongitude === null)) {
+      throw new HttpError(
+        400,
+        "bad_request",
+        "latitude and longitude are required when daylightOnly is enabled",
+      );
+    }
+    if (patch.latitude !== undefined) patch.latitude = effectiveLatitude;
+    if (patch.longitude !== undefined) patch.longitude = effectiveLongitude;
+    if (patch.daylightOnly !== undefined) patch.daylightOnly = effectiveDaylightOnly;
     const updated = await deps.repos.updateCamera(id, patch as never);
     return { camera: updated };
   });
