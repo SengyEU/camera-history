@@ -12,6 +12,9 @@ export interface AdminCamera {
   timezone: string;
   enabled: boolean;
   theme: string;
+  latitude: number | null;
+  longitude: number | null;
+  daylightOnly: boolean;
   status: CameraStatus;
   lastCaptureAt: string | null;
   lastError: string | null;
@@ -26,6 +29,9 @@ export interface CameraInput {
   activeTo: string;
   timezone: string;
   theme: string;
+  latitude: number | null;
+  longitude: number | null;
+  daylightOnly: boolean;
 }
 
 export interface PreviewDto {

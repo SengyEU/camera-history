@@ -548,7 +548,8 @@ button.link:hover {
   accent-color: var(--glacier);
 }
 
-.groups-section {
+.groups-section,
+.form-section {
   border-top: 1px solid var(--line);
   padding-top: 0.6rem;
   display: flex;
@@ -557,6 +558,7 @@ button.link:hover {
 }
 
 .groups-section h4,
+.form-section h4,
 .group-cameras h4,
 .group-embed h4 {
   margin: 0;

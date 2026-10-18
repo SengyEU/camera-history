@@ -146,16 +146,19 @@ describe("App camera CRUD", () => {
     status: "operational",
     lastCaptureAt: null,
     lastError: null,
+    latitude: null,
+    longitude: null,
+    daylightOnly: false,
     ...over,
   });
 
-  function listServer(_extra: { create?: unknown; update?: unknown; delete?: unknown } = {}) {
+  function listServer(seed: Partial<Record<string, unknown>> = {}) {
     const calls: Array<{ u: string; init?: RequestInit }> = [];
     const fn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const u = String(url);
       calls.push({ u, init });
       if (u.endsWith("/api/v1/admin/cameras") && (!init || init.method === "GET" || init.method === undefined)) {
-        return jsonResponse({ cameras: [camera()] });
+        return jsonResponse({ cameras: [camera(seed)] });
       }
       if (u.endsWith("/api/v1/admin/cameras") && init?.method === "POST") {
         return jsonResponse({ camera: camera({ id: "cam-new", name: "New cam" }) }, 201);
@@ -228,6 +231,97 @@ describe("App camera CRUD", () => {
     await userEvent.click(screen.getByTestId("confirm-delete"));
 
     await waitFor(() => expect(calls.some((c) => c.u.includes("/cam-1") && c.init?.method === "DELETE")).toBe(true));
+  });
+
+  it("renders location and daylight fields in the camera form", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+
+    const latitude = screen.getByTestId("form-latitude") as HTMLInputElement;
+    const longitude = screen.getByTestId("form-longitude") as HTMLInputElement;
+    const daylight = screen.getByTestId("form-daylight-only") as HTMLInputElement;
+    expect(latitude).toHaveAttribute("type", "number");
+    expect(longitude).toHaveAttribute("type", "number");
+    expect(daylight).toHaveAttribute("type", "checkbox");
+    expect(daylight).not.toBeChecked();
+    expect(screen.getByText("Used to classify day and night captures.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Requires latitude and longitude. The active window is ignored while enabled."),
+    ).toBeInTheDocument();
+  });
+
+  it("creates a camera with coordinates and daylight-only enabled", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await userEvent.type(screen.getByTestId("form-name"), "New cam");
+    await userEvent.type(screen.getByTestId("form-latitude"), "47.376");
+    await userEvent.type(screen.getByTestId("form-longitude"), "8.541");
+    await userEvent.click(screen.getByTestId("form-daylight-only"));
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true),
+    );
+    const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
+    expect(JSON.parse(String(post.init?.body))).toMatchObject({
+      name: "New cam",
+      latitude: 47.376,
+      longitude: 8.541,
+      daylightOnly: true,
+    });
+  });
+
+  it("requires coordinates when daylight-only is enabled", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await userEvent.type(screen.getByTestId("form-name"), "New cam");
+    await userEvent.click(screen.getByTestId("form-daylight-only"));
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    expect(
+      await screen.findByText("Latitude and longitude are required to capture only during daylight."),
+    ).toBeInTheDocument();
+    expect(calls.filter((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toHaveLength(0);
+  });
+
+  it("rejects out-of-range latitude without submitting", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await userEvent.type(screen.getByTestId("form-name"), "New cam");
+    await userEvent.type(screen.getByTestId("form-latitude"), "120");
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    expect(await screen.findByText("Latitude must be between -90 and 90.")).toBeInTheDocument();
+    expect(calls.filter((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toHaveLength(0);
+  });
+
+  it("prefills location fields when editing a camera", async () => {
+    const { fn } = listServer({ latitude: 47.376, longitude: 8.541, daylightOnly: true });
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+
+    expect((screen.getByTestId("form-latitude") as HTMLInputElement).value).toBe("47.376");
+    expect((screen.getByTestId("form-longitude") as HTMLInputElement).value).toBe("8.541");
+    expect(screen.getByTestId("form-daylight-only")).toBeChecked();
   });
 });
 

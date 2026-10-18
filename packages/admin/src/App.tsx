@@ -18,6 +18,9 @@ const emptyInput = (): CameraInput => ({
   activeTo: "23:59",
   timezone: "UTC",
   theme: "light",
+  latitude: null,
+  longitude: null,
+  daylightOnly: false,
 });
 
 function currentView(): "cameras" | "groups" | "billing" {
@@ -205,6 +208,13 @@ function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void;
   );
 }
 
+function parseCoordinateInput(raw: string): number | null | "invalid" {
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : "invalid";
+}
+
 function CameraForm({
   initial,
   onSave,
@@ -220,6 +230,8 @@ function CameraForm({
   cameraId?: string | null;
 }) {
   const [input, setInput] = useState<CameraInput>(initial);
+  const [latitudeText, setLatitudeText] = useState(initial.latitude === null ? "" : String(initial.latitude));
+  const [longitudeText, setLongitudeText] = useState(initial.longitude === null ? "" : String(initial.longitude));
   const [error, setError] = useState<string | null>(null);
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [groupMemberships, setGroupMemberships] = useState<Record<string, boolean>>({});
@@ -255,11 +267,27 @@ function CameraForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    const latitude = parseCoordinateInput(latitudeText);
+    const longitude = parseCoordinateInput(longitudeText);
+    if (latitude === "invalid" || (latitude !== null && (latitude < -90 || latitude > 90))) {
+      setError("Latitude must be between -90 and 90.");
+      return;
+    }
+    if (longitude === "invalid" || (longitude !== null && (longitude < -180 || longitude > 180))) {
+      setError("Longitude must be between -180 and 180.");
+      return;
+    }
+    if (input.daylightOnly && (latitude === null || longitude === null)) {
+      setError("Latitude and longitude are required to capture only during daylight.");
+      return;
+    }
+    const payload: CameraInput = { ...input, latitude, longitude };
     try {
       const updates = groups
         .filter((g) => (groupMemberships[g.id] || false) !== (initialMemberships[g.id] || false))
         .map((g) => ({ groupId: g.id, selected: groupMemberships[g.id] || false, cameraIds: g.cameraIds }));
-      await onSave(input, updates.length > 0 ? updates : undefined);
+      await onSave(payload, updates.length > 0 ? updates : undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     }
@@ -269,7 +297,11 @@ function CameraForm({
     <div className="modal">
       <form className="modal-body" onSubmit={submit} data-testid="camera-form">
         <h3>{initial.name ? "Edit camera" : "New camera"}</h3>
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error" data-testid="form-error">
+            {error}
+          </p>
+        )}
         <label>
           Name
           <input value={input.name} onChange={(e) => set("name", e.target.value)} data-testid="form-name" required />
@@ -327,6 +359,44 @@ function CameraForm({
           <input value={input.timezone} onChange={(e) => set("timezone", e.target.value)} data-testid="form-timezone" />
           <span className="field-hint">IANA timezone, e.g. Europe/Zurich.</span>
         </label>
+        <div className="form-section">
+          <h4>Location &amp; schedule</h4>
+          <div className="form-row">
+            <label>
+              Latitude
+              <input
+                type="number"
+                step="0.001"
+                value={latitudeText}
+                onChange={(e) => setLatitudeText(e.target.value)}
+                data-testid="form-latitude"
+              />
+            </label>
+            <label>
+              Longitude
+              <input
+                type="number"
+                step="0.001"
+                value={longitudeText}
+                onChange={(e) => setLongitudeText(e.target.value)}
+                data-testid="form-longitude"
+              />
+            </label>
+          </div>
+          <span className="field-hint">Used to classify day and night captures.</span>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={input.daylightOnly}
+              onChange={(e) => setInput((s) => ({ ...s, daylightOnly: e.target.checked }))}
+              data-testid="form-daylight-only"
+            />
+            Capture only during daylight
+          </label>
+          <span className="field-hint">
+            Requires latitude and longitude. The active window is ignored while enabled.
+          </span>
+        </div>
         {groups.length > 0 && (
           <div className="groups-section">
             <h4>Groups</h4>
@@ -813,6 +883,9 @@ export function App() {
     activeTo: cam.activeTo,
     timezone: cam.timezone,
     theme: cam.theme,
+    latitude: cam.latitude ?? null,
+    longitude: cam.longitude ?? null,
+    daylightOnly: cam.daylightOnly ?? false,
   });
 
   const saveCamera = async (
