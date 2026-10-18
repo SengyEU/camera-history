@@ -44,3 +44,6 @@ playwright-report/
 # host-specific compose overrides
 docker-compose.override.yml
 compose.override.yml
+
+# SDD workflow artifacts (local only)
+.superpowers/
