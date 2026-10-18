@@ -11,7 +11,7 @@
 //        + custom WS feed (KiteSport) pro ukázku custom adaptéru a multi-tenancy.
 //
 // Idempotence: tenant se přihlásí (popř. zaregistruje), chybějící kamery se vytvoří,
-// existující se přeskočí. Opakovatelné spuštění neduplikuje.
+// existující se srovnají s configem (interval + souřadnice). Opakovatelné spuštění neduplikuje.
 
 const API = (process.env.API_BASE ?? "https://camera.sengycraft.cz/api/v1").replace(/\/+$/, "");
 const PASSWORD = process.env.DEMO_PASSWORD ?? "Demo-Resort-2026!";
@@ -22,9 +22,9 @@ const TENANTS = [
     slug: "alpine-summit",
     email: "owner@alpinesummit.example",
     cameras: [
-      { name: "Gondola Summit", feedType: "static_url", feedUrl: "https://cams.skilouise.com/cam1.jpg", timezone: "America/Edmonton" },
-      { name: "Glacier Bowl", feedType: "static_url", feedUrl: "https://cams.skilouise.com/cam3.jpg", timezone: "America/Edmonton" },
-      { name: "Lodge Base", feedType: "static_url", feedUrl: "https://cams.skilouise.com/cam6.jpg", timezone: "America/Edmonton" },
+      { name: "Gondola Summit", feedType: "static_url", feedUrl: "https://cams.skilouise.com/cam1.jpg", timezone: "America/Edmonton", latitude: 51.425, longitude: -116.177 },
+      { name: "Glacier Bowl", feedType: "static_url", feedUrl: "https://cams.skilouise.com/cam3.jpg", timezone: "America/Edmonton", latitude: 51.425, longitude: -116.177 },
+      { name: "Lodge Base", feedType: "static_url", feedUrl: "https://cams.skilouise.com/cam6.jpg", timezone: "America/Edmonton", latitude: 51.425, longitude: -116.177 },
     ],
     groups: [
       { name: "Summit", slug: "summit", cameras: ["Gondola Summit", "Glacier Bowl", "Lodge Base"] },
@@ -35,12 +35,12 @@ const TENANTS = [
     slug: "harbor-kite",
     email: "owner@harborkite.example",
     cameras: [
-      { name: "Kite Cam", feedType: "custom", feedUrl: "wss://cam.kitesportcentre.com/gl-cam", timezone: "Europe/Prague" },
+      { name: "Kite Cam", feedType: "custom", feedUrl: "wss://cam.kitesportcentre.com/gl-cam", timezone: "Europe/Prague", latitude: 53.35, longitude: -6.267 },
     ],
   },
 ];
 
-const INTERVAL_MINUTES = 15;
+const INTERVAL_MINUTES = 60;
 
 function makeJar() {
   const m = new Map();
@@ -91,14 +91,39 @@ async function ensureCameras(jar, cfg) {
   const listRes = await call("GET", "/admin/cameras", { jar });
   if (!listRes.ok) throw new Error(`GET /admin/cameras → ${listRes.status}: ${await listRes.text()}`);
   const { cameras = [] } = await listRes.json();
-  const have = new Set(cameras.map((c) => c.name));
+  const have = new Map(cameras.map((c) => [c.name, c]));
 
   let created = 0;
   let existing = 0;
+  let updated = 0;
   for (const cam of cfg.cameras) {
-    if (have.has(cam.name)) {
-      existing += 1;
-      console.log(`   · ${cam.name} (exists)`);
+    const live = have.get(cam.name);
+    if (live) {
+      // Update pass: existující kameru srovnáme s configem (interval + souřadnice).
+      // Admin PUT umí částečný patch → posíláme jen skutečně změněná pole.
+      const patch = {};
+      const fields = [];
+      if (live.intervalMinutes !== INTERVAL_MINUTES) {
+        patch.intervalMinutes = INTERVAL_MINUTES;
+        fields.push("intervalMinutes");
+      }
+      if (cam.latitude !== undefined && live.latitude !== cam.latitude) {
+        patch.latitude = cam.latitude;
+        fields.push("latitude");
+      }
+      if (cam.longitude !== undefined && live.longitude !== cam.longitude) {
+        patch.longitude = cam.longitude;
+        fields.push("longitude");
+      }
+      if (fields.length === 0) {
+        existing += 1;
+        console.log(`   · ${cam.name} (exists)`);
+        continue;
+      }
+      const putRes = await call("PUT", `/admin/cameras/${live.id}`, { jar, body: patch });
+      if (!putRes.ok) throw new Error(`update ${cam.name} → ${putRes.status}: ${await putRes.text()}`);
+      updated += 1;
+      console.log(`   ~ ${cam.name} (updated: ${fields.join(", ")})`);
       continue;
     }
     const res = await call("POST", "/admin/cameras", {
@@ -110,17 +135,18 @@ async function ensureCameras(jar, cfg) {
         activeFrom: "00:00",
         activeTo: "23:59",
         enabled: true,
+        daylightOnly: false,
       },
     });
     if (!res.ok) throw new Error(`create ${cam.name} → ${res.status}: ${await res.text()}`);
     created += 1;
     console.log(`   + ${cam.name} (${cam.feedType} → ${cam.feedUrl})`);
   }
-  if (created === 0) return { cameras, created, existing };
+  if (created === 0) return { cameras, created, existing, updated };
   const refetch = await call("GET", "/admin/cameras", { jar });
   if (!refetch.ok) throw new Error(`GET /admin/cameras → ${refetch.status}: ${await refetch.text()}`);
   const { cameras: all = [] } = await refetch.json();
-  return { cameras: all, created, existing };
+  return { cameras: all, created, existing, updated };
 }
 
 async function ensureGroups(jar, cfg, cameras) {
@@ -186,10 +212,10 @@ console.log(`API: ${API}\n`);
 for (const cfg of TENANTS) {
   console.log(`${cfg.name} (${cfg.slug})`);
   const jar = await ensureTenant(cfg);
-  const { cameras, created: createdC, existing: existingC } = await ensureCameras(jar, cfg);
+  const { cameras, created: createdC, existing: existingC, updated: updatedC } = await ensureCameras(jar, cfg);
   const groups = await ensureGroups(jar, cfg, cameras);
   console.log(
-    `   → ${createdC} created, ${existingC} already present, groups: ${groups.created} created, ${groups.existing} already present\n`,
+    `   → ${createdC} created, ${existingC} already present, ${updatedC} updated, groups: ${groups.created} created, ${groups.existing} already present\n`,
   );
 }
 
