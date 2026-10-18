@@ -22,7 +22,7 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .site-header {
   position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
   gap: 24px; padding: 14px 24px;
   background: rgba(248, 250, 252, 0.9);
   backdrop-filter: blur(8px);
@@ -46,7 +46,7 @@ a:hover { text-decoration: underline; }
 .btn.primary:hover { background: #0369a1; text-decoration: none; }
 .btn.ghost { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .btn.ghost:hover { border-color: var(--accent); text-decoration: none; }
-.section { max-width: var(--maxw); margin: 0 auto; padding: 64px 24px; }
+.section { max-width: var(--maxw); margin: 0 auto; padding: 64px 24px; scroll-margin-top: 72px; }
 .section h2 { font-size: clamp(24px, 3vw, 34px); line-height: 1.2; margin: 0 0 20px; letter-spacing: -0.01em; }
 .muted { color: var(--muted); }
 .cols { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }

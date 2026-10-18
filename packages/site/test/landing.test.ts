@@ -20,7 +20,8 @@ describe("landing page", () => {
     expect(html).toContain("hello@sengycraft.cz");
   });
 
-  it("lists the exact product pricing tiers", () => {
+  it("pins the exact pricing tiers as row pairs", () => {
+    const normalized = html.replace(/\s+/g, " ").replaceAll("</td><td>", "</td> <td>");
     for (const [label, price] of [
       ["14 days", "€5"],
       ["1 month", "€9"],
@@ -30,8 +31,7 @@ describe("landing page", () => {
       ["24 months", "€49"],
       ["36 months", "€69"],
     ]) {
-      expect(html).toContain(label);
-      expect(html).toContain(price);
+      expect(normalized).toContain(`<td>${label}</td> <td>${price}</td>`);
     }
   });
 });
