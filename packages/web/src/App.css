@@ -231,6 +231,29 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   max-width: 100%;
 }
 
+/* Soft content change: dim while a date fetch is pending, fade in on arrival */
+.content-shell {
+  opacity: 1;
+  transition: opacity 0.18s ease;
+}
+.content-shell-dim {
+  opacity: 0.65;
+  pointer-events: none;
+}
+.content-fade {
+  animation: content-in 0.22s ease;
+}
+@keyframes content-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Date nav below the strip */
 .date-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 0; }
 .date-nav button {
@@ -425,6 +448,25 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   --brand-ink: #0f1419;
 }
 
+.share-other {
+  display: block;
+  margin: 12px auto 0;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.share-other:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* Unified copy pill */
 .share-copy {
   display: flex;
@@ -492,6 +534,7 @@ button { color: var(--ink); }
 .camera-switcher:focus-visible,
 .share-close:focus-visible,
 .share-network:focus-visible,
+.share-other:focus-visible,
 .share-copy button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -504,7 +547,8 @@ button { color: var(--ink); }
   .share-overlay,
   .share-overlay-closing,
   .share-popup,
-  .share-popup-closing {
+  .share-popup-closing,
+  .content-fade {
     animation: none;
   }
   .frame,
@@ -513,8 +557,10 @@ button { color: var(--ink); }
   .date-nav button,
   .share-close,
   .share-network,
+  .share-other,
   .share-copy,
-  .share-copy button {
+  .share-copy button,
+  .content-shell {
     transition: none;
   }
 }

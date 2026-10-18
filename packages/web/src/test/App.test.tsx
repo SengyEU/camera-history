@@ -85,8 +85,30 @@ const stubClipboard = () => {
   return writeText;
 };
 
+const stubPointer = (coarse: boolean) => {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: ((query: string) => ({
+      matches: coarse && query.includes("pointer: coarse"),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia,
+  });
+  Object.defineProperty(window.navigator, "maxTouchPoints", {
+    value: coarse ? 5 : 0,
+    configurable: true,
+  });
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
+  stubPointer(false);
   vi.mocked(getCamera).mockResolvedValue(makeCamera());
   vi.mocked(getImages).mockResolvedValue(defaultImages);
   vi.mocked(getCameraLatest).mockResolvedValue(null);
@@ -96,6 +118,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  Reflect.deleteProperty(window, "matchMedia");
+  Reflect.deleteProperty(window.navigator, "maxTouchPoints");
   Reflect.deleteProperty(window.navigator, "share");
 });
 
@@ -267,9 +291,10 @@ describe("App widget", () => {
     expect(screen.queryByDisplayValue(/camera=/)).not.toBeInTheDocument();
   });
 
-  it("opens the native share sheet instead of the popup when navigator.share exists", async () => {
+  it("opens the native share sheet on coarse pointers instead of the popup", async () => {
     const user = userEvent.setup();
     const share = vi.fn().mockResolvedValue(undefined);
+    stubPointer(true);
     Object.defineProperty(window.navigator, "share", { value: share, configurable: true });
     render(<App />);
     await user.click(await screen.findByTestId("frame-img-2"));
@@ -286,6 +311,7 @@ describe("App widget", () => {
   it("ignores a canceled native share", async () => {
     const user = userEvent.setup();
     const share = vi.fn().mockRejectedValue(new DOMException("AbortError"));
+    stubPointer(true);
     Object.defineProperty(window.navigator, "share", { value: share, configurable: true });
     render(<App />);
     await user.click(await screen.findByTestId("frame-img-1"));
@@ -294,6 +320,40 @@ describe("App widget", () => {
     await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
     expect(screen.getByTestId("frame-open")).toBeInTheDocument();
+  });
+
+  it("keeps the popup on fine pointers and shares from the Other button", async () => {
+    const user = userEvent.setup();
+    const share = vi.fn().mockResolvedValue(undefined);
+    stubPointer(false);
+    Object.defineProperty(window.navigator, "share", { value: share, configurable: true });
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-img-2"));
+    await user.click(screen.getByTestId("share-open"));
+
+    expect(await screen.findByTestId("share-popup")).toBeInTheDocument();
+    expect(share).not.toHaveBeenCalled();
+
+    const other = screen.getByTestId("share-other");
+    expect(other).toHaveTextContent("Other…");
+    await user.click(other);
+    await waitFor(() =>
+      expect(share).toHaveBeenCalledWith({
+        title: "September 18, 2026 · 12 PM",
+        url: `${window.location.origin}/widget/acme/cam-1?date=2026-09-18&hour=12`,
+      }),
+    );
+  });
+
+  it("hides the Other button and opens the popup without navigator.share", async () => {
+    const user = userEvent.setup();
+    stubPointer(true);
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-img-1"));
+    await user.click(screen.getByTestId("share-open"));
+
+    expect(await screen.findByTestId("share-popup")).toBeInTheDocument();
+    expect(screen.queryByTestId("share-other")).not.toBeInTheDocument();
   });
 
   it("labels captures and share links in the camera timezone", async () => {
@@ -597,6 +657,39 @@ describe("App widget", () => {
       pending[1]!([]);
     });
     expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+  });
+
+  it("dims the content while a date change is pending and fades it back in", async () => {
+    const user = userEvent.setup();
+    const pending: Array<(images: ImageDto[]) => void> = [];
+    vi.mocked(getImages).mockImplementation(
+      () =>
+        new Promise<ImageDto[]>((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+    render(<App />);
+
+    await act(async () => {
+      pending[0]!(defaultImages);
+    });
+    await screen.findByTestId("frame-img-1");
+    const shell = screen.getByTestId("film-strip").closest(".content-shell") as HTMLElement;
+    expect(shell).not.toHaveClass("content-shell-dim");
+    expect(shell.querySelector(".content-fade")).not.toBeNull();
+
+    await user.click(screen.getByLabelText("Next day"));
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"));
+    expect(shell).toHaveClass("content-shell-dim");
+    expect(shell.querySelector(".content-fade")).toBeNull();
+    expect(shell.querySelector(".film-strip")).toHaveTextContent("9 AM");
+
+    await act(async () => {
+      pending[1]!([]);
+    });
+    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(shell).not.toHaveClass("content-shell-dim");
+    expect(shell.querySelector(".content-fade")).not.toBeNull();
   });
 
   it("defaults the date to today in the camera timezone when the URL has no date", async () => {
@@ -1027,8 +1120,8 @@ describe("App group widget", () => {
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
     render(<App />);
 
-    expect(await screen.findByTestId("film-strip")).toBeInTheDocument();
-    expect(screen.getByTestId("frame-i1")).toBeInTheDocument();
+    expect(await screen.findByTestId("frame-i1")).toBeInTheDocument();
+    expect(screen.getByTestId("film-strip")).toBeInTheDocument();
     const input = screen.getByLabelText("Date") as HTMLInputElement;
     expect(input).not.toHaveAttribute("min");
     expect(screen.getByLabelText("Previous day")).not.toBeDisabled();

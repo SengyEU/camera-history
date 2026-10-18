@@ -152,6 +152,13 @@ export function SharePopup({ title, hourLabel, imageUrl, url, onClose }: SharePo
     copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
   };
 
+  const canNativeShare = typeof navigator.share === "function";
+
+  const handleOther = () => {
+    if (typeof navigator.share !== "function") return;
+    void navigator.share({ title, url }).catch(() => {});
+  };
+
   return (
     <>
       <div
@@ -196,6 +203,11 @@ export function SharePopup({ title, hourLabel, imageUrl, url, onClose }: SharePo
             </a>
           ))}
         </div>
+        {canNativeShare && (
+          <button type="button" className="share-other" data-testid="share-other" onClick={handleOther}>
+            Other…
+          </button>
+        )}
         <div className="share-copy">
           <span className="share-copy-glyph" aria-hidden="true">
             <LinkIcon />

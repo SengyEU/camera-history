@@ -59,6 +59,7 @@ interface WidgetBodyProps {
   minDate?: string;
   timezone: string;
   theme: string;
+  contentKey: string;
   loading: boolean;
   hasLoadedOnce: boolean;
   images: ImageDto[];
@@ -80,6 +81,7 @@ function WidgetBody({
   minDate,
   timezone,
   theme,
+  contentKey,
   loading,
   hasLoadedOnce,
   images,
@@ -93,39 +95,44 @@ function WidgetBody({
   switcher,
   children,
 }: WidgetBodyProps) {
+  const dimmed = loading && hasLoadedOnce;
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       {switcher && <div className="widget-header">{switcher}</div>}
-      {loading && !hasLoadedOnce ? (
-        <FilmStrip
-          images={[]}
-          loading
-          timezone={timezone}
-          openId={null}
-          onOpenChange={() => {}}
-          onShare={() => {}}
-        />
-      ) : images.length === 0 ? (
-        <div className="empty-state" data-testid="empty-state">
-          <p className="empty">No images for this date.</p>
-          <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
+      <div className={`content-shell${dimmed ? " content-shell-dim" : ""}`}>
+        <div key={contentKey} className={loading ? undefined : "content-fade"}>
+          {loading && !hasLoadedOnce ? (
+            <FilmStrip
+              images={[]}
+              loading
+              timezone={timezone}
+              openId={null}
+              onOpenChange={() => {}}
+              onShare={() => {}}
+            />
+          ) : images.length === 0 ? (
+            <div className="empty-state" data-testid="empty-state">
+              <p className="empty">No images for this date.</p>
+              <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
+            </div>
+          ) : visibleImages.length === 0 ? (
+            <div className="empty-state" data-testid="empty-state">
+              <p className="empty" data-testid="day-only-empty">
+                No daytime captures for this date.
+              </p>
+            </div>
+          ) : (
+            <FilmStrip
+              images={visibleImages}
+              loading={false}
+              timezone={timezone}
+              openId={openId}
+              onOpenChange={onOpenChange}
+              onShare={onShare}
+            />
+          )}
         </div>
-      ) : visibleImages.length === 0 ? (
-        <div className="empty-state" data-testid="empty-state">
-          <p className="empty" data-testid="day-only-empty">
-            No daytime captures for this date.
-          </p>
-        </div>
-      ) : (
-        <FilmStrip
-          images={visibleImages}
-          loading={false}
-          timezone={timezone}
-          openId={openId}
-          onOpenChange={onOpenChange}
-          onShare={onShare}
-        />
-      )}
+      </div>
       <div className="date-nav" data-testid="date-nav">
         <button
           type="button"
@@ -405,7 +412,9 @@ export function App() {
   );
 
   const handleShare = (image: ImageDto) => {
-    if (typeof navigator.share === "function") {
+    const isMobileOrTablet =
+      (window.matchMedia?.("(pointer: coarse)").matches ?? false) && navigator.maxTouchPoints > 0;
+    if (isMobileOrTablet && typeof navigator.share === "function") {
       void navigator
         .share({
           title: viewerCaptureLabel(image.timestamp, timezone),
@@ -440,6 +449,7 @@ export function App() {
         minDate={minDate}
         timezone={timezone}
         theme={theme}
+        contentKey={`${cameraId}:${date}`}
         loading={loading}
         hasLoadedOnce={hasLoadedOnce}
         images={images}
@@ -479,6 +489,7 @@ export function App() {
       minDate={minDate}
       timezone={timezone}
       theme={theme}
+      contentKey={`${cameraId}:${date}`}
       loading={loading}
       hasLoadedOnce={hasLoadedOnce}
       images={images}
