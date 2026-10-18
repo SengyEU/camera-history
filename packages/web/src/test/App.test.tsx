@@ -11,6 +11,7 @@ import {
   getImages,
   type ImageDto,
   type PublicCamera,
+  type PublicGroup,
 } from "../api";
 
 vi.mock("../api", () => ({
@@ -636,6 +637,33 @@ describe("App widget", () => {
     );
   });
 
+  it("does not fetch the default day until the camera timezone is known", async () => {
+    let resolveCamera!: (camera: PublicCamera) => void;
+    vi.mocked(getCamera).mockImplementation(
+      () =>
+        new Promise<PublicCamera>((resolve) => {
+          resolveCamera = resolve;
+        }),
+    );
+    window.history.pushState({}, "", "/widget/acme/cam-1");
+    render(<App />);
+
+    expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
+    expect(screen.queryByText("No images for this date.")).not.toBeInTheDocument();
+    expect(vi.mocked(getImages)).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveCamera(makeCamera({ timezone: "America/Edmonton" }));
+    });
+
+    await waitFor(() =>
+      expect(vi.mocked(getImages)).toHaveBeenCalledWith(
+        "cam-1",
+        cameraDate(new Date(), "America/Edmonton"),
+      ),
+    );
+  });
+
   it("shows eight skeleton slivers while loading", async () => {
     vi.mocked(getImages).mockImplementation(() => new Promise(() => {}));
     render(<App />);
@@ -667,6 +695,7 @@ describe("App widget", () => {
     vi.mocked(getImages).mockResolvedValue([]);
     render(<App />);
     expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(screen.queryByTestId("day-only-empty")).not.toBeInTheDocument();
   });
 
   it("shows all night frames when the camera shows night images", async () => {
@@ -901,6 +930,28 @@ describe("App group widget", () => {
     expect(vi.mocked(getCameraLatest)).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument();
     expect(vi.mocked(getImages)).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not fetch the default day until the group and selected camera load", async () => {
+    let resolveGroup!: (group: PublicGroup) => void;
+    vi.mocked(getGroup).mockImplementation(
+      () =>
+        new Promise<PublicGroup>((resolve) => {
+          resolveGroup = resolve;
+        }),
+    );
+    window.history.pushState({}, "", "/group/t/summit");
+    render(<App />);
+
+    expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
+    expect(vi.mocked(getImages)).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveGroup(summitGroup);
+    });
+
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(getImages)).toHaveBeenCalledWith("cam-a", cameraDate(new Date(), "UTC"));
   });
 
   it("shows an empty state for a group with no cameras", async () => {

@@ -184,6 +184,7 @@ export function App() {
   const [date, setDate] = useState(
     () => initialDateRef.current ?? toLocalInputValue(new Date()),
   );
+  const [dateReady, setDateReady] = useState(() => initialDateRef.current !== null);
   const fallbackRef = useRef<{ attempted: Set<string>; latest: Map<string, string> }>({
     attempted: new Set(),
     latest: new Map(),
@@ -252,19 +253,22 @@ export function App() {
     if (defaultDateAppliedRef.current) return;
     if (initialDateRef.current || dateTouchedRef.current) {
       defaultDateAppliedRef.current = true;
+      setDateReady(true);
       return;
     }
     const metaTimezone = groupRoute ? selectedCamera?.timezone : camera?.timezone;
     if (!metaTimezone) return;
     defaultDateAppliedRef.current = true;
     setDate(localDateInZone(new Date(), metaTimezone));
+    setDateReady(true);
   }, [groupRoute, selectedCamera, camera]);
 
   useEffect(() => {
     if (!cameraId) {
-      setLoading(false);
+      if (!groupRoute) setLoading(false);
       return;
     }
+    if (!dateReady) return;
     let cancelled = false;
     setLoading(true);
     getImages(cameraId, date)
@@ -297,7 +301,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [cameraId, date, isGroup]);
+  }, [cameraId, date, dateReady, isGroup, groupRoute]);
 
   const showNight = groupRoute ? selectedCamera?.showNight === true : camera?.showNight === true;
   const visibleImages = useMemo(
@@ -347,6 +351,7 @@ export function App() {
     if (minDate && next < minDate) return;
     if (next > today) return;
     dateTouchedRef.current = true;
+    setDateReady(true);
     setDate(next);
     setOpenId(null);
     setShareImage(null);

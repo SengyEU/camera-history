@@ -384,6 +384,9 @@ button { color: var(--ink); }
     animation: none;
   }
   .frame,
+  .frame-arrow,
+  .frame-play,
+  .frame-share,
   .date-nav button,
   .share-close,
   .share-network,
