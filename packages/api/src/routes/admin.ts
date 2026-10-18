@@ -183,6 +183,9 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       }
       patch.slug = body.slug;
     }
+    if (patch.name === undefined && patch.slug === undefined) {
+      throw new HttpError(400, "bad_request", "name or slug is required");
+    }
     await deps.repos.updateGroup(group.id, patch);
     const all2 = await deps.repos.listGroups(req.user!.tenantId);
     return { group: all2.find((g) => g.id === group.id)! };

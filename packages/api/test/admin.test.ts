@@ -573,4 +573,97 @@ describe("admin groups", () => {
     const stillTwo = await app.inject({ method: "GET", url: `/api/v1/admin/groups/${gid2}`, headers: { cookie: a.cookie } });
     expect(stillTwo.json().group.slug).toBe("two");
   });
+
+  it("rejects a bodiless group patch", async () => {
+    const { app } = makeApp();
+    const a = await registerTenant(app, "A", "patch-bodiless-a", "a@patch-bodiless.dev");
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie: a.cookie },
+      payload: { name: "Summit", slug: "summit" },
+    });
+    const gid = created.json().group.id as string;
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/admin/groups/${gid}`,
+      headers: { cookie: a.cookie },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().title).toBe("bad_request");
+  });
+
+  it("rejects an empty object group patch", async () => {
+    const { app } = makeApp();
+    const a = await registerTenant(app, "A", "patch-empty-a", "a@patch-empty.dev");
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie: a.cookie },
+      payload: { name: "Summit", slug: "summit" },
+    });
+    const gid = created.json().group.id as string;
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/admin/groups/${gid}`,
+      headers: { cookie: a.cookie },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().title).toBe("bad_request");
+  });
+
+  it("rejects a group patch with only an unknown key", async () => {
+    const { app } = makeApp();
+    const a = await registerTenant(app, "A", "patch-unknown-a", "a@patch-unknown.dev");
+    const b = await registerTenant(app, "B", "patch-unknown-b", "b@patch-unknown.dev");
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie: a.cookie },
+      payload: { name: "Summit", slug: "summit" },
+    });
+    const gid = created.json().group.id as string;
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/admin/groups/${gid}`,
+      headers: { cookie: a.cookie },
+      payload: { tenantId: b.tenantId },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().title).toBe("bad_request");
+
+    const relist = await app.inject({ method: "GET", url: "/api/v1/admin/groups", headers: { cookie: a.cookie } });
+    expect(relist.json().groups.find((g: { id: string }) => g.id === gid).name).toBe("Summit");
+  });
+
+  it("still renames with a name patch and accepts the own slug", async () => {
+    const { app } = makeApp();
+    const a = await registerTenant(app, "A", "patch-name-a", "a@patch-name.dev");
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie: a.cookie },
+      payload: { name: "Summit", slug: "summit" },
+    });
+    const gid = created.json().group.id as string;
+
+    const renamed = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/admin/groups/${gid}`,
+      headers: { cookie: a.cookie },
+      payload: { name: "Summit2" },
+    });
+    expect(renamed.statusCode).toBe(200);
+    expect(renamed.json().group.name).toBe("Summit2");
+
+    const ownSlug = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/admin/groups/${gid}`,
+      headers: { cookie: a.cookie },
+      payload: { slug: "summit" },
+    });
+    expect(ownSlug.statusCode).toBe(200);
+    expect(ownSlug.json().group.slug).toBe("summit");
+  });
 });
