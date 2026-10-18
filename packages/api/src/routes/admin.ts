@@ -140,8 +140,10 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
   });
 
   app.post("/api/v1/admin/groups", { preHandler: pre, config: { rateLimit: RATE_LIMIT } }, async (req, reply) => {
-    const body = req.body as { name?: string; slug?: string };
-    if (!body.name || !body.slug) throw new HttpError(400, "bad_request", "name and slug are required");
+    const body = (req.body ?? {}) as { name?: unknown; slug?: unknown };
+    if (typeof body.name !== "string" || body.name.length === 0 || typeof body.slug !== "string") {
+      throw new HttpError(400, "bad_request", "name and slug are required");
+    }
     if (!GROUP_SLUG.test(body.slug)) throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
     const all = await deps.repos.listGroups(req.user!.tenantId);
     if (all.some((g) => g.slug === body.slug)) throw new HttpError(409, "conflict", "group slug already taken");
@@ -163,17 +165,25 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!group || group.tenantId !== req.user!.tenantId) {
       return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Group not found"));
     }
-    const body = req.body as { name?: string; slug?: string };
-    if (body.slug !== undefined && !GROUP_SLUG.test(body.slug)) {
-      throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
+    const body = (req.body ?? {}) as { name?: unknown; slug?: unknown };
+    const patch: { name?: string; slug?: string } = {};
+    if (body.name !== undefined) {
+      if (typeof body.name !== "string" || body.name.length === 0) {
+        throw new HttpError(400, "bad_request", "name must be a non-empty string");
+      }
+      patch.name = body.name;
     }
     if (body.slug !== undefined) {
+      if (typeof body.slug !== "string" || !GROUP_SLUG.test(body.slug)) {
+        throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
+      }
       const all = await deps.repos.listGroups(req.user!.tenantId);
       if (all.some((g) => g.slug === body.slug && g.id !== group.id)) {
         throw new HttpError(409, "conflict", "group slug already taken");
       }
+      patch.slug = body.slug;
     }
-    await deps.repos.updateGroup(group.id, body);
+    await deps.repos.updateGroup(group.id, patch);
     const all2 = await deps.repos.listGroups(req.user!.tenantId);
     return { group: all2.find((g) => g.id === group.id)! };
   });
@@ -192,7 +202,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!group || group.tenantId !== req.user!.tenantId) {
       return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Group not found"));
     }
-    const body = req.body as { cameraIds?: unknown };
+    const body = (req.body ?? {}) as { cameraIds?: unknown };
     if (!Array.isArray(body.cameraIds) || body.cameraIds.some((x) => typeof x !== "string")) {
       throw new HttpError(400, "bad_request", "cameraIds must be an array of camera ids");
     }
