@@ -202,6 +202,7 @@ export function createRepos(db: Db): Repos {
       return row ?? null;
     },
     async updateGroup(id: string, patch: { name?: string; slug?: string }) {
+      if (Object.values(patch).every((v) => v === undefined)) return await this.getGroup(id);
       const [row] = await db.update(cameraGroups).set(patch).where(eq(cameraGroups.id, id)).returning();
       return row ?? null;
     },

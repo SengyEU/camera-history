@@ -71,6 +71,10 @@ describe.skipIf(!RUN)("PG integration", () => {
     expect(pub?.cameras.map((c) => c.id)).toEqual([a.id]); // disabled Beta excluded
     expect(await repos.getGroupBySlug(tenant.slug, "nope")).toBeNull();
 
+    const noop = await repos.updateGroup(g.id, {});
+    expect(noop).not.toBeNull();
+    expect(noop?.name).toBe("Summit");
+
     await db.delete(tenants).where(eq(tenants.id, tenant.id));
     const pool = db.$client as import("pg").Pool;
     await pool.end();
