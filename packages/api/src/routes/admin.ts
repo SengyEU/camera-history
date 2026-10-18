@@ -71,7 +71,13 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
 
     const latitude = parseCoordinate(body.latitude, "latitude");
     const longitude = parseCoordinate(body.longitude, "longitude");
-    const daylightOnly = body.daylightOnly === undefined ? false : Boolean(body.daylightOnly);
+    let daylightOnly = false;
+    if (body.daylightOnly !== undefined) {
+      if (typeof body.daylightOnly !== "boolean") {
+        throw new HttpError(400, "bad_request", "daylightOnly must be a boolean");
+      }
+      daylightOnly = body.daylightOnly;
+    }
     if (daylightOnly && (latitude === null || longitude === null)) {
       throw new HttpError(
         400,
@@ -145,8 +151,13 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       patch.longitude !== undefined
         ? parseCoordinate(patch.longitude, "longitude")
         : camera.longitude;
-    const effectiveDaylightOnly =
-      patch.daylightOnly !== undefined ? Boolean(patch.daylightOnly) : camera.daylightOnly;
+    let effectiveDaylightOnly = camera.daylightOnly;
+    if (patch.daylightOnly !== undefined) {
+      if (typeof patch.daylightOnly !== "boolean") {
+        throw new HttpError(400, "bad_request", "daylightOnly must be a boolean");
+      }
+      effectiveDaylightOnly = patch.daylightOnly;
+    }
     if (effectiveDaylightOnly && (effectiveLatitude === null || effectiveLongitude === null)) {
       throw new HttpError(
         400,

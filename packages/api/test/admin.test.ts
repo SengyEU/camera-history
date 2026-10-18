@@ -302,6 +302,90 @@ describe("admin camera coordinates", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("rejects non-boolean daylightOnly on create and update", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const base = {
+      name: "Geo",
+      feedType: "static_url",
+      feedUrl: "https://example.com/cam.jpg",
+      intervalMinutes: 15,
+      latitude: 51.425,
+      longitude: -116.177,
+    };
+
+    const post = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: { ...base, daylightOnly: "false" },
+    });
+    expect(post.statusCode).toBe(400);
+    expect(post.json().title).toBe("bad_request");
+    expect(post.json().detail).toBe("daylightOnly must be a boolean");
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: base,
+    });
+    const id = created.json().camera.id as string;
+    const put = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+      payload: { daylightOnly: "false" },
+    });
+    expect(put.statusCode).toBe(400);
+    expect(put.json().title).toBe("bad_request");
+    expect(put.json().detail).toBe("daylightOnly must be a boolean");
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("clears coordinates via PUT when daylightOnly is disabled", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Geo",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        latitude: 51.425,
+        longitude: -116.177,
+        daylightOnly: false,
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const id = created.json().camera.id as string;
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+      payload: { latitude: null, longitude: null },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().camera).toMatchObject({ latitude: null, longitude: null, daylightOnly: false });
+
+    const get = await app.inject({
+      method: "GET",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+    });
+    expect(get.statusCode).toBe(200);
+    expect(get.json().camera).toMatchObject({
+      latitude: null,
+      longitude: null,
+      daylightOnly: false,
+    });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("rejects enabling daylightOnly via PUT when the camera has no coordinates", async () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);

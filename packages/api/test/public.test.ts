@@ -104,15 +104,16 @@ describe("public routes", () => {
       timezone: "America/Edmonton",
       latitude: 51.425,
       longitude: -116.177,
-      timestamps: ["2026-10-18T20:00:00Z", "2026-10-18T06:00:00Z"],
+      timestamps: ["2026-10-18T20:00:00Z", "2026-10-18T13:00:00Z", "2026-10-18T06:00:00Z"],
     });
 
     const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
     expect(res.statusCode).toBe(200);
     const images = res.json().images as Record<string, unknown>[];
-    expect(images).toHaveLength(2);
+    expect(images).toHaveLength(3);
     expect(images[0]).toMatchObject({ timestamp: "2026-10-18T06:00:00.000Z", isDaylight: false });
-    expect(images[1]).toMatchObject({ timestamp: "2026-10-18T20:00:00.000Z", isDaylight: true });
+    expect(images[1]).toMatchObject({ timestamp: "2026-10-18T13:00:00.000Z", isDaylight: false });
+    expect(images[2]).toMatchObject({ timestamp: "2026-10-18T20:00:00.000Z", isDaylight: true });
     for (const image of images) {
       expect(image).toEqual({
         id: expect.any(String),
@@ -128,14 +129,37 @@ describe("public routes", () => {
     const { app, repos } = makeApp();
     const camera = await seedCameraWithImages(repos, {
       timezone: "UTC",
-      timestamps: ["2026-10-18T10:00:00Z", "2026-10-18T20:00:00Z", "2026-10-18T22:00:00Z"],
+      timestamps: [
+        "2026-10-18T06:00:00Z",
+        "2026-10-18T10:00:00Z",
+        "2026-10-18T20:00:00Z",
+        "2026-10-18T22:00:00Z",
+      ],
     });
 
     const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
     expect(res.statusCode).toBe(200);
     const images = res.json().images as Record<string, unknown>[];
-    expect(images).toHaveLength(3);
-    expect(images.map((img) => img.isDaylight)).toEqual([true, false, false]);
+    expect(images).toHaveLength(4);
+    expect(images.map((img) => img.isDaylight)).toEqual([true, true, false, false]);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("uses the camera timezone for the local-hour fallback", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCameraWithImages(repos, {
+      timezone: "America/Los_Angeles",
+      timestamps: ["2026-10-18T04:00:00Z"],
+    });
+
+    const res = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-10-18` });
+    expect(res.statusCode).toBe(200);
+    const images = res.json().images as Record<string, unknown>[];
+    expect(images).toHaveLength(1);
+    expect(images[0]).toMatchObject({
+      timestamp: "2026-10-18T04:00:00.000Z",
+      isDaylight: false,
+    });
     await (app as { close: () => Promise<void> }).close();
   });
 
