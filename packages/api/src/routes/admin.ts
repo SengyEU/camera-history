@@ -148,7 +148,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     const all = await deps.repos.listGroups(req.user!.tenantId);
     if (all.some((g) => g.slug === body.slug)) throw new HttpError(409, "conflict", "group slug already taken");
     const group = await deps.repos.createGroup(req.user!.tenantId, { name: body.name, slug: body.slug });
-    return reply.code(201).send({ group });
+    return reply.code(201).send({ group: { id: group.id, name: group.name, slug: group.slug, cameraIds: [] } });
   });
 
   app.get<{ Params: { id: string } }>("/api/v1/admin/groups/:id", { preHandler: pre }, async (req, reply) => {
@@ -208,6 +208,10 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     const body = (req.body ?? {}) as { cameraIds?: unknown };
     if (!Array.isArray(body.cameraIds) || body.cameraIds.some((x) => typeof x !== "string")) {
       throw new HttpError(400, "bad_request", "cameraIds must be an array of camera ids");
+    }
+    const ownedIds = new Set((await deps.repos.listCameras(req.user!.tenantId)).map((c) => c.id));
+    if ((body.cameraIds as string[]).some((id) => !ownedIds.has(id))) {
+      throw new HttpError(400, "bad_request", "cameraIds must reference your own cameras");
     }
     await deps.repos.setGroupCameras(group.id, body.cameraIds as string[]);
     return reply.code(204).send();

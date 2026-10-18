@@ -102,10 +102,12 @@ describe("public routes", () => {
     expect(body.cameras).toEqual([{ id: cam.id, name: "Zulu", theme: "dark" }]);
   });
 
-  it("404s for unknown public group", async () => {
+  it("404s for unknown public group with a group-specific detail", async () => {
     const { app } = makeApp();
     const res = await app.inject({ method: "GET", url: "/api/v1/groups/none/none" });
     expect(res.statusCode).toBe(404);
+    expect(res.headers["content-type"]).toContain("application/problem+json");
+    expect(res.json().detail).toBe("Group not found");
   });
 
   it("returns latest capture date, or null when none", async () => {

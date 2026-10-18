@@ -324,6 +324,13 @@ describe("admin groups", () => {
       payload: { name: "Summit", slug: "summit" },
     });
     expect(created.statusCode).toBe(201);
+    expect(created.json().group).toEqual({
+      id: expect.any(String),
+      name: "Summit",
+      slug: "summit",
+      cameraIds: [],
+    });
+    expect(created.json().group).not.toHaveProperty("tenantId");
     const gid = created.json().group.id as string;
 
     const dup = await app.inject({
@@ -665,5 +672,87 @@ describe("admin groups", () => {
     });
     expect(ownSlug.statusCode).toBe(200);
     expect(ownSlug.json().group.slug).toBe("summit");
+  });
+
+  it("sets group membership from the tenant's own cameras", async () => {
+    const { app, repos } = makeApp();
+    const a = await registerTenant(app, "A", "owncams-a", "a@owncams.dev");
+    const cam = await repos.createCamera(a.tenantId, {
+      name: "Own",
+      feedType: "static_url",
+      feedUrl: "https://e.com/o.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie: a.cookie },
+      payload: { name: "Summit", slug: "summit" },
+    });
+    const gid = created.json().group.id as string;
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/groups/${gid}/cameras`,
+      headers: { cookie: a.cookie },
+      payload: { cameraIds: [cam.id] },
+    });
+    expect(res.statusCode).toBe(204);
+
+    const list = await app.inject({ method: "GET", url: "/api/v1/admin/groups", headers: { cookie: a.cookie } });
+    expect(list.json().groups.find((g: { id: string }) => g.id === gid).cameraIds).toEqual([cam.id]);
+  });
+
+  it("rejects group membership with a camera from another tenant and writes nothing", async () => {
+    const { app, repos } = makeApp();
+    const a = await registerTenant(app, "A", "foreigncam-a", "a@foreigncam.dev");
+    const b = await registerTenant(app, "B", "foreigncam-b", "b@foreigncam.dev");
+    const own = await repos.createCamera(a.tenantId, {
+      name: "Own",
+      feedType: "static_url",
+      feedUrl: "https://e.com/o.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    const foreign = await repos.createCamera(b.tenantId, {
+      name: "Foreign",
+      feedType: "static_url",
+      feedUrl: "https://e.com/f.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie: a.cookie },
+      payload: { name: "Summit", slug: "summit" },
+    });
+    const gid = created.json().group.id as string;
+    const seed = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/groups/${gid}/cameras`,
+      headers: { cookie: a.cookie },
+      payload: { cameraIds: [own.id] },
+    });
+    expect(seed.statusCode).toBe(204);
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/groups/${gid}/cameras`,
+      headers: { cookie: a.cookie },
+      payload: { cameraIds: [own.id, foreign.id] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().detail).toBe("cameraIds must reference your own cameras");
+
+    const list = await app.inject({ method: "GET", url: "/api/v1/admin/groups", headers: { cookie: a.cookie } });
+    expect(list.json().groups.find((g: { id: string }) => g.id === gid).cameraIds).toEqual([own.id]);
   });
 });

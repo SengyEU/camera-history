@@ -96,7 +96,12 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
     "/api/v1/groups/:tenantSlug/:groupSlug",
     async (req, reply) => {
       const data = await repos.getGroupBySlug(req.params.tenantSlug, req.params.groupSlug);
-      if (!data) return reply.code(404).type("application/problem+json").send(notFound());
+      if (!data) {
+        return reply
+          .code(404)
+          .type("application/problem+json")
+          .send(rfc7807(404, "not_found", "Group not found"));
+      }
       return data;
     },
   );
