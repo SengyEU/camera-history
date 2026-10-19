@@ -8,10 +8,80 @@
       name="description"
       content="Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
     />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://camera.sengycraft.cz/" />
+    <meta name="theme-color" content="#f7f9fb" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Camera History" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Camera History — Time-lapse history for your webcam" />
+    <meta
+      property="og:description"
+      content="Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
+    />
+    <meta property="og:url" content="https://camera.sengycraft.cz/" />
+    <meta property="og:image" content="https://camera.sengycraft.cz/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Camera History — Your webcam only shows now. We add the history."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Camera History — Time-lapse history for your webcam" />
+    <meta
+      name="twitter:description"
+      content="Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
+    />
+    <meta name="twitter:image" content="https://camera.sengycraft.cz/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Camera History — Your webcam only shows now. We add the history."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://camera.sengycraft.cz/#website",
+            "url": "https://camera.sengycraft.cz/",
+            "name": "Camera History",
+            "description": "Turn any public webcam into a browsable archive."
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://camera.sengycraft.cz/#app",
+            "name": "Camera History",
+            "url": "https://camera.sengycraft.cz/",
+            "description": "Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures.",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "image": "https://camera.sengycraft.cz/og-image.png",
+            "offers": {
+              "@type": "AggregateOffer",
+              "priceCurrency": "EUR",
+              "lowPrice": 5,
+              "highPrice": 69,
+              "offerCount": 7,
+              "url": "https://camera.sengycraft.cz/#pricing"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Sengycraft",
+              "url": "https://camera.sengycraft.cz/",
+              "logo": "https://camera.sengycraft.cz/favicon-192.png",
+              "email": "hello@sengycraft.cz"
+            }
+          }
+        ]
+      }
+    </script>
+    <link rel="icon" href="/favicon.ico?v=20261019" sizes="any" />
+    <link rel="icon" href="/favicon.svg?v=20261019" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-192.png?v=20261019" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20261019" />
     <link rel="stylesheet" href="/src/site.css" />
   </head>
   <body>
@@ -25,6 +95,7 @@
       </nav>
     </header>
 
+    <main id="main">
     <section id="demo" class="hero">
       <svg
         class="ridge"
@@ -72,6 +143,7 @@
           <div class="cam-frame">
             <span class="ts-chip">LIVE</span>
             <iframe
+              id="camera-history-group-alpine-summit-summit"
               src="/group/alpine-summit/summit"
               title="Camera History live demo"
               style="border: 0; width: 100%; height: 720px"
@@ -144,16 +216,20 @@
       <p class="muted">EUR, per camera, VAT excl. Longer retention costs less per month.</p>
       <table class="price-table">
         <thead>
-          <tr><th>Retention</th><th>Price per camera</th><th class="flag-col" aria-hidden="true"></th></tr>
+          <tr>
+            <th scope="col">Retention</th>
+            <th scope="col">Price per camera</th>
+            <th scope="col" class="flag-col"><span class="visually-hidden">Highlight</span></th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>14 days</td><td>€5</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr><td>1 month</td><td>€9</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr><td>3 months</td><td>€15</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr><td>6 months</td><td>€22</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr class="popular"><td>12 months</td><td>€29</td><td class="flag-col"><span class="ts-chip">MOST POPULAR</span></td></tr>
-          <tr><td>24 months</td><td>€49</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr><td>36 months</td><td>€69</td><td class="flag-col" aria-hidden="true"></td></tr>
+          <tr><th scope="row">14 days</th><td>€5</td><td class="flag-col" aria-hidden="true"></td></tr>
+          <tr><th scope="row">1 month</th><td>€9</td><td class="flag-col" aria-hidden="true"></td></tr>
+          <tr><th scope="row">3 months</th><td>€15</td><td class="flag-col" aria-hidden="true"></td></tr>
+          <tr><th scope="row">6 months</th><td>€22</td><td class="flag-col" aria-hidden="true"></td></tr>
+          <tr class="popular"><th scope="row">12 months</th><td>€29</td><td class="flag-col"><span class="ts-chip">MOST POPULAR</span></td></tr>
+          <tr><th scope="row">24 months</th><td>€49</td><td class="flag-col" aria-hidden="true"></td></tr>
+          <tr><th scope="row">36 months</th><td>€69</td><td class="flag-col" aria-hidden="true"></td></tr>
         </tbody>
       </table>
     </section>
@@ -185,6 +261,7 @@
         <a class="btn ghost" href="mailto:hello@sengycraft.cz">Get in touch</a>
       </div>
     </section>
+    </main>
 
     <footer class="site-footer">
       <span>© Sengycraft</span>

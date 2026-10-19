@@ -21,7 +21,10 @@ describe("landing page", () => {
   });
 
   it("pins the exact pricing tiers as row pairs", () => {
-    const normalized = html.replace(/\s+/g, " ").replaceAll("</td><td>", "</td> <td>");
+    const normalized = html
+      .replace(/\s+/g, " ")
+      .replaceAll("</td><td>", "</td> <td>")
+      .replaceAll("</th><td>", "</th> <td>");
     for (const [label, price] of [
       ["14 days", "€5"],
       ["1 month", "€9"],
@@ -31,7 +34,7 @@ describe("landing page", () => {
       ["24 months", "€49"],
       ["36 months", "€69"],
     ]) {
-      expect(normalized).toContain(`<td>${label}</td> <td>${price}</td>`);
+      expect(normalized).toContain(`<th scope="row">${label}</th> <td>${price}</td>`);
     }
   });
 
