@@ -14,7 +14,7 @@
   --ink: #101828;
   --muted: #5b6b7c;
   --line: #e3e9ef;
-  --accent: #0891b2;
+  --accent: #0e7490;
   --on-accent: #ffffff;
   --pine: #1e7d4e;
   --on-pine: #ffffff;
@@ -69,7 +69,63 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
 /* Header */
 .widget-header { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; }
 
-.camera-switcher,
+.camera-switcher {
+  position: relative;
+  display: inline-block;
+}
+
+.camera-switcher-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 180px;
+  max-width: 260px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.camera-switcher-button:hover { border-color: var(--accent); }
+.camera-switcher-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.camera-switcher-caret { color: var(--muted); font-size: 11px; }
+
+.camera-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.camera-menu [role="option"] {
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--ink);
+  white-space: nowrap;
+  outline: none;
+}
+.camera-menu [role="option"]:hover,
+.camera-menu [role="option"]:focus-visible {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--ink);
+}
+.camera-menu [role="option"][aria-selected="true"] {
+  background: color-mix(in srgb, var(--accent) 24%, var(--surface));
+  font-weight: 600;
+}
+
 .date-nav input[type="date"] {
   max-width: 220px;
   background: var(--surface);

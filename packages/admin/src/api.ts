@@ -1,6 +1,18 @@
 export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
 export type CameraStatus = "operational" | "delayed" | "offline";
 
+export interface ThemeColors {
+  bg: string;
+  surface: string;
+  ink: string;
+  muted: string;
+  line: string;
+  accent: string;
+  onAccent: string;
+  pine: string;
+  onPine: string;
+}
+
 export interface AdminCamera {
   id: string;
   name: string;
@@ -12,6 +24,7 @@ export interface AdminCamera {
   timezone: string;
   enabled: boolean;
   theme: string;
+  themeColors: ThemeColors | null;
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
@@ -33,6 +46,7 @@ export interface CameraInput {
   activeTo: string;
   timezone: string;
   theme: string;
+  themeColors: ThemeColors | null;
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
@@ -89,6 +103,7 @@ export const THEME_LABELS: Record<string, string> = {
   dark: "Dark",
   forest: "Forest",
   midnight: "Midnight",
+  custom: "Custom",
 };
 
 export const THEMES = Object.keys(THEME_LABELS);

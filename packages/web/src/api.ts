@@ -1,7 +1,20 @@
+export interface ThemeColors {
+  bg: string;
+  surface: string;
+  ink: string;
+  muted: string;
+  line: string;
+  accent: string;
+  onAccent: string;
+  pine: string;
+  onPine: string;
+}
+
 export interface PublicCamera {
   id: string;
   name: string;
   theme: string;
+  themeColors?: ThemeColors | null;
   retentionMonths?: number;
   showNight: boolean;
   timezone: string;
@@ -32,6 +45,7 @@ export interface GroupCamera {
   id: string;
   name: string;
   theme: string;
+  themeColors?: ThemeColors | null;
   retentionMonths?: number;
   showNight: boolean;
   timezone: string;

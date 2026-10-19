@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
@@ -283,6 +283,36 @@ describe("App camera CRUD", () => {
     await userEvent.click(screen.getByTestId("form-back"));
     expect(screen.getByTestId("camera-summary")).toBeInTheDocument();
     expect(screen.queryByTestId("camera-editor")).not.toBeInTheDocument();
+  });
+
+  it("configures a custom theme and warns about low contrast", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    await userEvent.selectOptions(screen.getByTestId("form-theme"), "custom");
+    expect(screen.getByTestId("custom-theme-fields")).toBeInTheDocument();
+    expect(screen.getByTestId("form-color-bg")).toHaveValue("#f8fafb");
+
+    fireEvent.change(screen.getByTestId("form-color-ink"), { target: { value: "#ffffff" } });
+    expect(screen.getByTestId("contrast-warnings")).toHaveTextContent("Text on background");
+
+    await userEvent.type(screen.getByTestId("form-name"), "Custom cam");
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true),
+    );
+    const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
+    const body = JSON.parse(String(post.init?.body)) as {
+      theme: string;
+      themeColors: Record<string, string>;
+    };
+    expect(body.theme).toBe("custom");
+    expect(body.themeColors.ink).toBe("#ffffff");
+    expect(body.themeColors.bg).toBe("#f8fafb");
   });
 
   it("shows a live widget preview beside the camera settings", async () => {

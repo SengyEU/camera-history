@@ -43,6 +43,13 @@
       "when": 1792343686481,
       "tag": "0005_late_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792433141830,
+      "tag": "0006_optimal_gauntlet",
+      "breakpoints": true
     }
   ]
 }

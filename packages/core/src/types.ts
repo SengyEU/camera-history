@@ -1,3 +1,5 @@
+import type { ThemeColors } from "./themes.js";
+
 export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
 export type UserRole = "owner" | "admin";
 export type CameraStatus = "operational" | "delayed" | "offline";
@@ -43,6 +45,7 @@ export interface Camera {
   timezone: string;
   enabled: boolean;
   theme: string;
+  themeColors: ThemeColors | null;
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
@@ -64,6 +67,7 @@ export interface PublicCamera {
   id: string;
   name: string;
   theme: string;
+  themeColors: ThemeColors | null;
   timezone: string;
   retentionMonths: number;
   latitude: number | null;
@@ -95,6 +99,7 @@ export interface NewCamera {
   timezone: string;
   enabled?: boolean;
   theme?: string;
+  themeColors?: ThemeColors | null;
   latitude?: number | null;
   longitude?: number | null;
   daylightOnly?: boolean;
@@ -112,6 +117,7 @@ export interface CameraPatch {
   timezone?: string;
   enabled?: boolean;
   theme?: string;
+  themeColors?: ThemeColors | null;
   latitude?: number | null;
   longitude?: number | null;
   daylightOnly?: boolean;
@@ -151,6 +157,7 @@ export interface PublicGroupCamera {
   id: string;
   name: string;
   theme: string;
+  themeColors: ThemeColors | null;
   timezone: string;
   retentionMonths: number;
   showNight: boolean;

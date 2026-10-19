@@ -4,9 +4,11 @@ import {
   getCameraLatest,
   getGroup,
   getImages,
+  type GroupCamera,
   type ImageDto,
   type PublicCamera,
   type PublicGroup,
+  type ThemeColors,
 } from "./api";
 import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
 import { SharePopup } from "./SharePopup";
@@ -25,6 +27,120 @@ function resolveTheme(query: URLSearchParams, cameraTheme: string | undefined): 
   if (q && isValidTheme(q)) return q;
   if (cameraTheme && isValidTheme(cameraTheme)) return cameraTheme;
   return "light";
+}
+
+const CUSTOM_THEME_VARS: Record<keyof ThemeColors, string> = {
+  bg: "--bg",
+  surface: "--surface",
+  ink: "--ink",
+  muted: "--muted",
+  line: "--line",
+  accent: "--accent",
+  onAccent: "--on-accent",
+  pine: "--pine",
+  onPine: "--on-pine",
+};
+
+function CameraSwitcher({
+  cameras,
+  selectedId,
+  onSelect,
+}: {
+  cameras: GroupCamera[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLUListElement | null>(null);
+  const selected = cameras.find((camera) => camera.id === selectedId);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const target =
+      menuRef.current?.querySelector<HTMLElement>('[aria-selected="true"]') ??
+      menuRef.current?.querySelector<HTMLElement>('[role="option"]');
+    target?.focus();
+  }, [open]);
+
+  const choose = (id: string) => {
+    onSelect(id);
+    setOpen(false);
+    buttonRef.current?.focus();
+  };
+
+  return (
+    <div className="camera-switcher" ref={rootRef}>
+      <button
+        ref={buttonRef}
+        type="button"
+        className="camera-switcher-button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        data-testid="camera-switcher"
+      >
+        <span>{selected?.name ?? "Camera"}</span>
+        <span className="camera-switcher-caret" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      {open && (
+        <ul
+          ref={menuRef}
+          className="camera-menu"
+          role="listbox"
+          aria-label="Camera"
+          onKeyDown={(event) => {
+            const options = Array.from(
+              menuRef.current?.querySelectorAll<HTMLElement>('[role="option"]') ?? [],
+            );
+            const index = options.indexOf(document.activeElement as HTMLElement);
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              options[Math.min(index + 1, options.length - 1)]?.focus();
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              options[Math.max(index - 1, 0)]?.focus();
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              setOpen(false);
+              buttonRef.current?.focus();
+            }
+          }}
+        >
+          {cameras.map((camera) => (
+            <li
+              key={camera.id}
+              role="option"
+              aria-selected={camera.id === selectedId}
+              tabIndex={0}
+              data-testid={`camera-option-${camera.id}`}
+              onClick={() => choose(camera.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  choose(camera.id);
+                }
+              }}
+            >
+              {camera.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function parseWidgetPath(path: string): { tenant: string; cameraId: string } | null {
@@ -263,9 +379,29 @@ export function App() {
     [groupRoute, camera, selectedCamera],
   );
 
+  const customTheme = useMemo(() => {
+    const queryTheme = new URLSearchParams(window.location.search).get("theme");
+    if (queryTheme && isValidTheme(queryTheme)) return null;
+    const cameraTheme = groupRoute ? selectedCamera?.theme : camera?.theme;
+    if (cameraTheme !== "custom") return null;
+    const colors = groupRoute ? selectedCamera?.themeColors : camera?.themeColors;
+    return colors ?? null;
+  }, [groupRoute, camera, selectedCamera]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!customTheme) return;
+    for (const [key, cssVar] of Object.entries(CUSTOM_THEME_VARS)) {
+      root.style.setProperty(cssVar, customTheme[key as keyof ThemeColors]);
+    }
+    return () => {
+      for (const cssVar of Object.values(CUSTOM_THEME_VARS)) root.style.removeProperty(cssVar);
+    };
+  }, [customTheme]);
 
   useEffect(() => {
     const onMissing = () => setEmbedScriptMissing(true);
@@ -504,19 +640,11 @@ export function App() {
         onCloseShare={() => setShareImage(null)}
         switcher={
           group ? (
-            <select
-              className="camera-switcher"
-              data-testid="camera-switcher"
-              aria-label="Camera"
-              value={selectedCameraId ?? ""}
-              onChange={(e) => setSelectedCameraId(e.target.value)}
-            >
-              {group.cameras.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <CameraSwitcher
+              cameras={group.cameras}
+              selectedId={selectedCameraId}
+              onSelect={setSelectedCameraId}
+            />
           ) : undefined
         }
       />

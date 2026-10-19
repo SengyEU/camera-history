@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { THEMES, isValidTheme, HttpError, rfc7807 } from "@ch/core";
+import { THEMES, isValidTheme, normalizeThemeColors, HttpError, rfc7807 } from "@ch/core";
 import type { AppDeps } from "../app.js";
 import { requireAuth } from "../plugins/auth.js";
 
@@ -79,6 +79,16 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!isValidTheme(theme)) {
       throw new HttpError(400, "bad_request", `theme must be one of ${THEMES.join(", ")}`);
     }
+    let themeColors = null;
+    if (body.themeColors !== undefined && body.themeColors !== null) {
+      themeColors = normalizeThemeColors(body.themeColors);
+      if (!themeColors) {
+        throw new HttpError(400, "bad_request", "themeColors must contain valid #rrggbb colors");
+      }
+    }
+    if (theme === "custom" && !themeColors) {
+      throw new HttpError(400, "bad_request", "themeColors are required when theme is custom");
+    }
     if (!schemeMatches(feedType, feedUrl)) {
       throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${feedType}"`);
     }
@@ -117,6 +127,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       timezone: String(body.timezone ?? "UTC"),
       enabled: body.enabled === undefined ? true : Boolean(body.enabled),
       theme,
+      themeColors,
       latitude,
       longitude,
       daylightOnly,
@@ -153,6 +164,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
           "timezone",
           "enabled",
           "theme",
+          "themeColors",
           "latitude",
           "longitude",
           "daylightOnly",
@@ -167,6 +179,17 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     }
     if (patch.theme !== undefined && !isValidTheme(String(patch.theme))) {
       throw new HttpError(400, "bad_request", `theme must be one of ${THEMES.join(", ")}`);
+    }
+    if (patch.themeColors !== undefined) {
+      const colors = normalizeThemeColors(patch.themeColors);
+      if (!colors) {
+        throw new HttpError(400, "bad_request", "themeColors must contain valid #rrggbb colors");
+      }
+      patch.themeColors = colors;
+    }
+    const effectiveTheme = patch.theme !== undefined ? String(patch.theme) : camera.theme;
+    if (effectiveTheme === "custom" && !(patch.themeColors ?? camera.themeColors)) {
+      throw new HttpError(400, "bad_request", "themeColors are required when theme is custom");
     }
     const effectiveLatitude =
       patch.latitude !== undefined ? parseCoordinate(patch.latitude, "latitude") : camera.latitude;

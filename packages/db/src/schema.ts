@@ -74,6 +74,7 @@ export const cameras = pgTable("cameras", {
   timezone: text("timezone").notNull().default("UTC"),
   enabled: boolean("enabled").notNull().default(true),
   theme: text("theme").notNull().default("light"),
+  themeColors: jsonb("theme_colors").$type<import("@ch/core").ThemeColors | null>(),
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
   daylightOnly: boolean("daylight_only").notNull().default(false),

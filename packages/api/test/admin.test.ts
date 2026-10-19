@@ -111,6 +111,71 @@ describe("admin cameras", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("creates a custom theme camera and validates its colors", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const colors = {
+      bg: "#101010",
+      surface: "#1a1a1a",
+      ink: "#f5f5f5",
+      muted: "#b0b0b0",
+      line: "#333333",
+      accent: "#7fbf9a",
+      onAccent: "#101010",
+      pine: "#3f9e6f",
+      onPine: "#06231a",
+    };
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Custom",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        theme: "custom",
+        themeColors: colors,
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().camera.themeColors).toEqual(colors);
+
+    const missing = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "No colors",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        theme: "custom",
+      },
+    });
+    expect(missing.statusCode).toBe(400);
+
+    const invalid = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Bad colors",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        theme: "custom",
+        themeColors: { ...colors, bg: "red" },
+      },
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    const publicRes = await app.inject({ method: "GET", url: `/api/v1/cameras/${created.json().camera.id}` });
+    expect(publicRes.statusCode).toBe(200);
+    expect(publicRes.json().camera.themeColors).toEqual(colors);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("rejects an unknown theme on create", async () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);

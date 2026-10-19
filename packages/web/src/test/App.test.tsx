@@ -76,6 +76,12 @@ const threeImages = () => [
   makeImage("d3", "2026-09-18T15:27:00Z", "/d3.jpg"),
 ];
 
+const chooseCamera = async (id: string) => {
+  const switcher = await screen.findByTestId("camera-switcher");
+  await userEvent.click(switcher);
+  await userEvent.click(await screen.findByTestId(`camera-option-${id}`));
+};
+
 class ImageStub {
   static autoResolve = true;
   static instances: ImageStub[] = [];
@@ -1044,17 +1050,18 @@ describe("App group widget", () => {
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
     render(<App />);
 
-    const select = (await screen.findByTestId("camera-switcher")) as HTMLSelectElement;
-    expect(select.options.length).toBe(2);
-    expect(select).toHaveValue("cam-a");
-    const header = select.closest(".widget-header");
+    const switcher = await screen.findByTestId("camera-switcher");
+    expect(switcher).toHaveTextContent("Alpha");
+    const header = switcher.closest(".widget-header");
     expect(header).not.toBeNull();
     expect(header?.children).toHaveLength(1);
     expect(document.querySelector(".widget-title")).toBeNull();
     expect(screen.queryByText("Summit")).not.toBeInTheDocument();
     expect(await screen.findByTestId("frame-cam-a-2026-10-10")).toBeInTheDocument();
 
-    await user.selectOptions(select, "cam-b");
+    await user.click(switcher);
+    expect(await screen.findAllByRole("option")).toHaveLength(2);
+    await user.click(screen.getByTestId("camera-option-cam-b"));
     expect(await screen.findByTestId("frame-cam-b-2026-10-10")).toBeInTheDocument();
     expect(screen.getByDisplayValue("2026-10-10")).toBeInTheDocument();
     expect(vi.mocked(getCameraLatest)).not.toHaveBeenCalled();
@@ -1088,7 +1095,7 @@ describe("App group widget", () => {
     const alphaFrame = await screen.findByTestId("frame-e1");
     expect(alphaFrame.querySelector(".frame-osd")).toHaveTextContent("October 18, 2026 · 12 AM");
 
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await chooseCamera("cam-b");
     await waitFor(() =>
       expect(screen.getByTestId("frame-e1").querySelector(".frame-osd")).toHaveTextContent(
         "October 17, 2026 · 6 PM",
@@ -1124,11 +1131,11 @@ describe("App group widget", () => {
 
     expect(await screen.findByTestId("frame-cam-a-2026-10-10-n")).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await chooseCamera("cam-b");
     expect(await screen.findByTestId("frame-cam-b-2026-10-10-d")).toBeInTheDocument();
     expect(screen.queryByTestId("frame-cam-b-2026-10-10-n")).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-a");
+    await chooseCamera("cam-a");
     expect(await screen.findByTestId("frame-cam-a-2026-10-10-n")).toBeInTheDocument();
   });
 
@@ -1150,7 +1157,7 @@ describe("App group widget", () => {
     render(<App />);
 
     expect(await screen.findByTestId("frame-i1")).toBeInTheDocument();
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await chooseCamera("cam-b");
 
     expect(await screen.findByTestId("frame-i2")).toBeInTheDocument();
     expect(vi.mocked(getCameraLatest)).toHaveBeenCalledWith("cam-b");
@@ -1187,7 +1194,7 @@ describe("App group widget", () => {
     render(<App />);
 
     expect(await screen.findByTestId("frame-i1")).toBeInTheDocument();
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await chooseCamera("cam-b");
 
     expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -1261,7 +1268,7 @@ describe("App group widget", () => {
     expect(vi.mocked(getImages)).not.toHaveBeenCalledWith("cam-a", "2027-01-01");
     expect(input).toHaveValue("2026-08-19");
 
-    fireEvent.change(screen.getByTestId("camera-switcher"), { target: { value: "cam-b" } });
+    await chooseCamera("cam-b");
     await waitFor(() => expect(input.min).toBe(minFor(12)));
     expect(screen.getByLabelText("Previous day")).not.toBeDisabled();
   });
@@ -1344,7 +1351,7 @@ describe("App group widget", () => {
     await user.click(screen.getByTestId("share-open"));
     expect(screen.getByTestId("share-popup")).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await chooseCamera("cam-b");
 
     expect(await screen.findByTestId("frame-cam-b-2026-10-10")).toBeInTheDocument();
     expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
@@ -1370,7 +1377,7 @@ describe("App group widget", () => {
     });
     expect(await screen.findByTestId("frame-a1")).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await chooseCamera("cam-b");
     await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-b", "2026-10-10"));
 
     expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
@@ -1393,7 +1400,7 @@ describe("App group widget", () => {
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
     render(<App />);
 
-    await user.selectOptions(await screen.findByTestId("camera-switcher"), "cam-b");
+    await chooseCamera("cam-b");
     await user.click(await screen.findByTestId("frame-cam-b-2026-10-10"));
     await user.click(screen.getByTestId("share-open"));
 
@@ -1414,8 +1421,8 @@ describe("App group widget", () => {
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10&camera=cam-b");
     render(<App />);
 
-    const select = await screen.findByTestId("camera-switcher");
-    await waitFor(() => expect(select).toHaveValue("cam-b"));
+    const switcher = await screen.findByTestId("camera-switcher");
+    await waitFor(() => expect(switcher).toHaveTextContent("Beta"));
     expect(await screen.findByTestId("frame-cam-b-2026-10-10")).toBeInTheDocument();
     expect(vi.mocked(getImages)).toHaveBeenCalledWith("cam-b", "2026-10-10");
   });
@@ -1429,8 +1436,8 @@ describe("App group widget", () => {
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10&camera=nope");
     render(<App />);
 
-    const select = await screen.findByTestId("camera-switcher");
-    await waitFor(() => expect(select).toHaveValue("cam-a"));
+    const switcher = await screen.findByTestId("camera-switcher");
+    await waitFor(() => expect(switcher).toHaveTextContent("Alpha"));
     expect(await screen.findByTestId("frame-cam-a-2026-10-10")).toBeInTheDocument();
   });
 });

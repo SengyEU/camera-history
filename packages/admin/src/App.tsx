@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup } from "./api";
+import { api, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type ThemeColors } from "./api";
 import { BillingPage } from "./Billing";
 import { formatAge, formatBytes } from "./format";
+import { DEFAULT_THEME_COLORS, THEME_COLOR_FIELDS, contrastWarnings } from "./theme";
 import "./App.css";
 
 const STATUS_LABELS: Record<AdminCamera["status"], string> = {
@@ -19,6 +20,7 @@ const emptyInput = (): CameraInput => ({
   activeTo: "23:59",
   timezone: "UTC",
   theme: "light",
+  themeColors: null,
   latitude: null,
   longitude: null,
   daylightOnly: false,
@@ -380,7 +382,19 @@ function CameraForm({
         </label>
         <label>
           Theme
-          <select value={input.theme} onChange={(e) => set("theme", e.target.value)} data-testid="form-theme">
+          <select
+            value={input.theme}
+            onChange={(e) => {
+              const next = e.target.value;
+              setInput((state) => ({
+                ...state,
+                theme: next,
+                themeColors:
+                  next === "custom" ? (state.themeColors ?? DEFAULT_THEME_COLORS) : state.themeColors,
+              }));
+            }}
+            data-testid="form-theme"
+          >
             {THEMES.map((t) => (
               <option key={t} value={t}>
                 {THEME_LABELS[t]}
@@ -388,6 +402,59 @@ function CameraForm({
             ))}
           </select>
         </label>
+        {input.theme === "custom" && (
+          <div className="form-section" data-testid="custom-theme-fields">
+            <h4>Custom theme colors</h4>
+            <div className="color-grid">
+              {THEME_COLOR_FIELDS.map(({ key, label }) => {
+                const colors = input.themeColors ?? DEFAULT_THEME_COLORS;
+                return (
+                  <label key={key} className="color-field">
+                    <span>{label}</span>
+                    <span className="color-input">
+                      <input
+                        type="color"
+                        value={colors[key]}
+                        onChange={(e) =>
+                          setInput((state) => ({
+                            ...state,
+                            themeColors: {
+                              ...(state.themeColors ?? DEFAULT_THEME_COLORS),
+                              [key]: e.target.value,
+                            },
+                          }))
+                        }
+                        data-testid={`form-color-${key}`}
+                        aria-label={label}
+                      />
+                      <code>{colors[key]}</code>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="cell-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() =>
+                  setInput((state) => ({ ...state, themeColors: { ...DEFAULT_THEME_COLORS } }))
+                }
+                data-testid="form-color-reset"
+              >
+                Reset to light
+              </button>
+            </div>
+            {contrastWarnings(input.themeColors ?? DEFAULT_THEME_COLORS).length > 0 && (
+              <p className="notice danger" data-testid="contrast-warnings">
+                Low contrast:{" "}
+                {contrastWarnings(input.themeColors ?? DEFAULT_THEME_COLORS).join(", ")}. Text may be
+                hard to read.
+              </p>
+            )}
+            <span className="field-hint">Custom colors apply in the widget after saving.</span>
+          </div>
+        )}
         <label>
           Interval (min)
           <select value={input.intervalMinutes} onChange={(e) => set("intervalMinutes", Number(e.target.value))} data-testid="form-interval">
@@ -496,7 +563,9 @@ function CameraForm({
           {cameraId && tenantSlug ? (
             <iframe
               data-testid="camera-preview"
-              src={`${window.location.origin}/widget/${tenantSlug}/${cameraId}?theme=${encodeURIComponent(input.theme)}`}
+              src={`${window.location.origin}/widget/${tenantSlug}/${cameraId}${
+                input.theme === "custom" ? "" : `?theme=${encodeURIComponent(input.theme)}`
+              }`}
               title="Camera preview"
               loading="lazy"
               style={{ width: "100%", height: 640, border: 0, borderRadius: 8 }}
@@ -1028,6 +1097,7 @@ export function App() {
     activeTo: cam.activeTo,
     timezone: cam.timezone,
     theme: cam.theme,
+    themeColors: cam.themeColors ?? null,
     latitude: cam.latitude ?? null,
     longitude: cam.longitude ?? null,
     daylightOnly: cam.daylightOnly ?? false,

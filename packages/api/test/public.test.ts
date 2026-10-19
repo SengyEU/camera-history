@@ -371,6 +371,7 @@ describe("public routes", () => {
         id: cam.id,
         name: "Zulu",
         theme: "dark",
+        themeColors: null,
         timezone: "America/Edmonton",
         retentionMonths: 24,
         showNight: true,
