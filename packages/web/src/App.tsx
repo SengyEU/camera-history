@@ -52,6 +52,32 @@ function shiftDay(date: string, delta: number): string {
   return toLocalInputValue(d);
 }
 
+const PRELOAD_TIMEOUT_MS = 1500;
+const PRELOAD_MAX_IMAGES = 30;
+
+function preloadImages(urls: string[]): Promise<void> {
+  const unique = Array.from(new Set(urls)).slice(0, PRELOAD_MAX_IMAGES);
+  if (unique.length === 0) return Promise.resolve();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const loaded = Promise.all(
+    unique.map(
+      (url) =>
+        new Promise<void>((resolve) => {
+          const image = new Image();
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+          image.src = url;
+        }),
+    ),
+  ).then(() => {});
+  const timeout = new Promise<void>((resolve) => {
+    timeoutId = setTimeout(resolve, PRELOAD_TIMEOUT_MS);
+  });
+  return Promise.race([loaded, timeout]).finally(() => {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  });
+}
+
 interface WidgetBodyProps {
   date: string;
   onDateChange: (date: string) => void;
@@ -59,7 +85,6 @@ interface WidgetBodyProps {
   minDate?: string;
   timezone: string;
   theme: string;
-  contentKey: string;
   loading: boolean;
   hasLoadedOnce: boolean;
   images: ImageDto[];
@@ -81,7 +106,6 @@ function WidgetBody({
   minDate,
   timezone,
   theme,
-  contentKey,
   loading,
   hasLoadedOnce,
   images,
@@ -95,44 +119,39 @@ function WidgetBody({
   switcher,
   children,
 }: WidgetBodyProps) {
-  const dimmed = loading && hasLoadedOnce;
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       {switcher && <div className="widget-header">{switcher}</div>}
-      <div className={`content-shell${dimmed ? " content-shell-dim" : ""}`}>
-        <div key={contentKey} className={loading ? undefined : "content-fade"}>
-          {loading && !hasLoadedOnce ? (
-            <FilmStrip
-              images={[]}
-              loading
-              timezone={timezone}
-              openId={null}
-              onOpenChange={() => {}}
-              onShare={() => {}}
-            />
-          ) : images.length === 0 ? (
-            <div className="empty-state" data-testid="empty-state">
-              <p className="empty">No images for this date.</p>
-              <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
-            </div>
-          ) : visibleImages.length === 0 ? (
-            <div className="empty-state" data-testid="empty-state">
-              <p className="empty" data-testid="day-only-empty">
-                No daytime captures for this date.
-              </p>
-            </div>
-          ) : (
-            <FilmStrip
-              images={visibleImages}
-              loading={false}
-              timezone={timezone}
-              openId={openId}
-              onOpenChange={onOpenChange}
-              onShare={onShare}
-            />
-          )}
+      {loading && !hasLoadedOnce ? (
+        <FilmStrip
+          images={[]}
+          loading
+          timezone={timezone}
+          openId={null}
+          onOpenChange={() => {}}
+          onShare={() => {}}
+        />
+      ) : images.length === 0 ? (
+        <div className="empty-state" data-testid="empty-state">
+          <p className="empty">No images for this date.</p>
+          <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
         </div>
-      </div>
+      ) : visibleImages.length === 0 ? (
+        <div className="empty-state" data-testid="empty-state">
+          <p className="empty" data-testid="day-only-empty">
+            No daytime captures for this date.
+          </p>
+        </div>
+      ) : (
+        <FilmStrip
+          images={visibleImages}
+          loading={false}
+          timezone={timezone}
+          openId={openId}
+          onOpenChange={onOpenChange}
+          onShare={onShare}
+        />
+      )}
       <div className="date-nav" data-testid="date-nav">
         <button
           type="button"
@@ -289,6 +308,12 @@ export function App() {
     setDateReady(true);
   }, [groupRoute, selectedCamera, camera]);
 
+  const showNight = groupRoute ? selectedCamera?.showNight === true : camera?.showNight === true;
+  const visibleImages = useMemo(
+    () => (showNight ? images : images.filter((image) => image.isDaylight !== false)),
+    [images, showNight],
+  );
+
   useEffect(() => {
     if (!cameraId) {
       if (!groupRoute) setLoading(false);
@@ -316,6 +341,11 @@ export function App() {
             }
           }
         }
+        const nextVisible = showNight
+          ? imgs
+          : imgs.filter((image) => image.isDaylight !== false);
+        await preloadImages(nextVisible.map((image) => image.url));
+        if (cancelled) return;
         setImages(imgs);
       })
       .catch(() => {
@@ -331,12 +361,6 @@ export function App() {
       cancelled = true;
     };
   }, [cameraId, date, dateReady, isGroup, groupRoute]);
-
-  const showNight = groupRoute ? selectedCamera?.showNight === true : camera?.showNight === true;
-  const visibleImages = useMemo(
-    () => (showNight ? images : images.filter((image) => image.isDaylight !== false)),
-    [images, showNight],
-  );
 
   const metaReady = groupRoute ? selectedCamera !== null : camera !== null;
 
@@ -438,7 +462,6 @@ export function App() {
         minDate={minDate}
         timezone={timezone}
         theme={theme}
-        contentKey={`${cameraId}:${date}`}
         loading={loading}
         hasLoadedOnce={hasLoadedOnce}
         images={images}
@@ -478,7 +501,6 @@ export function App() {
       minDate={minDate}
       timezone={timezone}
       theme={theme}
-      contentKey={`${cameraId}:${date}`}
       loading={loading}
       hasLoadedOnce={hasLoadedOnce}
       images={images}

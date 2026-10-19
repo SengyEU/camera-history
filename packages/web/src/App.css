@@ -231,29 +231,6 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   max-width: 100%;
 }
 
-/* Soft content change: dim while a date fetch is pending, fade in on arrival */
-.content-shell {
-  opacity: 1;
-  transition: opacity 0.18s ease;
-}
-.content-shell-dim {
-  opacity: 0.65;
-  pointer-events: none;
-}
-.content-fade {
-  animation: content-in 0.22s ease;
-}
-@keyframes content-in {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Date nav below the strip */
 .date-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 0; }
 .date-nav button {
@@ -547,8 +524,7 @@ button { color: var(--ink); }
   .share-overlay,
   .share-overlay-closing,
   .share-popup,
-  .share-popup-closing,
-  .content-fade {
+  .share-popup-closing {
     animation: none;
   }
   .frame,
@@ -559,8 +535,7 @@ button { color: var(--ink); }
   .share-network,
   .share-other,
   .share-copy,
-  .share-copy button,
-  .content-shell {
+  .share-copy button {
     transition: none;
   }
 }

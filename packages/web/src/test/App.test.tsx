@@ -76,6 +76,34 @@ const threeImages = () => [
   makeImage("d3", "2026-09-18T15:27:00Z", "/d3.jpg"),
 ];
 
+class ImageStub {
+  static autoResolve = true;
+  static instances: ImageStub[] = [];
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  private currentSrc = "";
+
+  constructor() {
+    ImageStub.instances.push(this);
+  }
+
+  set src(value: string) {
+    this.currentSrc = value;
+    if (ImageStub.autoResolve) {
+      queueMicrotask(() => this.onload?.());
+    }
+  }
+
+  get src() {
+    return this.currentSrc;
+  }
+
+  static reset() {
+    ImageStub.autoResolve = true;
+    ImageStub.instances = [];
+  }
+}
+
 const stubClipboard = () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(window.navigator, "clipboard", {
@@ -108,6 +136,8 @@ const stubPointer = (coarse: boolean) => {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  ImageStub.reset();
+  vi.stubGlobal("Image", ImageStub);
   vi.mocked(getCamera).mockResolvedValue(makeCamera());
   vi.mocked(getImages).mockResolvedValue(defaultImages);
   vi.mocked(getCameraLatest).mockResolvedValue(null);
@@ -117,6 +147,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   Reflect.deleteProperty(window, "matchMedia");
   Reflect.deleteProperty(window.navigator, "maxTouchPoints");
   Reflect.deleteProperty(window.navigator, "share");
@@ -659,7 +690,7 @@ describe("App widget", () => {
     expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
   });
 
-  it("dims the content while a date change is pending and fades it back in", async () => {
+  it("keeps the previous day visible while preloading, then swaps the frames in together", async () => {
     const user = userEvent.setup();
     const pending: Array<(images: ImageDto[]) => void> = [];
     vi.mocked(getImages).mockImplementation(
@@ -673,23 +704,37 @@ describe("App widget", () => {
     await act(async () => {
       pending[0]!(defaultImages);
     });
-    await screen.findByTestId("frame-img-1");
-    const shell = screen.getByTestId("film-strip").closest(".content-shell") as HTMLElement;
-    expect(shell).not.toHaveClass("content-shell-dim");
-    expect(shell.querySelector(".content-fade")).not.toBeNull();
+    expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
+
+    ImageStub.autoResolve = false;
+    ImageStub.instances = [];
 
     await user.click(screen.getByLabelText("Next day"));
     await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"));
-    expect(shell).toHaveClass("content-shell-dim");
-    expect(shell.querySelector(".content-fade")).toBeNull();
-    expect(shell.querySelector(".film-strip")).toHaveTextContent("9 AM");
+    expect(screen.getByTestId("frame-img-1")).toBeInTheDocument();
+    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
+
+    const nextImages = [
+      makeImage("next-1", "2026-09-19T09:00:00Z", "/next-1.jpg"),
+      makeImage("next-2", "2026-09-19T12:00:00Z", "/next-2.jpg"),
+    ];
+    await act(async () => {
+      pending[1]!(nextImages);
+    });
+
+    expect(screen.getByTestId("frame-img-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("frame-next-1")).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
+    expect(ImageStub.instances.map((image) => image.src)).toEqual(["/next-1.jpg", "/next-2.jpg"]);
 
     await act(async () => {
-      pending[1]!([]);
+      for (const image of ImageStub.instances) image.onload?.();
     });
-    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
-    expect(shell).not.toHaveClass("content-shell-dim");
-    expect(shell.querySelector(".content-fade")).not.toBeNull();
+
+    expect(await screen.findByTestId("frame-next-1")).toBeInTheDocument();
+    expect(screen.getByTestId("frame-next-2")).toBeInTheDocument();
+    expect(screen.queryByTestId("frame-img-1")).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
   });
 
   it("defaults the date to today in the camera timezone when the URL has no date", async () => {
