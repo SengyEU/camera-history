@@ -80,6 +80,16 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 - `@media (prefers-reduced-motion: reduce)` disables all new animations and
   `ContentTransition` swaps instantly (JS `matchMedia` check at mount).
 
+## Embeds
+
+- The iframe keeps a hand-editable fallback height in its inline style; the widget
+  posts its real content height (body height + 1 px) and the parent script overrides it.
+- While embedded, the widget hides the document scrollbar (`overflow: hidden`) so no
+  inner scrollbar appears.
+- The parent script sends its computed `font-family` plus any Google Fonts stylesheets;
+  the widget applies them (`--widget-font`), so it blends into the host page.
+- Hour chips shrink to 8 px below 640 px viewport width.
+
 ## Testing
 
 - Unit tests for `ContentTransition` (fake timers): two layers during a transition,

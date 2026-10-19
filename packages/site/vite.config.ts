@@ -10,6 +10,7 @@ export default defineConfig({
         landing: fileURLToPath(new URL("./index.html", import.meta.url)),
         deck: fileURLToPath(new URL("./deck/index.html", import.meta.url)),
         demo: fileURLToPath(new URL("./demo/index.html", import.meta.url)),
+        skilouiseDemo: fileURLToPath(new URL("./demo/skilouise/index.html", import.meta.url)),
       },
     },
   },

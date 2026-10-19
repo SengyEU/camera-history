@@ -56,7 +56,7 @@
   --on-pine: #06231a;
 }
 
-body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); background: var(--bg); color: var(--ink); }
 
 .widget {
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -135,6 +135,14 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   pointer-events: none;
 }
 .film-strip-scroll .chip-ap { display: none; }
+
+@media (max-width: 640px) {
+  .frame-hours {
+    font-size: 8px;
+    letter-spacing: 0.03em;
+    padding: 1px 4px;
+  }
+}
 
 .frame-open {
   flex: 1 1 97%;
