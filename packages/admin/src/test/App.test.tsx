@@ -191,6 +191,9 @@ describe("App camera CRUD", () => {
       if (u.includes("/api/v1/admin/cameras/cam-1") && init?.method === "DELETE") {
         return new Response(null, { status: 204 });
       }
+      if (u.endsWith("/api/v1/admin/tenant")) {
+        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme" } });
+      }
       return jsonResponse({ detail: "not found" }, 404);
     });
     return { fn, calls };
@@ -280,6 +283,23 @@ describe("App camera CRUD", () => {
     await userEvent.click(screen.getByTestId("form-back"));
     expect(screen.getByTestId("camera-summary")).toBeInTheDocument();
     expect(screen.queryByTestId("camera-editor")).not.toBeInTheDocument();
+  });
+
+  it("shows a live widget preview beside the camera settings", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    const preview = await screen.findByTestId("camera-preview");
+    expect(preview.getAttribute("src")).toContain("/widget/acme/cam-1");
+    expect(preview.getAttribute("src")).toContain("theme=light");
+
+    await userEvent.selectOptions(screen.getByTestId("form-theme"), "forest");
+    await waitFor(() =>
+      expect(screen.getByTestId("camera-preview").getAttribute("src")).toContain("theme=forest"),
+    );
   });
 
   it("deletes a camera", async () => {
@@ -655,6 +675,7 @@ describe("App groups", () => {
 
     await userEvent.click(screen.getByTestId("group-copy-grp-1"));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/group/acme/summit-ridge"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("embed.js"));
 
     window.location.hash = "";
   });

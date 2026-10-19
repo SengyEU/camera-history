@@ -866,7 +866,45 @@ button.link:hover {
 
 /* Camera editor page */
 .camera-editor {
-  max-width: 920px;
+  max-width: 1240px;
+}
+
+.camera-editor-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.camera-preview {
+  position: sticky;
+  top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--snow);
+  padding: 10px;
+}
+
+.camera-preview .panel-head {
+  margin-bottom: 8px;
+}
+
+.camera-preview h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.camera-preview iframe {
+  display: block;
+}
+
+@media (max-width: 1000px) {
+  .camera-editor-body {
+    grid-template-columns: 1fr;
+  }
+  .camera-preview {
+    position: static;
+  }
 }
 
 .camera-form {

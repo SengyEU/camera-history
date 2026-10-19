@@ -266,6 +266,7 @@ function CameraForm({
   onSave,
   onCancel,
   cameraId,
+  tenantSlug,
 }: {
   initial: CameraInput;
   onSave: (
@@ -274,6 +275,7 @@ function CameraForm({
   ) => Promise<void>;
   onCancel: () => void;
   cameraId?: string | null;
+  tenantSlug: string;
 }) {
   const [input, setInput] = useState<CameraInput>(initial);
   const [latitudeText, setLatitudeText] = useState(initial.latitude === null ? "" : String(initial.latitude));
@@ -347,8 +349,9 @@ function CameraForm({
           ← Back to cameras
         </button>
       </div>
-      <form className="camera-form" onSubmit={submit} data-testid="camera-form">
-        {error && (
+      <div className="camera-editor-body">
+        <form className="camera-form" onSubmit={submit} data-testid="camera-form">
+          {error && (
           <p className="error" data-testid="form-error">
             {error}
           </p>
@@ -476,15 +479,36 @@ function CameraForm({
             ))}
           </div>
         )}
-        <div className="form-actions">
-          <button type="submit" data-testid="form-submit">
-            Save
-          </button>
-          <button type="button" className="secondary" onClick={onCancel} data-testid="form-cancel">
-            Cancel
-          </button>
-        </div>
-      </form>
+          <div className="form-actions">
+            <button type="submit" data-testid="form-submit">
+              Save
+            </button>
+            <button type="button" className="secondary" onClick={onCancel} data-testid="form-cancel">
+              Cancel
+            </button>
+          </div>
+        </form>
+        <aside className="camera-preview">
+          <div className="panel-head">
+            <h3>Live preview</h3>
+            <span className="ts-chip">PREVIEW</span>
+          </div>
+          {cameraId && tenantSlug ? (
+            <iframe
+              data-testid="camera-preview"
+              src={`${window.location.origin}/widget/${tenantSlug}/${cameraId}?theme=${encodeURIComponent(input.theme)}`}
+              title="Camera preview"
+              loading="lazy"
+              style={{ width: "100%", height: 640, border: 0, borderRadius: 8 }}
+            />
+          ) : (
+            <p className="field-hint">Save the camera to see its live preview.</p>
+          )}
+          <p className="field-hint">
+            Theme changes update the preview instantly. Other settings apply after saving.
+          </p>
+        </aside>
+      </div>
     </section>
   );
 }
@@ -726,7 +750,8 @@ function GroupsView({
   const copyEmbed = (g: AdminGroup) => {
     if (!tenantSlug) return;
     const url = embedSrc(tenantSlug, g.slug);
-    const snippet = `<iframe src="${url}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`;
+    const scriptUrl = `${window.location.origin}/embed.js`;
+    const snippet = `<script src="${scriptUrl}" defer></script>\n<iframe src="${url}" style="width:100%;height:720px;border:0;border-radius:12px" loading="lazy"></iframe>`;
     const clip = navigator.clipboard;
     if (!clip?.writeText) return;
     void clip
@@ -965,14 +990,16 @@ export function App() {
   );
 
   useEffect(() => {
-    if (view === "groups") {
-      reloadGroups();
-      api
-        .getTenant()
-        .then((t) => setTenantSlug(t.slug))
-        .catch(() => setTenantSlug(""));
-    }
+    if (view === "groups") reloadGroups();
   }, [view, reloadGroups]);
+
+  useEffect(() => {
+    if (email === null) return;
+    api
+      .getTenant()
+      .then((t) => setTenantSlug(t.slug))
+      .catch(() => setTenantSlug(""));
+  }, [email]);
 
   const refresh = useCallback(() => {
     api
@@ -1121,6 +1148,7 @@ export function App() {
              setEditingId(null);
            }}
            cameraId={editingId}
+           tenantSlug={tenantSlug}
          />
        ) : (
         <section className="panel">
