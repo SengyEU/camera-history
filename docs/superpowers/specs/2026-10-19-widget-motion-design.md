@@ -87,7 +87,10 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 - While embedded, the widget hides the document scrollbar (`overflow: hidden`) so no
   inner scrollbar appears.
 - The parent script sends its computed `font-family` plus any Google Fonts stylesheets;
-  the widget applies them (`--widget-font`), so it blends into the host page.
+  the widget applies them (`--widget-font`) everywhere, including OSD/hour chips.
+- Production serves `/embed.js` as a drop-in parent script: it finds all Camera History
+  iframes, wires height messages (also for lazy/below-the-fold frames via setTimeout,
+  not rAF), retries same-origin sizing and sends the host font.
 - Hour chips shrink to 8 px below 640 px viewport width.
 
 ## Testing

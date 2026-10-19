@@ -44,7 +44,7 @@ export function setupEmbedResize(): void {
   window.addEventListener("load", hello);
 
   let lastHeight = 0;
-  let frame = 0;
+  let pending = false;
 
   const applyHeight = (height: number) => {
     try {
@@ -60,7 +60,7 @@ export function setupEmbedResize(): void {
   };
 
   const post = () => {
-    frame = 0;
+    pending = false;
     const height = Math.ceil(document.body.getBoundingClientRect().height) + 2;
     if (Math.abs(height - lastHeight) < 1) return;
     lastHeight = height;
@@ -68,8 +68,10 @@ export function setupEmbedResize(): void {
   };
 
   const schedule = () => {
-    if (frame !== 0) return;
-    frame = window.requestAnimationFrame(post);
+    if (pending) return;
+    pending = true;
+    // setTimeout (not rAF) so embeds below the fold still report their height.
+    window.setTimeout(post, 0);
   };
 
   schedule();

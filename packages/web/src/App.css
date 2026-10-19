@@ -59,7 +59,7 @@
 body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); background: var(--bg); color: var(--ink); }
 
 .widget {
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-mono: var(--widget-font, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
   max-width: 1000px;
   margin: 0 auto;
   padding: 16px;
