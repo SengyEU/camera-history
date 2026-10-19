@@ -234,7 +234,7 @@ export function FilmStrip({
             >
               {isOpen || isClosing ? (
                 <>
-                  <img className="frame-img" src={image.url} alt={isOpen ? label : ""} />
+                  <img className="frame-img" src={image.url} alt={isOpen ? label : ""} draggable={false} />
                   {isOpen && <span className="frame-osd">{label}</span>}
                   {isClosing && (
                     <span className="frame-hours">
