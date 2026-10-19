@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type BillingDto, type BillingStatus } from "./api";
-import { formatBytes } from "./format";
 
 const STATUS_LABELS: Record<BillingStatus, string> = {
   none: "not activated",
@@ -115,14 +114,6 @@ export function BillingPage() {
         <div>
           <dt>Cameras</dt>
           <dd data-testid="camera-count">{data.cameraCount}</dd>
-        </div>
-        <div>
-          <dt>Stored</dt>
-          <dd data-testid="usage-bytes">{formatBytes(data.usageBytes)}</dd>
-        </div>
-        <div>
-          <dt>Estimated full retention</dt>
-          <dd data-testid="storage-bytes">{formatBytes(data.storageBytes)}</dd>
         </div>
       </dl>
     </section>

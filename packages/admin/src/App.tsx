@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup } from "./api";
 import { BillingPage } from "./Billing";
-import { formatAge, formatBytes } from "./format";
+import { EmbedCodePanel } from "./EmbedCodePanel";
+import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
+import { formatAge } from "./format";
+import { GroupEditor, GroupsView, type GroupInput } from "./Groups";
+import { PLAN_OPTIONS, planLabel } from "./plans";
+import { SLUG_RE, slugify } from "./slug";
 import { DEFAULT_THEME_COLORS, THEME_COLOR_FIELDS, contrastWarnings } from "./theme";
 import "./App.css";
 
@@ -21,6 +26,7 @@ const emptyInput = (): CameraInput => ({
   timezone: "UTC",
   theme: "light",
   themeColors: null,
+  planMonths: null,
   latitude: null,
   longitude: null,
   daylightOnly: false,
@@ -37,6 +43,15 @@ type CameraRoute = { mode: "new" } | { mode: "edit"; id: string } | null;
 
 function parseCameraRoute(hash: string): CameraRoute {
   const match = hash.match(/^#\/cameras\/([^/?#]+)/);
+  if (!match) return null;
+  const id = decodeURIComponent(match[1]!);
+  return id === "new" ? { mode: "new" } : { mode: "edit", id };
+}
+
+type GroupRoute = { mode: "new" } | { mode: "edit"; id: string } | null;
+
+function parseGroupRoute(hash: string): GroupRoute {
+  const match = hash.match(/^#\/groups\/([^/?#]+)/);
   if (!match) return null;
   const id = decodeURIComponent(match[1]!);
   return id === "new" ? { mode: "new" } : { mode: "edit", id };
@@ -146,18 +161,6 @@ function Login({ onSuccess, onRegister }: { onSuccess: (email: string) => void; 
     </form>
   );
 }
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
-
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void; onSignIn: () => void }) {
   const [name, setName] = useState("");
@@ -278,6 +281,7 @@ function CameraForm({
   onCancel,
   cameraId,
   tenantSlug,
+  tenantPlanMonths,
 }: {
   initial: CameraInput;
   onSave: (
@@ -287,6 +291,7 @@ function CameraForm({
   onCancel: () => void;
   cameraId?: string | null;
   tenantSlug: string;
+  tenantPlanMonths: number;
 }) {
   const [input, setInput] = useState<CameraInput>(initial);
   const [latitudeText, setLatitudeText] = useState(initial.latitude === null ? "" : String(initial.latitude));
@@ -297,7 +302,6 @@ function CameraForm({
   const [initialMemberships, setInitialMemberships] = useState<Record<string, boolean>>({});
   const previewRef = useRef<HTMLIFrameElement | null>(null);
   const [themeSaveState, setThemeSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [embedCopied, setEmbedCopied] = useState(false);
   const savedThemeRef = useRef(
     JSON.stringify({ theme: initial.theme, colors: initial.themeColors ?? null }),
   );
@@ -411,16 +415,6 @@ function CameraForm({
           `${initial.name || "Camera"} — Camera History`,
         )
       : "";
-
-  const copyEmbed = () => {
-    if (!embedCode) return;
-    const clip = navigator.clipboard;
-    if (!clip?.writeText) return;
-    void clip
-      .writeText(embedCode)
-      .then(() => setEmbedCopied(true))
-      .catch(() => setEmbedCopied(false));
-  };
 
   return (
     <section className="panel camera-editor" data-testid="camera-editor">
@@ -543,6 +537,29 @@ function CameraForm({
               </option>
             ))}
           </select>
+        </label>
+        <label>
+          Plan
+          <select
+            value={input.planMonths === null ? "" : String(input.planMonths)}
+            onChange={(e) =>
+              setInput((state) => ({
+                ...state,
+                planMonths: e.target.value === "" ? null : Number(e.target.value),
+              }))
+            }
+            data-testid="form-plan"
+          >
+            <option value="">{`Inherit from account (${planLabel(tenantPlanMonths)})`}</option>
+            {PLAN_OPTIONS.map((option) => (
+              <option key={option.months} value={option.months}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <span className="field-hint">
+            Retention for this camera. Billing still follows the account plan for now.
+          </span>
         </label>
         <div className="form-row">
           <label>
@@ -669,29 +686,13 @@ function CameraForm({
             apply after saving.
           </p>
           {cameraId && tenantSlug ? (
-            <div className="camera-embed" data-testid="camera-embed">
-              <div className="panel-head">
-                <h3>Embed code</h3>
-                <span className="ts-chip">EMBED</span>
-              </div>
-              <pre>
-                <code>{embedCode}</code>
-              </pre>
-              <div className="group-embed-actions">
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={copyEmbed}
-                  data-testid="camera-embed-copy"
-                >
-                  Copy embed code
-                </button>
-                {embedCopied && <span data-testid="camera-embed-copied">Copied</span>}
-              </div>
-              <p className="field-hint" data-testid="camera-embed-hint">
-                Share your page URL with <code>#{embedId}</code> to scroll straight to this camera.
-              </p>
-            </div>
+            <EmbedCodePanel
+              code={embedCode}
+              id={embedId}
+              hint="Share your page URL with"
+              suffix="to scroll straight to this camera."
+              testId="camera-embed"
+            />
           ) : (
             <p className="field-hint">Save the camera to get its embed code.</p>
           )}
@@ -703,7 +704,6 @@ function CameraForm({
 
 function CameraSummary({ cameras }: { cameras: AdminCamera[] }) {
   const images = cameras.reduce((total, cam) => total + (cam.imageCount ?? 0), 0);
-  const bytes = cameras.reduce((total, cam) => total + (cam.totalBytes ?? 0), 0);
   const oldest =
     cameras
       .map((cam) => cam.firstCaptureAt)
@@ -719,10 +719,6 @@ function CameraSummary({ cameras }: { cameras: AdminCamera[] }) {
       <div>
         <span>Images collected</span>
         <strong data-testid="summary-images">{images.toLocaleString()}</strong>
-      </div>
-      <div>
-        <span>Stored</span>
-        <strong data-testid="summary-bytes">{formatBytes(bytes)}</strong>
       </div>
       <div>
         <span>Collecting since</span>
@@ -823,10 +819,6 @@ function CameraCard({
             <dd data-testid={`camera-images-${cam.id}`}>{(cam.imageCount ?? 0).toLocaleString()}</dd>
           </div>
           <div>
-            <dt>Stored</dt>
-            <dd data-testid={`camera-bytes-${cam.id}`}>{formatBytes(cam.totalBytes ?? 0)}</dd>
-          </div>
-          <div>
             <dt>Running</dt>
             <dd data-testid={`camera-running-${cam.id}`}>{formatAge(cam.firstCaptureAt ?? null)}</dd>
           </div>
@@ -869,347 +861,18 @@ function CameraCard({
   );
 }
 
-function groupEmbedSrc(tenantSlug: string, slug: string): string {
-  return `${window.location.origin}/group/${tenantSlug}/${slug}`;
-}
-
-function cameraEmbedSrc(tenantSlug: string, cameraId: string): string {
-  return `${window.location.origin}/widget/${tenantSlug}/${cameraId}`;
-}
-
-function groupEmbedId(tenantSlug: string, slug: string): string {
-  return `camera-history-group-${tenantSlug}-${slug}`;
-}
-
-function cameraEmbedId(tenantSlug: string, cameraId: string): string {
-  return `camera-history-widget-${tenantSlug}-${cameraId}`;
-}
-
-function escapeHtmlAttribute(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function embedSnippet(url: string, id: string, title: string): string {
-  const scriptUrl = `${window.location.origin}/embed.js`;
-  return `<script src="${scriptUrl}" defer></script>\n<iframe id="${id}" src="${url}" title="${escapeHtmlAttribute(title)}" style="width:100%;height:720px;border:0;border-radius:12px" loading="lazy"></iframe>`;
-}
-
-function GroupsView({
-  cameras,
-  groups,
-  loading,
-  tenantSlug,
-  onGroupsChange,
-}: {
-  cameras: AdminCamera[];
-  groups: AdminGroup[];
-  loading: boolean;
-  tenantSlug: string;
-  onGroupsChange: () => void | Promise<unknown>;
-}) {
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editSlug, setEditSlug] = useState("");
-  const [editError, setEditError] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<AdminGroup | null>(null);
-
-  useEffect(() => {
-    if (!slugTouched) setSlug(slugify(name));
-  }, [name, slugTouched]);
-
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!SLUG_RE.test(slug)) {
-      setError("Slug can only contain lowercase letters, numbers and hyphens.");
-      return;
-    }
-    try {
-      await api.createGroup({ name, slug });
-      setName("");
-      setSlug("");
-      setSlugTouched(false);
-      await onGroupsChange();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
-    }
-  };
-
-  const rename = async (e: React.FormEvent, g: AdminGroup) => {
-    e.preventDefault();
-    setEditError(null);
-    if (!SLUG_RE.test(editSlug)) {
-      setEditError("Slug can only contain lowercase letters, numbers and hyphens.");
-      return;
-    }
-    try {
-      await api.updateGroup(g.id, { name: editName, slug: editSlug });
-      setEditingId(null);
-      await onGroupsChange();
-    } catch (err) {
-      setEditError(err instanceof Error ? err.message : "Rename failed");
-    }
-  };
-
-  const remove = async (g: AdminGroup) => {
-    setError(null);
-    try {
-      await api.deleteGroup(g.id);
-      await onGroupsChange();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
-    }
-  };
-
-  const confirmRemove = async () => {
-    if (!deleting) return;
-    const target = deleting;
-    setDeleting(null);
-    await remove(target);
-  };
-
-  const toggleCamera = async (g: AdminGroup, cameraId: string, checked: boolean) => {
-    setError(null);
-    const next = checked
-      ? g.cameraIds.includes(cameraId)
-        ? g.cameraIds
-        : [...g.cameraIds, cameraId]
-      : g.cameraIds.filter((id) => id !== cameraId);
-    try {
-      await api.setGroupCameras(g.id, next);
-      await onGroupsChange();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Updating cameras failed");
-    }
-  };
-
-  const copyEmbed = (g: AdminGroup) => {
-    if (!tenantSlug) return;
-    const url = groupEmbedSrc(tenantSlug, g.slug);
-    const snippet = embedSnippet(
-      url,
-      groupEmbedId(tenantSlug, g.slug),
-      `${g.name} — Camera History`,
-    );
-    const clip = navigator.clipboard;
-    if (!clip?.writeText) return;
-    void clip
-      .writeText(snippet)
-      .then(() => {
-        setCopiedId(g.id);
-      })
-      .catch(() => {
-        setCopiedId(null);
-      });
-  };
-
-  return (
-    <section className="panel" data-testid="groups-view">
-      <div className="panel-head">
-        <h2>Groups</h2>
-      </div>
-      <form className="group-create" onSubmit={create} data-testid="group-form">
-        <input
-          placeholder="Group name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          data-testid="group-name"
-          required
-        />
-        <input
-          placeholder="Slug"
-          value={slug}
-          onChange={(e) => {
-            setSlugTouched(true);
-            setSlug(e.target.value);
-          }}
-          data-testid="group-slug"
-          required
-        />
-        <button type="submit" data-testid="group-create-submit">
-          Create group
-        </button>
-      </form>
-      {error && (
-        <p className="error" data-testid="group-error">
-          {error}
-        </p>
-      )}
-      {groups.length === 0 ? (
-        loading ? (
-          <p className="loading">Loading…</p>
-        ) : (
-          <p className="empty" data-testid="groups-empty">
-            No groups yet. Create a group to embed its camera page on your site.
-          </p>
-        )
-      ) : (
-        <ul className="group-list">
-          {groups.map((g) => (
-            <li key={g.id} className="group-card" data-testid={`group-${g.id}`}>
-              {editingId === g.id ? (
-                <form className="group-edit" onSubmit={(e) => void rename(e, g)} data-testid="group-edit-form">
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    data-testid="group-edit-name"
-                    aria-label="Group name"
-                    required
-                  />
-                  <input
-                    value={editSlug}
-                    onChange={(e) => setEditSlug(e.target.value)}
-                    data-testid="group-edit-slug"
-                    aria-label="Group slug"
-                    required
-                  />
-                  {editError && <p className="error">{editError}</p>}
-                  <div className="cell-actions">
-                    <button type="submit" data-testid="group-edit-save">
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => {
-                        setEditingId(null);
-                        setEditError(null);
-                      }}
-                      data-testid="group-edit-cancel"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="group-head">
-                  <div className="group-meta">
-                    <strong>{g.name}</strong>
-                    <span className="group-slug">{g.slug}</span>
-                    <span className="group-count" data-testid={`group-count-${g.id}`}>
-                      {g.cameraIds.length === 1 ? "1 camera" : `${g.cameraIds.length} cameras`}
-                    </span>
-                  </div>
-                  <div className="cell-actions">
-                    <button
-                      className="secondary"
-                      onClick={() => {
-                        setEditingId(g.id);
-                        setEditName(g.name);
-                        setEditSlug(g.slug);
-                        setEditError(null);
-                      }}
-                      data-testid={`group-edit-${g.id}`}
-                    >
-                      Rename
-                    </button>
-                    <button className="danger" onClick={() => setDeleting(g)} data-testid={`group-delete-${g.id}`}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className="group-cameras">
-                <h4>Cameras in this group</h4>
-                {cameras.length === 0 ? (
-                  <p className="empty">No cameras yet.</p>
-                ) : (
-                  cameras.map((cam) => (
-                    <label key={cam.id} className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        data-testid={`group-camera-${g.id}-${cam.id}`}
-                        checked={g.cameraIds.includes(cam.id)}
-                        onChange={(e) => void toggleCamera(g, cam.id, e.target.checked)}
-                      />
-                      {cam.name}
-                    </label>
-                  ))
-                )}
-              </div>
-              <div className="group-embed">
-                <div className="group-embed-head">
-                  <h4>Embed snippet</h4>
-                  <span className="ts-chip">EMBED</span>
-                </div>
-                {tenantSlug ? (
-                  <>
-                    <iframe
-                      data-testid={`group-embed-${g.id}`}
-                      src={groupEmbedSrc(tenantSlug, g.slug)}
-                      title={`${g.name} embed`}
-                      width="640"
-                      height="360"
-                      data-camera-history-preview="1"
-                    />
-                    <div className="group-embed-actions">
-                      <button type="button" className="secondary" onClick={() => copyEmbed(g)} data-testid={`group-copy-${g.id}`}>
-                        Copy embed code
-                      </button>
-                      {copiedId === g.id && <span data-testid={`group-copied-${g.id}`}>Copied</span>}
-                    </div>
-                    <p className="field-hint" data-testid={`group-embed-hint-${g.id}`}>
-                      Share your page URL with <code>#{groupEmbedId(tenantSlug, g.slug)}</code> to
-                      scroll straight to this group.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="embed-placeholder" data-testid={`group-embed-placeholder-${g.id}`}>
-                      Tenant not loaded
-                    </div>
-                    <div className="group-embed-actions">
-                      <button type="button" className="secondary" disabled data-testid={`group-copy-${g.id}`}>
-                        Copy embed code
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      {deleting !== null && (
-        <div className="modal">
-          <div className="modal-body">
-            <p>
-              Delete group &quot;{deleting.name}&quot;? Cameras stay — only the group goes away.
-            </p>
-            <div className="form-actions">
-              <button className="danger" onClick={() => void confirmRemove()} data-testid="confirm-delete-group">
-                Delete
-              </button>
-              <button className="secondary" onClick={() => setDeleting(null)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
 export function App() {
   const [email, setEmail] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [cameras, setCameras] = useState<AdminCamera[]>([]);
   const [cameraRoute, setCameraRoute] = useState<CameraRoute>(() => parseCameraRoute(window.location.hash));
+  const [groupRoute, setGroupRoute] = useState<GroupRoute>(() => parseGroupRoute(window.location.hash));
   const [confirming, setConfirming] = useState<AdminCamera | null>(null);
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [camerasLoading, setCamerasLoading] = useState(true);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [tenantSlug, setTenantSlug] = useState<string>("");
+  const [tenantPlanMonths, setTenantPlanMonths] = useState<number>(12);
   const [view, setView] = useState<"cameras" | "groups" | "billing">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
@@ -1219,6 +882,7 @@ export function App() {
       setView(currentView());
       setRegistering(window.location.hash.startsWith("#/register"));
       setCameraRoute(parseCameraRoute(window.location.hash));
+      setGroupRoute(parseGroupRoute(window.location.hash));
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
@@ -1274,7 +938,10 @@ export function App() {
     if (email === null) return;
     api
       .getTenant()
-      .then((t) => setTenantSlug(t.slug))
+      .then((t) => {
+        setTenantSlug(t.slug);
+        setTenantPlanMonths(t.planMonths ?? 12);
+      })
       .catch(() => setTenantSlug(""));
   }, [email]);
 
@@ -1306,6 +973,7 @@ export function App() {
     timezone: cam.timezone,
     theme: cam.theme,
     themeColors: cam.themeColors ?? null,
+    planMonths: cam.planMonths ?? null,
     latitude: cam.latitude ?? null,
     longitude: cam.longitude ?? null,
     daylightOnly: cam.daylightOnly ?? false,
@@ -1334,6 +1002,51 @@ export function App() {
   const closeCamera = () => {
     setCameraRoute(null);
     if (window.location.hash !== "#/cameras") window.location.hash = "#/cameras";
+  };
+
+  const openNewGroup = () => {
+    setGroupRoute({ mode: "new" });
+    if (window.location.hash !== "#/groups/new") window.location.hash = "#/groups/new";
+  };
+
+  const openGroup = (id: string) => {
+    setGroupRoute({ mode: "edit", id });
+    if (window.location.hash !== `#/groups/${id}`) window.location.hash = `#/groups/${id}`;
+  };
+
+  const closeGroup = () => {
+    setGroupRoute(null);
+    if (window.location.hash !== "#/groups") window.location.hash = "#/groups";
+  };
+
+  const saveGroup = async (input: GroupInput) => {
+    setGroupNotice(null);
+    if (groupRoute?.mode === "edit") {
+      const current = groups.find((group) => group.id === groupRoute.id);
+      if (!current) throw new Error("Group not found");
+      if (input.name !== current.name || input.slug !== current.slug) {
+        await api.updateGroup(current.id, { name: input.name, slug: input.slug });
+      }
+      if (input.cameraIds.join(",") !== current.cameraIds.join(",")) {
+        await api.setGroupCameras(current.id, input.cameraIds);
+      }
+      await reloadGroups();
+      closeGroup();
+      return;
+    }
+
+    const created = await api.createGroup({ name: input.name, slug: input.slug });
+    let cameraError: Error | null = null;
+    try {
+      await api.setGroupCameras(created.id, input.cameraIds);
+    } catch (err) {
+      cameraError = err instanceof Error ? err : new Error("Updating cameras failed");
+    }
+    await reloadGroups();
+    closeGroup();
+    if (cameraError) {
+      setGroupNotice(`Group created, but the camera order was not saved: ${cameraError.message}`);
+    }
   };
 
   const saveCamera = async (
@@ -1439,7 +1152,53 @@ export function App() {
        {view === "billing" ? (
          <BillingPage />
        ) : view === "groups" ? (
-         <GroupsView cameras={cameras} groups={groups} loading={groupsLoading} tenantSlug={tenantSlug} onGroupsChange={reloadGroups} />
+         groupRoute !== null ? (
+           groupRoute.mode === "new" ? (
+             <GroupEditor
+               key="new"
+               group={null}
+               cameras={cameras}
+               tenantSlug={tenantSlug}
+               onSave={saveGroup}
+               onCancel={closeGroup}
+             />
+           ) : groupsLoading ? (
+             <p className="loading">Loading…</p>
+           ) : (
+             (() => {
+               const group = groups.find((item) => item.id === groupRoute.id);
+               return group ? (
+                 <GroupEditor
+                   key={group.id}
+                   group={group}
+                   cameras={cameras}
+                   tenantSlug={tenantSlug}
+                   onSave={saveGroup}
+                   onCancel={closeGroup}
+                 />
+               ) : (
+                 <section className="panel camera-editor">
+                   <div className="panel-head">
+                     <h2>Group not found</h2>
+                     <button type="button" className="secondary" onClick={closeGroup} data-testid="group-not-found-back">
+                       ← Back to groups
+                     </button>
+                   </div>
+                   <p className="empty">This group does not exist or was removed.</p>
+                 </section>
+               );
+             })()
+           )
+         ) : (
+           <GroupsView
+             cameras={cameras}
+             groups={groups}
+             loading={groupsLoading}
+             onNew={openNewGroup}
+             onEdit={(group) => openGroup(group.id)}
+             onGroupsChange={reloadGroups}
+           />
+         )
        ) : cameraRoute !== null ? (
          editing !== null ? (
            <CameraForm
@@ -1449,6 +1208,7 @@ export function App() {
              onCancel={closeCamera}
              cameraId={editingId}
              tenantSlug={tenantSlug}
+             tenantPlanMonths={tenantPlanMonths}
            />
          ) : camerasLoading ? (
            <p className="loading">Loading…</p>

@@ -1021,3 +1021,95 @@ button.link:hover {
     animation: none !important;
   }
 }
+
+/* Group overview */
+.group-camera-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.camera-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.8rem;
+}
+
+.camera-chip-index {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--glacier-weak);
+  color: var(--glacier-deep);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Group editor: sortable camera list */
+.sortable-camera-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sortable-camera {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.sortable-camera-name {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.drag-handle {
+  padding: 2px 5px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+}
+
+.drag-handle:hover {
+  background: var(--glacier-weak);
+  color: var(--glacier-deep);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.available-camera-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.available-camera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.available-camera button {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+}

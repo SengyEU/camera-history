@@ -25,6 +25,7 @@ export interface AdminCamera {
   enabled: boolean;
   theme: string;
   themeColors: ThemeColors | null;
+  planMonths: number | null;
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
@@ -47,6 +48,7 @@ export interface CameraInput {
   timezone: string;
   theme: string;
   themeColors: ThemeColors | null;
+  planMonths: number | null;
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
@@ -192,5 +194,7 @@ export const api = {
   setGroupCameras: (id: string, cameraIds: string[]) =>
     json<undefined>(`/api/v1/admin/groups/${id}/cameras`, { method: "PUT", body: JSON.stringify({ cameraIds }) }),
   getTenant: () =>
-    json<{ tenant: { id: string; name: string; slug: string } }>("/api/v1/admin/tenant").then((r) => r.tenant),
+    json<{ tenant: { id: string; name: string; slug: string; planMonths: number } }>(
+      "/api/v1/admin/tenant",
+    ).then((r) => r.tenant),
 };

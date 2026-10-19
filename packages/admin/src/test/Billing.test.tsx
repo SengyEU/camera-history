@@ -48,13 +48,15 @@ beforeEach(() => {
 });
 
 describe("BillingPage", () => {
-  it("renders plan, status and usage", async () => {
+  it("renders plan, status and camera count", async () => {
     render(<BillingPage />);
     const plan = await screen.findByTestId("current-plan");
     expect(plan).toHaveTextContent("12 months");
     expect(plan).toHaveTextContent("29");
     expect(screen.getByText("past due")).toBeInTheDocument();
-    expect(screen.getByText("1.2 MB")).toBeInTheDocument();
+    expect(screen.getByTestId("camera-count")).toHaveTextContent("3");
+    expect(screen.queryByTestId("usage-bytes")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("storage-bytes")).not.toBeInTheDocument();
   });
 
   it("shows grace warning for past_due", async () => {
