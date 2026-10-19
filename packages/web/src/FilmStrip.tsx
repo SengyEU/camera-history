@@ -55,6 +55,7 @@ export function FilmStrip({
   const lastOpenRef = useRef<ImageDto | null>(null);
   const [frozenId, setFrozenId] = useState<string | null>(null);
   const [motion, setMotion] = useState<"idle" | "step" | "close">("idle");
+  const [quietOpenId, setQuietOpenId] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     const previous = lastOpenRef.current;
@@ -63,6 +64,7 @@ export function FilmStrip({
       lastOpenRef.current = null;
       setFrozenId(previous.id);
       setMotion("close");
+      setQuietOpenId(null);
       timer = setTimeout(() => {
         setFrozenId(null);
         setMotion("idle");
@@ -71,6 +73,7 @@ export function FilmStrip({
       lastOpenRef.current = openImage;
       setFrozenId(previous.id);
       setMotion("step");
+      setQuietOpenId(openImage.id);
       timer = setTimeout(() => {
         setFrozenId(null);
         setMotion("idle");
@@ -80,6 +83,7 @@ export function FilmStrip({
       if (openId !== null) {
         setFrozenId(null);
         setMotion("idle");
+        if (!previous) setQuietOpenId(null);
       }
     }
     return () => {
@@ -182,14 +186,14 @@ export function FilmStrip({
             <div
               key={image.id}
               ref={isOpen ? openRef : undefined}
-              className={`frame${isOpen ? " frame-open" : ""}${isClosing ? " frame-closing" : ""}${isOpen && motion === "step" ? " frame-stepping" : ""}`}
+              className={`frame${isOpen ? " frame-open" : ""}${isClosing ? " frame-closing" : ""}${isOpen && quietOpenId === image.id ? " frame-quiet" : ""}`}
               data-testid={isOpen ? "frame-open" : `frame-${image.id}`}
               role="button"
               tabIndex={0}
               aria-label={isOpen ? "Collapse capture" : `Open capture ${hour.hour} ${hour.meridiem}`}
               onMouseDown={(event) => event.preventDefault()}
               style={
-                isOpen || isClosing
+                isOpen
                   ? undefined
                   : {
                       backgroundImage: `url(${image.url})`,
@@ -221,6 +225,12 @@ export function FilmStrip({
                 <>
                   <img className="frame-img" src={image.url} alt={isOpen ? label : ""} />
                   {isOpen && <span className="frame-osd">{label}</span>}
+                  {isClosing && (
+                    <span className="frame-hours">
+                      <span className="chip-h">{hour.hour}</span>{" "}
+                      <span className="chip-ap">{hour.meridiem}</span>
+                    </span>
+                  )}
                   {isOpen && index > 0 && (
                     <button
                       type="button"

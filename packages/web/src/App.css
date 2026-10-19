@@ -259,10 +259,17 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   transition-duration: 450ms;
 }
 .frame-closing:hover { box-shadow: none; }
-.frame-stepping .frame-osd,
-.frame-stepping .frame-arrow,
-.frame-stepping .frame-share {
+.frame-quiet .frame-osd,
+.frame-quiet .frame-arrow,
+.frame-quiet .frame-share {
   animation: none;
+}
+.frame-closing .frame-img {
+  animation: frame-img-out 450ms var(--ease-out) both;
+}
+@keyframes frame-img-out {
+  0%, 55% { opacity: 1; }
+  100% { opacity: 0; }
 }
 @keyframes content-fade-out {
   from { opacity: 1; }
@@ -564,6 +571,11 @@ button { color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .film-skeleton { animation: none; }
+  .film-strip-step .frame,
+  .film-strip-close .frame {
+    transition: none;
+  }
+  .frame-closing .frame-img { animation: none; }
   .share-overlay,
   .share-overlay-closing,
   .share-popup,

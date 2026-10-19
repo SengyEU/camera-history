@@ -213,12 +213,17 @@ describe("App widget", () => {
     const departing = screen.getByTestId("frame-d1");
     expect(departing).toHaveClass("frame-closing");
     expect(departing.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    expect(departing.querySelector(".frame-hours")).toHaveTextContent("9 AM");
+    expect(departing.style.backgroundImage).toContain("/d1.jpg");
     expect(screen.getByTestId("film-strip")).toHaveClass("film-strip-step");
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    const open = screen.getByTestId("frame-open");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open).toHaveClass("frame-quiet");
 
     await waitFor(() => expect(departing).not.toHaveClass("frame-closing"), { timeout: 2000 });
     expect(departing.querySelector("img")).toBeNull();
     expect(screen.getByTestId("film-strip")).not.toHaveClass("film-strip-step");
+    expect(screen.getByTestId("frame-open")).toHaveClass("frame-quiet");
   });
 
   it("keeps the full image while a frame collapses", async () => {
@@ -231,6 +236,10 @@ describe("App widget", () => {
     const collapsing = screen.getByTestId("frame-img-1");
     expect(collapsing).toHaveClass("frame-closing");
     expect(collapsing.querySelector("img")).toBeInTheDocument();
+    expect(collapsing.querySelector(".frame-hours")).toHaveTextContent("9 AM");
+    expect(collapsing.style.backgroundImage).toContain(
+      "/api/v1/cameras/cam-1/2026-09-18/090000.jpg",
+    );
     expect(screen.getByTestId("film-strip")).toHaveClass("film-strip-close");
 
     await waitFor(() => expect(collapsing).not.toHaveClass("frame-closing"), { timeout: 2000 });
