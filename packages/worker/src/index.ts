@@ -5,6 +5,7 @@ import { createObjectStorage } from "@ch/db";
 import { runSchedule } from "./captureRun.js";
 import { createMeteringGateway } from "./stripe.js";
 import { runBillingJobs } from "./billing.js";
+import { runLoop } from "./loop.js";
 
 const cfg = loadConfig(process.env);
 const db = createDb(cfg.databaseUrl);
@@ -19,8 +20,16 @@ async function tick() {
 }
 
 console.log("worker starting");
-await tick();
-setInterval(tick, cfg.worker.tickMs);
+// Sequential loop (not setInterval): a slow tick must never overlap the next
+// tick, otherwise two ticks can both see a stale lastCaptureAt and capture
+// the same interval twice.
+await runLoop(async () => {
+  try {
+    await tick();
+  } catch (error) {
+    console.error("tick failed:", error);
+  }
+}, cfg.worker.tickMs);
 
 process.on("SIGTERM", () => process.exit(0));
 process.on("SIGINT", () => process.exit(0));
