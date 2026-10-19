@@ -460,6 +460,37 @@ describe("App widget", () => {
     expect(shareUrl.searchParams.get("hour")).toBe("18");
   });
 
+  it("shares the host page URL with an iframe hash when embedded", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByTestId("frame-img-2");
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("camera-history:context", {
+          detail: {
+            parentUrl: "https://resort.example/webcams?lang=en#old-section",
+            iframeId: "camera-history-widget-acme-cam-1",
+          },
+        }),
+      );
+    });
+
+    await user.click(screen.getByTestId("frame-img-2"));
+    await user.click(screen.getByTestId("share-open"));
+
+    const shareUrl = new URL((screen.getByLabelText("Share URL") as HTMLInputElement).value);
+    expect(shareUrl.origin).toBe("https://resort.example");
+    expect(shareUrl.pathname).toBe("/webcams");
+    expect(shareUrl.searchParams.get("lang")).toBe("en");
+    expect(shareUrl.searchParams.get("ch_target")).toBe(
+      "camera-history-widget-acme-cam-1",
+    );
+    expect(shareUrl.searchParams.get("ch_date")).toBe("2026-09-18");
+    expect(shareUrl.searchParams.get("ch_hour")).toBe("12");
+    expect(shareUrl.hash).toBe("#camera-history-widget-acme-cam-1");
+  });
+
   it("falls back to the viewer timezone until camera metadata loads", async () => {
     const timestamp = "2026-10-18T00:12:00Z";
     let resolveCamera!: (camera: PublicCamera) => void;

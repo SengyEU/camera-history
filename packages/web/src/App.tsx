@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   getCamera,
   getCameraLatest,
@@ -12,7 +12,10 @@ import {
 } from "./api";
 import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
 import { SharePopup } from "./SharePopup";
-import { ContentTransition } from "./ContentTransition";import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
+import { ContentTransition } from "./ContentTransition";
+import { buildShareUrl, parseEmbedContext, type EmbedContext } from "./share";
+import { requestEmbedContext } from "./embedResize";
+import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
@@ -340,6 +343,7 @@ export function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shareImage, setShareImage] = useState<ImageDto | null>(null);
+  const [embedContext, setEmbedContext] = useState<EmbedContext | null>(null);
   const [embedScriptMissing, setEmbedScriptMissing] = useState(false);
   const initialDateRef = useRef<string | null>(
     new URLSearchParams(window.location.search).get("date"),
@@ -411,11 +415,17 @@ export function App() {
   useEffect(() => {
     const onMissing = () => setEmbedScriptMissing(true);
     const onReady = () => setEmbedScriptMissing(false);
+    const onContext = (event: Event) => {
+      const next = parseEmbedContext((event as CustomEvent).detail);
+      if (next) setEmbedContext(next);
+    };
     window.addEventListener("camera-history:script-missing", onMissing);
     window.addEventListener("camera-history:script-ok", onReady);
+    window.addEventListener("camera-history:context", onContext);
     return () => {
       window.removeEventListener("camera-history:script-missing", onMissing);
       window.removeEventListener("camera-history:script-ok", onReady);
+      window.removeEventListener("camera-history:context", onContext);
     };
   }, []);
 
@@ -585,26 +595,20 @@ export function App() {
     window.history.replaceState(null, "", `?${params.toString()}`);
   };
 
-  const buildShareUrl = useCallback(
-    (image: ImageDto) => {
-      const params = new URLSearchParams();
-      const current = new URLSearchParams(window.location.search);
-      const themeParam = current.get("theme");
-      if (themeParam) params.set("theme", themeParam);
-      if (isGroup && selectedCameraId) params.set("camera", selectedCameraId);
-      params.set("date", date);
-      params.set("hour", String(localHourInZone(image.timestamp, timezone)));
-      return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-    },
-    [date, isGroup, selectedCameraId, timezone],
-  );
-
   const shareUrl = useMemo(
-    () => (shareImage ? buildShareUrl(shareImage) : ""),
-    [shareImage, buildShareUrl],
+    () =>
+      shareImage
+        ? buildShareUrl(window.location.href, embedContext, {
+            date,
+            hour: localHourInZone(shareImage.timestamp, timezone),
+            cameraId: isGroup ? selectedCameraId : null,
+          })
+        : "",
+    [shareImage, embedContext, date, isGroup, selectedCameraId, timezone],
   );
 
   const handleShare = (image: ImageDto) => {
+    requestEmbedContext();
     setShareImage(image);
   };
 

@@ -1,11 +1,21 @@
+import { parseEmbedContext } from "./share";
+
 const RESIZE_TYPE = "camera-history:resize";
 const HELLO_TYPE = "camera-history:hello";
 const FONT_TYPE = "camera-history:font";
 const SCRIPT_OK_TYPE = "camera-history:script-ok";
 const THEME_TYPE = "camera-history:theme";
+const CONTEXT_TYPE = "camera-history:context";
+const REQUEST_CONTEXT_TYPE = "camera-history:request-context";
 const SCRIPT_MISSING_EVENT = "camera-history:script-missing";
 const SCRIPT_OK_EVENT = "camera-history:script-ok";
+const CONTEXT_EVENT = "camera-history:context";
 const SCRIPT_NOTICE_DELAY_MS = 2500;
+
+export function requestEmbedContext(): void {
+  if (typeof window === "undefined" || window.parent === window) return;
+  window.parent.postMessage({ type: REQUEST_CONTEXT_TYPE }, "*");
+}
 
 interface FontMessage {
   type?: string;
@@ -99,6 +109,7 @@ export function setupEmbedResize(): void {
 
   const hello = () => window.parent.postMessage({ type: HELLO_TYPE }, "*");
   hello();
+  requestEmbedContext();
   window.addEventListener("load", hello);
 
   let lastHeight = 0;
@@ -143,6 +154,14 @@ export function setupEmbedResize(): void {
 
     if (data.type === THEME_TYPE) {
       applyThemeOverride(document.documentElement, data as ThemeMessage);
+      return;
+    }
+
+    if (data.type === CONTEXT_TYPE) {
+      const context = parseEmbedContext(data);
+      if (context) {
+        window.dispatchEvent(new CustomEvent(CONTEXT_EVENT, { detail: context }));
+      }
       return;
     }
 
