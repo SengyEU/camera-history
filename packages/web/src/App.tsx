@@ -389,17 +389,22 @@ export function App() {
   }, [groupRoute, camera, selectedCamera]);
 
   useEffect(() => {
+    if (document.documentElement.dataset.themeOverride === "1") return;
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
   useEffect(() => {
     const root = document.documentElement;
-    if (!customTheme) return;
+    if (!customTheme || root.dataset.themeOverride === "1") return;
+    root.style.setProperty("--widget-custom-theme", "1");
+    root.style.setProperty("--widget-bg", customTheme.bg);
     for (const [key, cssVar] of Object.entries(CUSTOM_THEME_VARS)) {
       root.style.setProperty(cssVar, customTheme[key as keyof ThemeColors]);
     }
     return () => {
       for (const cssVar of Object.values(CUSTOM_THEME_VARS)) root.style.removeProperty(cssVar);
+      root.style.removeProperty("--widget-bg");
+      root.style.removeProperty("--widget-custom-theme");
     };
   }, [customTheme]);
 

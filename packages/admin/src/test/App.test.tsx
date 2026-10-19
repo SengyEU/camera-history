@@ -18,6 +18,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   delete (window.navigator as { clipboard?: unknown }).clipboard;
+  window.location.hash = "";
 });
 
 describe("App login", () => {
@@ -313,6 +314,55 @@ describe("App camera CRUD", () => {
     expect(body.theme).toBe("custom");
     expect(body.themeColors.ink).toBe("#ffffff");
     expect(body.themeColors.bg).toBe("#f8fafb");
+  });
+
+  it("saves theme changes automatically without pressing save", async () => {
+    const { fn, calls } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    await userEvent.selectOptions(screen.getByTestId("form-theme"), "custom");
+
+    await waitFor(
+      () =>
+        expect(
+          calls.some(
+            (c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT",
+          ),
+        ).toBe(true),
+      { timeout: 2500 },
+    );
+    const put = calls.find(
+      (c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT",
+    )!;
+    const body = JSON.parse(String(put.init?.body)) as {
+      theme: string;
+      themeColors: Record<string, string>;
+    };
+    expect(body.theme).toBe("custom");
+    expect(body.themeColors.bg).toBe("#f8fafb");
+    expect(await screen.findByTestId("theme-save-state")).toHaveTextContent("Theme saved");
+  });
+
+  it("reflects the open camera in the URL and returns to the list from the Cameras tab", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    expect(window.location.hash).toBe("#/cameras/cam-1");
+    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("nav-groups"));
+    await waitFor(() => expect(screen.queryByTestId("camera-editor")).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByTestId("nav-cameras"));
+    await screen.findByTestId("camera-summary");
+    expect(screen.queryByTestId("camera-editor")).not.toBeInTheDocument();
+    expect(window.location.hash).toBe("#/cameras");
   });
 
   it("shows a live widget preview beside the camera settings", async () => {

@@ -2,6 +2,7 @@ const RESIZE_TYPE = "camera-history:resize";
 const HELLO_TYPE = "camera-history:hello";
 const FONT_TYPE = "camera-history:font";
 const SCRIPT_OK_TYPE = "camera-history:script-ok";
+const THEME_TYPE = "camera-history:theme";
 const SCRIPT_MISSING_EVENT = "camera-history:script-missing";
 const SCRIPT_OK_EVENT = "camera-history:script-ok";
 const SCRIPT_NOTICE_DELAY_MS = 2500;
@@ -11,6 +12,55 @@ interface FontMessage {
   fontFamily?: string;
   fontLinks?: string[];
   backgroundColor?: string;
+}
+
+interface ThemeMessage {
+  type?: string;
+  theme?: string;
+  colors?: Record<string, string> | null;
+}
+
+const PRESET_THEMES = ["light", "dark", "forest", "midnight"];
+const CUSTOM_THEME_VARS: Record<string, string> = {
+  bg: "--bg",
+  surface: "--surface",
+  ink: "--ink",
+  muted: "--muted",
+  line: "--line",
+  accent: "--accent",
+  onAccent: "--on-accent",
+  pine: "--pine",
+  onPine: "--on-pine",
+};
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+function applyThemeOverride(root: HTMLElement, data: ThemeMessage): void {
+  if (!data.theme) return;
+  for (const cssVar of Object.values(CUSTOM_THEME_VARS)) {
+    root.style.removeProperty(cssVar);
+  }
+  root.style.removeProperty("--widget-bg");
+  root.style.removeProperty("--widget-custom-theme");
+  root.dataset.themeOverride = "1";
+
+  if (data.theme === "custom" && data.colors) {
+    const colors = data.colors;
+    const complete = Object.keys(CUSTOM_THEME_VARS).every(
+      (key) => typeof colors[key] === "string" && HEX_COLOR.test(colors[key]!),
+    );
+    if (!complete) return;
+    root.dataset.theme = "light";
+    for (const [key, cssVar] of Object.entries(CUSTOM_THEME_VARS)) {
+      root.style.setProperty(cssVar, colors[key]!);
+    }
+    root.style.setProperty("--widget-bg", colors.bg!);
+    root.style.setProperty("--widget-custom-theme", "1");
+    return;
+  }
+
+  if (PRESET_THEMES.includes(data.theme)) {
+    root.dataset.theme = data.theme;
+  }
 }
 
 /**
@@ -91,13 +141,21 @@ export function setupEmbedResize(): void {
       return;
     }
 
+    if (data.type === THEME_TYPE) {
+      applyThemeOverride(document.documentElement, data as ThemeMessage);
+      return;
+    }
+
     if (data.type !== FONT_TYPE) return;
     confirmScript();
     if (typeof data.fontFamily === "string" && data.fontFamily.trim()) {
       const family = data.fontFamily.replace(/[;{}<>]/g, "").trim().slice(0, 300);
       document.documentElement.style.setProperty("--widget-font", family);
     }
-    if (typeof data.backgroundColor === "string") {
+    if (
+      typeof data.backgroundColor === "string" &&
+      document.documentElement.style.getPropertyValue("--widget-custom-theme") !== "1"
+    ) {
       const background = data.backgroundColor.trim();
       if (/^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([^)]*\))$/i.test(background)) {
         document.documentElement.style.setProperty("--widget-bg", background);

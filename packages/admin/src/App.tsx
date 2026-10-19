@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup } from "./api";
 import { BillingPage } from "./Billing";
 import { formatAge, formatBytes } from "./format";
@@ -31,6 +31,15 @@ function currentView(): "cameras" | "groups" | "billing" {
   if (window.location.hash.startsWith("#/billing")) return "billing";
   if (window.location.hash.startsWith("#/groups")) return "groups";
   return "cameras";
+}
+
+type CameraRoute = { mode: "new" } | { mode: "edit"; id: string } | null;
+
+function parseCameraRoute(hash: string): CameraRoute {
+  const match = hash.match(/^#\/cameras\/([^/?#]+)/);
+  if (!match) return null;
+  const id = decodeURIComponent(match[1]!);
+  return id === "new" ? { mode: "new" } : { mode: "edit", id };
 }
 
 function PasswordField({
@@ -286,7 +295,56 @@ function CameraForm({
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [groupMemberships, setGroupMemberships] = useState<Record<string, boolean>>({});
   const [initialMemberships, setInitialMemberships] = useState<Record<string, boolean>>({});
+  const previewRef = useRef<HTMLIFrameElement | null>(null);
+  const [themeSaveState, setThemeSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const savedThemeRef = useRef(
+    JSON.stringify({ theme: initial.theme, colors: initial.themeColors ?? null }),
+  );
   const set = (k: keyof CameraInput, v: string | number) => setInput((s) => ({ ...s, [k]: v }));
+
+  const postPreviewTheme = useCallback(() => {
+    const frame = previewRef.current;
+    if (!frame || !cameraId) return;
+    frame.contentWindow?.postMessage?.(
+      {
+        type: "camera-history:theme",
+        theme: input.theme,
+        colors:
+          input.theme === "custom" ? (input.themeColors ?? DEFAULT_THEME_COLORS) : null,
+      },
+      window.location.origin,
+    );
+  }, [cameraId, input.theme, input.themeColors]);
+
+  useEffect(() => {
+    postPreviewTheme();
+  }, [postPreviewTheme]);
+
+  useEffect(() => {
+    if (!cameraId) return;
+    const signature = JSON.stringify({
+      theme: input.theme,
+      colors: input.themeColors ?? null,
+    });
+    if (signature === savedThemeRef.current) return;
+    setThemeSaveState("saving");
+    const timer = setTimeout(() => {
+      api
+        .updateCamera(cameraId, {
+          theme: input.theme,
+          themeColors:
+            input.theme === "custom"
+              ? (input.themeColors ?? DEFAULT_THEME_COLORS)
+              : input.themeColors,
+        })
+        .then(() => {
+          savedThemeRef.current = signature;
+          setThemeSaveState("saved");
+        })
+        .catch(() => setThemeSaveState("error"));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [cameraId, input.theme, input.themeColors]);
 
   useEffect(() => {
     let active = true;
@@ -562,10 +620,12 @@ function CameraForm({
           </div>
           {cameraId && tenantSlug ? (
             <iframe
+              ref={previewRef}
               data-testid="camera-preview"
               src={`${window.location.origin}/widget/${tenantSlug}/${cameraId}${
                 input.theme === "custom" ? "" : `?theme=${encodeURIComponent(input.theme)}`
               }`}
+              onLoad={postPreviewTheme}
               title="Camera preview"
               loading="lazy"
               style={{ width: "100%", height: 640, border: 0, borderRadius: 8 }}
@@ -573,8 +633,18 @@ function CameraForm({
           ) : (
             <p className="field-hint">Save the camera to see its live preview.</p>
           )}
+          {cameraId && themeSaveState !== "idle" && (
+            <p className="field-hint" data-testid="theme-save-state">
+              {themeSaveState === "saving"
+                ? "Saving theme…"
+                : themeSaveState === "saved"
+                  ? "Theme saved"
+                  : "Theme save failed"}
+            </p>
+          )}
           <p className="field-hint">
-            Theme changes update the preview instantly. Other settings apply after saving.
+            Theme changes apply to the preview instantly and are saved automatically. Other settings
+            apply after saving.
           </p>
         </aside>
       </div>
@@ -1020,8 +1090,7 @@ export function App() {
   const [email, setEmail] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [cameras, setCameras] = useState<AdminCamera[]>([]);
-  const [editing, setEditing] = useState<CameraInput | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [cameraRoute, setCameraRoute] = useState<CameraRoute>(() => parseCameraRoute(window.location.hash));
   const [confirming, setConfirming] = useState<AdminCamera | null>(null);
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [camerasLoading, setCamerasLoading] = useState(true);
@@ -1035,6 +1104,7 @@ export function App() {
     const onHash = () => {
       setView(currentView());
       setRegistering(window.location.hash.startsWith("#/register"));
+      setCameraRoute(parseCameraRoute(window.location.hash));
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
@@ -1104,6 +1174,30 @@ export function App() {
     showNight: cam.showNight ?? false,
   });
 
+  const editingId = cameraRoute?.mode === "edit" ? cameraRoute.id : null;
+  const editingCamera = editingId ? (cameras.find((camera) => camera.id === editingId) ?? null) : null;
+  const editing =
+    cameraRoute?.mode === "new"
+      ? emptyInput()
+      : cameraRoute?.mode === "edit" && editingCamera
+        ? toInput(editingCamera)
+        : null;
+
+  const openNewCamera = () => {
+    setCameraRoute({ mode: "new" });
+    if (window.location.hash !== "#/cameras/new") window.location.hash = "#/cameras/new";
+  };
+
+  const openCamera = (id: string) => {
+    setCameraRoute({ mode: "edit", id });
+    if (window.location.hash !== `#/cameras/${id}`) window.location.hash = `#/cameras/${id}`;
+  };
+
+  const closeCamera = () => {
+    setCameraRoute(null);
+    if (window.location.hash !== "#/cameras") window.location.hash = "#/cameras";
+  };
+
   const saveCamera = async (
     input: CameraInput,
     groupUpdates?: { groupId: string; selected: boolean; cameraIds: string[] }[],
@@ -1122,8 +1216,7 @@ export function App() {
     }
 
     const closeAndRefresh = async () => {
-      setEditing(null);
-      setEditingId(null);
+      closeCamera();
       await refresh();
     };
 
@@ -1209,28 +1302,34 @@ export function App() {
          <BillingPage />
        ) : view === "groups" ? (
          <GroupsView cameras={cameras} groups={groups} loading={groupsLoading} tenantSlug={tenantSlug} onGroupsChange={reloadGroups} />
-       ) : editing !== null ? (
-         <CameraForm
-           initial={editing}
-           onSave={saveCamera}
-           onCancel={() => {
-             setEditing(null);
-             setEditingId(null);
-           }}
-           cameraId={editingId}
-           tenantSlug={tenantSlug}
-         />
+       ) : cameraRoute !== null ? (
+         editing !== null ? (
+           <CameraForm
+             key={editingId ?? "new"}
+             initial={editing}
+             onSave={saveCamera}
+             onCancel={closeCamera}
+             cameraId={editingId}
+             tenantSlug={tenantSlug}
+           />
+         ) : camerasLoading ? (
+           <p className="loading">Loading…</p>
+         ) : (
+           <section className="panel camera-editor">
+             <div className="panel-head">
+               <h2>Camera not found</h2>
+               <button className="secondary" onClick={closeCamera} data-testid="camera-not-found-back">
+                 ← Back to cameras
+               </button>
+             </div>
+             <p className="empty">This camera does not exist or was removed.</p>
+           </section>
+         )
        ) : (
         <section className="panel">
           <div className="panel-head">
             <h2>Cameras</h2>
-            <button
-              onClick={() => {
-                setEditingId(null);
-                setEditing(emptyInput());
-              }}
-              data-testid="add-camera"
-            >
+            <button onClick={openNewCamera} data-testid="add-camera">
               + New camera
             </button>
           </div>
@@ -1240,13 +1339,7 @@ export function App() {
             <div className="empty-state" data-testid="empty-state">
               <p className="empty-title">No cameras yet</p>
               <p>Add your first camera to start building its history.</p>
-              <button
-                onClick={() => {
-                  setEditingId(null);
-                  setEditing(emptyInput());
-                }}
-                data-testid="empty-add-camera"
-              >
+              <button onClick={openNewCamera} data-testid="empty-add-camera">
                 Add your first camera
               </button>
             </div>
@@ -1258,10 +1351,7 @@ export function App() {
                   <CameraCard
                     key={cam.id}
                     cam={cam}
-                    onEdit={() => {
-                      setEditingId(cam.id);
-                      setEditing(toInput(cam));
-                    }}
+                    onEdit={() => openCamera(cam.id)}
                     onDelete={() => setConfirming(cam)}
                   />
                 ))}
