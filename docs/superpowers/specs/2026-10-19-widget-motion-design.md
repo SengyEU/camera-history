@@ -14,7 +14,7 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 ## Content hand-off (day / camera switch)
 
 - New component `ContentTransition` wraps the filmstrip/empty-state branches in `WidgetBody`.
-- Props: `transitionKey`, `direction: "next" | "prev"`, `children`, `animate?`.
+- Props: `transitionKey`, `children`, `animate?`.
 - On key change the previous content is frozen into a non-interactive layer
   (`aria-hidden`, `pointer-events: none`) and the new content renders live beneath it.
   The old layer is removed after 400 ms (settle > animation length).
@@ -25,20 +25,15 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 - The loading skeleton renders outside `ContentTransition` and never animates (no
   slide-in offset). The first content mount is instant (no hand-off from nothing).
 - The wrapper exposes `data-direction` for tests and debugging.
-- Direction is decided at intent time: `changeDate` compares the new date with the
-  current one (`prev` = older, `next` = newer); camera switch and group-latest fallback
-  use `next`. The direction is frozen per transition inside `ContentTransition`.
 - Reduced motion and test runs swap instantly (JS check + `prefers-reduced-motion` CSS).
 
 ### Motion
 
-- 520 ms, `cubic-bezier(0.22, 1, 0.36, 1)` (`--ease-out`), translateX only (±28 px),
-  `will-change: transform` while sliding. Settle timer 640 ms.
-- `prev`: new content enters from the left, old slides out right (timeline going back).
-- `next`: new content enters from the right, old slides out left.
-- Both layers are fully opaque and overlap at all times — no gap, no fade to background.
+- 700 ms crossfade (`--dur-med`, `ease-in-out`): the old layer sits above the static new
+  layer and fades from opacity 1 to 0. No movement, no gap, no background bleed.
 - CSS grid stacking (`grid-area: 1 / 1`) keeps the height constant; empty states keep
   the same 4/3 box, so the widget never reflows.
+- Settle timer 820 ms.
 
 ## Frame expand / collapse
 

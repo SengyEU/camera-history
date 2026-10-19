@@ -10,7 +10,7 @@ import {
 } from "./api";
 import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
 import { SharePopup } from "./SharePopup";
-import { ContentTransition, type TransitionDirection } from "./ContentTransition";import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
+import { ContentTransition } from "./ContentTransition";import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
@@ -98,7 +98,6 @@ interface WidgetBodyProps {
   switcher?: ReactNode;
   children?: ReactNode;
   contentKey: string;
-  direction: TransitionDirection;
 }
 
 function WidgetBody({
@@ -121,7 +120,6 @@ function WidgetBody({
   switcher,
   children,
   contentKey,
-  direction,
 }: WidgetBodyProps) {
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
@@ -136,7 +134,7 @@ function WidgetBody({
           onShare={() => {}}
         />
       ) : (
-        <ContentTransition transitionKey={contentKey} direction={direction}>
+        <ContentTransition transitionKey={contentKey}>
           {images.length === 0 ? (
             <div className="empty-state" data-testid="empty-state">
               <p className="empty">No images for this date.</p>
@@ -217,7 +215,6 @@ export function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shareImage, setShareImage] = useState<ImageDto | null>(null);
-  const [transitionDirection, setTransitionDirection] = useState<TransitionDirection>("next");
   const initialDateRef = useRef<string | null>(
     new URLSearchParams(window.location.search).get("date"),
   );
@@ -237,7 +234,7 @@ export function App() {
   const loadedCameraRef = useRef<string | null>(null);
 
   const cameraId = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
-  const hasLoadedOnce = cameraId !== "" && loadedCameraRef.current === cameraId;
+  const hasLoadedOnce = loadedCameraRef.current !== null;
   const selectedCamera =
     groupRoute && group ? (group.cameras.find((c) => c.id === selectedCameraId) ?? null) : null;
   const timezone =
@@ -322,7 +319,7 @@ export function App() {
     () => (showNight ? images : images.filter((image) => image.isDaylight !== false)),
     [images, showNight],
   );
-  const contentKey = `${cameraId}|${images[0]?.id ?? ""}|${images.length}`;
+  const contentKey = `${images[0]?.id ?? ""}|${images.length}`;
 
   useEffect(() => {
     if (!cameraId) {
@@ -346,7 +343,6 @@ export function App() {
               if (latest) fallbackRef.current.latest.set(cameraId, latest);
             }
             if (latest && latest !== date) {
-              setTransitionDirection(latest >= date ? "next" : "prev");
               setDate(latest);
               return;
             }
@@ -417,7 +413,6 @@ export function App() {
     fallbackRef.current.attempted.add(`${cameraId}:${next}`);
     dateTouchedRef.current = true;
     setDateReady(true);
-    setTransitionDirection(next >= date ? "next" : "prev");
     setDate(next);
     setOpenId(null);
     setShareImage(null);
@@ -477,7 +472,6 @@ export function App() {
         loading={loading}
         hasLoadedOnce={hasLoadedOnce}
         contentKey={contentKey}
-        direction={transitionDirection}
         images={images}
         visibleImages={visibleImages}
         openId={openId}
@@ -493,10 +487,7 @@ export function App() {
               data-testid="camera-switcher"
               aria-label="Camera"
               value={selectedCameraId ?? ""}
-              onChange={(e) => {
-                setTransitionDirection("next");
-                setSelectedCameraId(e.target.value);
-              }}
+              onChange={(e) => setSelectedCameraId(e.target.value)}
             >
               {group.cameras.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -521,7 +512,6 @@ export function App() {
       loading={loading}
       hasLoadedOnce={hasLoadedOnce}
       contentKey={contentKey}
-      direction={transitionDirection}
       images={images}
       visibleImages={visibleImages}
       openId={openId}

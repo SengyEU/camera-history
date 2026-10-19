@@ -1,6 +1,7 @@
 import {
   useEffect,
   useRef,
+  useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { ImageDto } from "./api";
@@ -47,7 +48,28 @@ export function FilmStrip({
 }: FilmStripProps) {
   const openIndex = openId ? images.findIndex((image) => image.id === openId) : -1;
   const openImage = openIndex >= 0 ? images[openIndex] : undefined;
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  const [sliceWidth, setSliceWidth] = useState(0);
   const openRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const measure = () => {
+      const count = Math.max(images.length, 1);
+      const width = strip.clientWidth;
+      setSliceWidth(width > 0 ? (width - (count - 1) * 2) / count : 0);
+    };
+    measure();
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(strip);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [images.length]);
   const swipeRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const suppressClickRef = useRef(false);
 
@@ -98,6 +120,7 @@ export function FilmStrip({
 
   return (
     <div
+      ref={stripRef}
       className={`film-strip${images.length > 28 ? " film-strip-scroll" : ""}`}
       data-testid="film-strip"
       aria-busy={loading || undefined}
@@ -116,6 +139,7 @@ export function FilmStrip({
           const isOpen = openImage !== undefined && image.id === openImage.id;
           const hour = viewerHourParts(image.timestamp, timezone);
           const label = isOpen ? viewerCaptureLabel(image.timestamp, timezone) : "";
+          const sliceStep = images.length > 28 ? 14 : sliceWidth;
           return (
             <div
               key={image.id}
@@ -125,7 +149,15 @@ export function FilmStrip({
               role="button"
               tabIndex={0}
               aria-label={isOpen ? "Collapse capture" : `Open capture ${hour.hour} ${hour.meridiem}`}
-              style={isOpen ? undefined : { backgroundImage: `url(${image.url})` }}
+              onMouseDown={(event) => event.preventDefault()}
+              style={
+                isOpen
+                  ? undefined
+                  : {
+                      backgroundImage: `url(${image.url})`,
+                      backgroundPosition: `${Math.round(-index * sliceStep)}px center`,
+                    }
+              }
               onClick={() => {
                 if (!isOpen) {
                   onOpenChange(image.id);
@@ -149,7 +181,7 @@ export function FilmStrip({
             >
               {isOpen ? (
                 <>
-                  <img key={image.id} className="frame-img" src={image.url} alt={label} />
+                  <img className="frame-img" src={image.url} alt={label} />
                   <span className="frame-osd">{label}</span>
                   {index > 0 && (
                     <button

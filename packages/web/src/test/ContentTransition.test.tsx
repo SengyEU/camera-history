@@ -4,13 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { ContentTransition } from "../ContentTransition";
 
-const enterNext = () => document.querySelector(".content-enter-next");
-const enterPrev = () => document.querySelector(".content-enter-prev");
-const exitNext = () => document.querySelector(".content-exit-next");
-const exitPrev = () => document.querySelector(".content-exit-prev");
-const anyEnter = () => document.querySelector('[class*="content-enter"]');
+const exitLayer = () => document.querySelector(".content-exit");
+const enterLayer = () => document.querySelector(".content-enter");
 const layerCount = () => document.querySelectorAll(".content-layer").length;
-const SETTLE = 700;
+const SETTLE = 900;
 
 function Content({ label }: { label: string }) {
   return <p data-testid="content">{label}</p>;
@@ -28,31 +25,31 @@ describe("ContentTransition", () => {
 
   it("does not animate the very first content on mount", () => {
     render(
-      <ContentTransition transitionKey="a" direction="next" animate>
+      <ContentTransition transitionKey="a" animate>
         <Content label="A" />
       </ContentTransition>,
     );
     expect(screen.getAllByTestId("content")).toHaveLength(1);
-    expect(anyEnter()).toBeNull();
-    expect(document.querySelector('[class*="content-exit"]')).toBeNull();
+    expect(enterLayer()).toBeNull();
+    expect(exitLayer()).toBeNull();
   });
 
-  it("keeps the old layer under the new one and removes it after settling", () => {
+  it("keeps the old layer above the new one while it fades out", () => {
     const { rerender } = render(
-      <ContentTransition transitionKey="a" direction="next" animate>
+      <ContentTransition transitionKey="a" animate>
         <Content label="A" />
       </ContentTransition>,
     );
     rerender(
-      <ContentTransition transitionKey="b" direction="next" animate>
+      <ContentTransition transitionKey="b" animate>
         <Content label="B" />
       </ContentTransition>,
     );
     expect(screen.getAllByTestId("content")).toHaveLength(2);
     expect(screen.getByText("A")).toBeInTheDocument();
     expect(screen.getByText("B")).toBeInTheDocument();
-    expect(enterNext()).not.toBeNull();
-    const leaving = exitNext();
+    expect(enterLayer()).not.toBeNull();
+    const leaving = exitLayer();
     expect(leaving).not.toBeNull();
     expect(leaving).toHaveAttribute("aria-hidden", "true");
 
@@ -61,23 +58,23 @@ describe("ContentTransition", () => {
     });
     expect(screen.getAllByTestId("content")).toHaveLength(1);
     expect(screen.getByText("B")).toBeInTheDocument();
-    expect(exitNext()).toBeNull();
-    expect(anyEnter()).toBeNull();
+    expect(exitLayer()).toBeNull();
+    expect(enterLayer()).toBeNull();
   });
 
   it("updates the live layer while the old layer is leaving", () => {
     const { rerender } = render(
-      <ContentTransition transitionKey="a" direction="next" animate>
+      <ContentTransition transitionKey="a" animate>
         <Content label="A" />
       </ContentTransition>,
     );
     rerender(
-      <ContentTransition transitionKey="b" direction="next" animate>
+      <ContentTransition transitionKey="b" animate>
         <Content label="B" />
       </ContentTransition>,
     );
     rerender(
-      <ContentTransition transitionKey="b" direction="next" animate>
+      <ContentTransition transitionKey="b" animate>
         <Content label="B2" />
       </ContentTransition>,
     );
@@ -90,36 +87,19 @@ describe("ContentTransition", () => {
     expect(screen.getByText("B2")).toBeInTheDocument();
   });
 
-  it("slides the new layer from the left and the old layer to the right for prev", () => {
-    const { rerender } = render(
-      <ContentTransition transitionKey="b" direction="next" animate>
-        <Content label="B" />
-      </ContentTransition>,
-    );
-    rerender(
-      <ContentTransition transitionKey="a" direction="prev" animate>
-        <Content label="A" />
-      </ContentTransition>,
-    );
-    expect(enterPrev()).not.toBeNull();
-    expect(enterNext()).toBeNull();
-    expect(exitPrev()).not.toBeNull();
-    expect(exitNext()).toBeNull();
-  });
-
   it("replaces a pending transition on rapid switching without stacking layers", () => {
     const { rerender } = render(
-      <ContentTransition transitionKey="a" direction="next" animate>
+      <ContentTransition transitionKey="a" animate>
         <Content label="A" />
       </ContentTransition>,
     );
     rerender(
-      <ContentTransition transitionKey="b" direction="next" animate>
+      <ContentTransition transitionKey="b" animate>
         <Content label="B" />
       </ContentTransition>,
     );
     rerender(
-      <ContentTransition transitionKey="c" direction="prev" animate>
+      <ContentTransition transitionKey="c" animate>
         <Content label="C" />
       </ContentTransition>,
     );
@@ -137,56 +117,33 @@ describe("ContentTransition", () => {
   it("swaps instantly under prefers-reduced-motion", () => {
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
     const { rerender } = render(
-      <ContentTransition transitionKey="a" direction="next" animate>
+      <ContentTransition transitionKey="a" animate>
         <Content label="A" />
       </ContentTransition>,
     );
     rerender(
-      <ContentTransition transitionKey="b" direction="next" animate>
+      <ContentTransition transitionKey="b" animate>
         <Content label="B" />
       </ContentTransition>,
     );
     expect(screen.getAllByTestId("content")).toHaveLength(1);
     expect(screen.getByText("B")).toBeInTheDocument();
-    expect(exitNext()).toBeNull();
-    expect(anyEnter()).toBeNull();
+    expect(exitLayer()).toBeNull();
   });
 
   it("swaps instantly when animate is false (default in test runs)", () => {
     const { rerender } = render(
-      <ContentTransition transitionKey="a" direction="next">
+      <ContentTransition transitionKey="a">
         <Content label="A" />
       </ContentTransition>,
     );
     rerender(
-      <ContentTransition transitionKey="b" direction="next">
+      <ContentTransition transitionKey="b">
         <Content label="B" />
       </ContentTransition>,
     );
     expect(screen.getAllByTestId("content")).toHaveLength(1);
     expect(screen.getByText("B")).toBeInTheDocument();
-    expect(exitNext()).toBeNull();
-    expect(anyEnter()).toBeNull();
-  });
-
-  it("exposes the pending transition direction on the wrapper", () => {
-    const { rerender } = render(
-      <ContentTransition transitionKey="a" direction="next">
-        <Content label="A" />
-      </ContentTransition>,
-    );
-    expect(document.querySelector(".content-transition")).toHaveAttribute(
-      "data-direction",
-      "next",
-    );
-    rerender(
-      <ContentTransition transitionKey="b" direction="prev">
-        <Content label="B" />
-      </ContentTransition>,
-    );
-    expect(document.querySelector(".content-transition")).toHaveAttribute(
-      "data-direction",
-      "prev",
-    );
+    expect(exitLayer()).toBeNull();
   });
 });

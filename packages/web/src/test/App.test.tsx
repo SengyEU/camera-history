@@ -846,33 +846,6 @@ describe("App widget", () => {
     expect(screen.queryByTestId("frame-img-1")).not.toBeInTheDocument();
   });
 
-  it("points the day-switch transition in the navigation direction", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getImages).mockImplementation(async (_cameraId, date) =>
-      date === "2026-09-17"
-        ? [makeImage("p1", "2026-09-17T09:00:00Z", "/p1.jpg")]
-        : defaultImages,
-    );
-    render(<App />);
-    await screen.findByTestId("frame-img-1");
-
-    await user.click(screen.getByLabelText("Previous day"));
-    await waitFor(() =>
-      expect(document.querySelector(".content-transition")).toHaveAttribute(
-        "data-direction",
-        "prev",
-      ),
-    );
-
-    await user.click(screen.getByLabelText("Next day"));
-    await waitFor(() =>
-      expect(document.querySelector(".content-transition")).toHaveAttribute(
-        "data-direction",
-        "next",
-      ),
-    );
-  });
-
   it("keeps the loading skeleton outside the transition wrapper without slide-in classes", async () => {
     vi.mocked(getImages).mockImplementation(() => new Promise(() => {}));
     render(<App />);
@@ -1003,34 +976,6 @@ describe("App group widget", () => {
     expect(vi.mocked(getCameraLatest)).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "dark"));
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-  });
-
-  it("slides camera switches forward", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getGroup).mockResolvedValue(summitGroup);
-    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
-      makeImage(`${cameraId}-${date}`, `${date}T09:00:00Z`, `/api/v1/${cameraId}.jpg`),
-    ]);
-    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
-    render(<App />);
-
-    await screen.findByTestId("frame-cam-a-2026-10-10");
-    await user.click(screen.getByLabelText("Previous day"));
-    await waitFor(() =>
-      expect(document.querySelector(".content-transition")).toHaveAttribute(
-        "data-direction",
-        "prev",
-      ),
-    );
-
-    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
-    await waitFor(() =>
-      expect(document.querySelector(".content-transition")).toHaveAttribute(
-        "data-direction",
-        "next",
-      ),
-    );
-    expect(await screen.findByTestId("frame-cam-b-2026-10-09")).toBeInTheDocument();
   });
 
   it("uses the selected camera's timezone for labels and share links", async () => {
@@ -1322,7 +1267,7 @@ describe("App group widget", () => {
     expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
   });
 
-  it("shows fresh skeletons when switching to a camera before its first response", async () => {
+  it("keeps the old camera on screen until the new camera's first response arrives", async () => {
     const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     const pending: Array<(images: ImageDto[]) => void> = [];
@@ -1345,14 +1290,14 @@ describe("App group widget", () => {
     await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
     await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-b", "2026-10-10"));
 
-    expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
-    expect(screen.queryByTestId("frame-a1")).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
+    expect(screen.getByTestId("frame-a1")).toBeInTheDocument();
 
     await act(async () => {
       pending[1]!([makeImage("b1", "2026-10-10T09:00:00Z", "/b1.jpg")]);
     });
     expect(await screen.findByTestId("frame-b1")).toBeInTheDocument();
-    expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
+    expect(screen.queryByTestId("frame-a1")).not.toBeInTheDocument();
   });
 
   it("includes the selected camera in the share link", async () => {
