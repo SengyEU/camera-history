@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e8f4fa"/></linearGradient><clipPath id="r"><rect width="64" height="64" rx="13"/></clipPath></defs>
+<g clip-path="url(#r)"><rect width="64" height="64" fill="url(#g)"/>
+<g fill="none" stroke="#0891b2" stroke-linecap="round" stroke-linejoin="round"><polyline points="-6,50 8,43 21,47 35,40 48,47 58,42 70,46" stroke-width="3.2" opacity=".9"/>
+<polyline points="-6,57 11,50 26,55 41,47 54,54 70,49" stroke-width="2.6" opacity=".55"/>
+<polyline points="-6,63 14,57 29,62 45,54 58,60 70,57" stroke-width="2.1" opacity=".32"/></g>
+<g fill="#101828" transform="translate(9.058 35.962) scale(0.031320 -0.029000)"><path d="M391 -12Q280 -12 202.5 26.5Q125 65 85 144Q45 223 45 344Q45 522 134.5 610.5Q224 699 391 699Q484 699 556 667.5Q628 636 668.5 573.5Q709 511 709 418L534 418Q534 462 516.5 493.5Q499 525 467.5 542Q436 559 391 559Q335 559 299 536Q263 513 246 470Q229 427 229 366L229 321Q229 260 246 216.5Q263 173 298.5 150.5Q334 128 390 128Q438 128 471.5 144Q505 160 522.5 191.5Q540 223 540 267L709 267Q709 174 669.5 112Q630 50 558.5 19Q487 -12 391 -12Z"/><path d="M75 0L75 687L254 687L254 423L533 423L533 687L712 687L712 0L533 0L533 277L254 277L254 0Z" transform="translate(708 0)"/></g>
+</g></svg>
