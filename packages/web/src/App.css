@@ -254,24 +254,15 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   pointer-events: none;
   animation: content-fade-out var(--dur-med) ease-in-out both;
 }
-.frame-img-previous {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
+.film-strip-step .frame,
+.film-strip-close .frame {
+  transition-duration: 450ms;
 }
-.frame-img-step {
-  position: relative;
-  z-index: 1;
-  animation: frame-step-in 350ms ease-in-out both;
-}
+.frame-closing:hover { box-shadow: none; }
 .frame-stepping .frame-osd,
 .frame-stepping .frame-arrow,
 .frame-stepping .frame-share {
   animation: none;
-}
-@keyframes frame-step-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 @keyframes content-fade-out {
   from { opacity: 1; }

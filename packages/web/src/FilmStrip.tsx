@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -52,15 +53,39 @@ export function FilmStrip({
   const [sliceWidth, setSliceWidth] = useState(0);
   const openRef = useRef<HTMLDivElement | null>(null);
   const lastOpenRef = useRef<ImageDto | null>(null);
+  const [frozenId, setFrozenId] = useState<string | null>(null);
+  const [motion, setMotion] = useState<"idle" | "step" | "close">("idle");
 
-  useEffect(() => {
-    lastOpenRef.current = openImage ?? null;
-  }, [openImage]);
-
-  const steppingFrom =
-    openImage && lastOpenRef.current && lastOpenRef.current.id !== openImage.id
-      ? lastOpenRef.current
-      : null;
+  useLayoutEffect(() => {
+    const previous = lastOpenRef.current;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (previous && openId === null) {
+      lastOpenRef.current = null;
+      setFrozenId(previous.id);
+      setMotion("close");
+      timer = setTimeout(() => {
+        setFrozenId(null);
+        setMotion("idle");
+      }, 540);
+    } else if (openImage && previous && previous.id !== openImage.id) {
+      lastOpenRef.current = openImage;
+      setFrozenId(previous.id);
+      setMotion("step");
+      timer = setTimeout(() => {
+        setFrozenId(null);
+        setMotion("idle");
+      }, 540);
+    } else {
+      lastOpenRef.current = openImage ?? null;
+      if (openId !== null) {
+        setFrozenId(null);
+        setMotion("idle");
+      }
+    }
+    return () => {
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  }, [openId, openImage]);
 
   useEffect(() => {
     const strip = stripRef.current;
@@ -85,7 +110,7 @@ export function FilmStrip({
 
   useEffect(() => {
     if (!openId) return;
-    openRef.current?.scrollIntoView?.({ block: "nearest", inline: "center" });
+    openRef.current?.scrollIntoView?.({ block: "nearest", inline: "center", behavior: "smooth" });
   }, [openId]);
 
   useEffect(() => {
@@ -131,7 +156,9 @@ export function FilmStrip({
   return (
     <div
       ref={stripRef}
-      className={`film-strip${images.length > 28 ? " film-strip-scroll" : ""}`}
+      className={`film-strip${images.length > 28 ? " film-strip-scroll" : ""}${
+        motion !== "idle" ? ` film-strip-${motion}` : ""
+      }`}
       data-testid="film-strip"
       aria-busy={loading || undefined}
     >
@@ -147,6 +174,7 @@ export function FilmStrip({
       {!loading &&
         images.map((image, index) => {
           const isOpen = openImage !== undefined && image.id === openImage.id;
+          const isClosing = frozenId === image.id && !isOpen;
           const hour = viewerHourParts(image.timestamp, timezone);
           const label = isOpen ? viewerCaptureLabel(image.timestamp, timezone) : "";
           const sliceStep = images.length > 28 ? 14 : sliceWidth;
@@ -154,14 +182,14 @@ export function FilmStrip({
             <div
               key={image.id}
               ref={isOpen ? openRef : undefined}
-              className={`frame${isOpen ? " frame-open" : ""}${isOpen && steppingFrom ? " frame-stepping" : ""}`}
+              className={`frame${isOpen ? " frame-open" : ""}${isClosing ? " frame-closing" : ""}${isOpen && motion === "step" ? " frame-stepping" : ""}`}
               data-testid={isOpen ? "frame-open" : `frame-${image.id}`}
               role="button"
               tabIndex={0}
               aria-label={isOpen ? "Collapse capture" : `Open capture ${hour.hour} ${hour.meridiem}`}
               onMouseDown={(event) => event.preventDefault()}
               style={
-                isOpen
+                isOpen || isClosing
                   ? undefined
                   : {
                       backgroundImage: `url(${image.url})`,
@@ -189,23 +217,11 @@ export function FilmStrip({
                 onOpenChange(isOpen ? null : image.id);
               }}
             >
-              {isOpen ? (
+              {isOpen || isClosing ? (
                 <>
-                  {steppingFrom && (
-                    <img
-                      className="frame-img frame-img-previous"
-                      src={steppingFrom.url}
-                      alt=""
-                      aria-hidden="true"
-                    />
-                  )}
-                  <img
-                    className={`frame-img${steppingFrom ? " frame-img-step" : ""}`}
-                    src={image.url}
-                    alt={label}
-                  />
-                  <span className="frame-osd">{label}</span>
-                  {index > 0 && (
+                  <img className="frame-img" src={image.url} alt={isOpen ? label : ""} />
+                  {isOpen && <span className="frame-osd">{label}</span>}
+                  {isOpen && index > 0 && (
                     <button
                       type="button"
                       className="frame-arrow frame-arrow-left"
@@ -218,7 +234,7 @@ export function FilmStrip({
                       ‹
                     </button>
                   )}
-                  {index < images.length - 1 && (
+                  {isOpen && index < images.length - 1 && (
                     <button
                       type="button"
                       className="frame-arrow frame-arrow-right"
@@ -231,18 +247,20 @@ export function FilmStrip({
                       ›
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="frame-share"
-                    data-testid="share-open"
-                    aria-label="Share this capture"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onShare(image);
-                    }}
-                  >
-                    <ShareGlyph />
-                  </button>
+                  {isOpen && (
+                    <button
+                      type="button"
+                      className="frame-share"
+                      data-testid="share-open"
+                      aria-label="Share this capture"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onShare(image);
+                      }}
+                    >
+                      <ShareGlyph />
+                    </button>
+                  )}
                 </>
               ) : (
                 <span className="frame-hours">

@@ -202,25 +202,42 @@ describe("App widget", () => {
     expect(screen.getByTestId("frame-img-1")).toBeInTheDocument();
   });
 
-  it("crossfades the image when stepping between captures", async () => {
-    vi.mocked(getImages).mockResolvedValue(threeImages());
+  it("keeps the departing capture visible while the columns reflow", async () => {
     const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue(threeImages());
     render(<App />);
 
     await user.click(await screen.findByTestId("frame-d1"));
-    const open = screen.getByTestId("frame-open");
-    expect(open.querySelectorAll("img")).toHaveLength(1);
-    expect(open).not.toHaveClass("frame-stepping");
-
     await user.click(screen.getByLabelText("Next capture"));
-    const stepped = screen.getByTestId("frame-open");
-    expect(stepped).toHaveClass("frame-stepping");
-    const images = stepped.querySelectorAll("img");
-    expect(images).toHaveLength(2);
-    expect(images[0]).toHaveAttribute("src", "/d1.jpg");
-    expect(images[0]).toHaveAttribute("aria-hidden", "true");
-    expect(images[1]).toHaveAttribute("src", "/d2.jpg");
-    expect(images[1]).toHaveClass("frame-img-step");
+
+    const departing = screen.getByTestId("frame-d1");
+    expect(departing).toHaveClass("frame-closing");
+    expect(departing.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    expect(screen.getByTestId("film-strip")).toHaveClass("film-strip-step");
+    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+
+    await waitFor(() => expect(departing).not.toHaveClass("frame-closing"), { timeout: 2000 });
+    expect(departing.querySelector("img")).toBeNull();
+    expect(screen.getByTestId("film-strip")).not.toHaveClass("film-strip-step");
+  });
+
+  it("keeps the full image while a frame collapses", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByTestId("frame-img-1"));
+    await user.click(screen.getByTestId("frame-open"));
+
+    const collapsing = screen.getByTestId("frame-img-1");
+    expect(collapsing).toHaveClass("frame-closing");
+    expect(collapsing.querySelector("img")).toBeInTheDocument();
+    expect(screen.getByTestId("film-strip")).toHaveClass("film-strip-close");
+
+    await waitFor(() => expect(collapsing).not.toHaveClass("frame-closing"), { timeout: 2000 });
+    expect(collapsing.querySelector("img")).toBeNull();
+    expect(collapsing.style.backgroundImage).toContain(
+      "/api/v1/cameras/cam-1/2026-09-18/090000.jpg",
+    );
   });
 
   it("steps through the filtered list with the arrow buttons", async () => {

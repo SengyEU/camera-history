@@ -43,9 +43,11 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 
 ## Capture step inside an open frame
 
-- Stepping between captures crossfades: the previous capture stays mounted beneath the
-  new one, which fades in over 350 ms (`ease-in-out`). OSD/arrows/share do not re-animate
-  while stepping, only when the frame first opens.
+- Stepping between captures reflows the columns over 450 ms. The departing capture keeps
+  its full image until the reflow ends, then becomes a slice again. OSD/arrows/share do
+  not re-animate while stepping, only when the frame first opens.
+- Closing a frame uses the same 450 ms reflow; the full image stays visible until the
+  column has shrunk, then swaps back to its panorama slice.
 
 ## Share popup
 
