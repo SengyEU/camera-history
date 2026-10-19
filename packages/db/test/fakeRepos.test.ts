@@ -186,6 +186,14 @@ describe("fakeRepos", () => {
     expect(await repos.countCameras(tenant.id)).toBe(1);
     expect(await repos.usageStats(tenant.id)).toEqual({ usageBytes: 250, spanDays: 2 });
     expect(await repos.usageStats("missing")).toEqual({ usageBytes: 0, spanDays: 0 });
+    const stats = await repos.cameraStats(tenant.id);
+    expect(stats.get(cam.id)).toEqual({
+      imageCount: 2,
+      totalBytes: 250,
+      firstCaptureAt: "2026-09-18T09:00:00.000Z",
+      lastCaptureAt: "2026-09-20T09:00:00.000Z",
+    });
+    expect((await repos.cameraStats("missing")).size).toBe(0);
   });
 
   it("enables/disables all tenant cameras and toggles billing state", async () => {

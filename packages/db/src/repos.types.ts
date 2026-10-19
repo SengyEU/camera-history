@@ -36,6 +36,17 @@ export interface Repos {
   latestImageForCamera(cameraId: string): Promise<ImageRecord | null>;
   countCameras(tenantId: string): Promise<number>;
   usageStats(tenantId: string): Promise<{ usageBytes: number; spanDays: number }>;
+  cameraStats(tenantId: string): Promise<
+    Map<
+      string,
+      {
+        imageCount: number;
+        totalBytes: number;
+        firstCaptureAt: string | null;
+        lastCaptureAt: string | null;
+      }
+    >
+  >;
   setTenantCamerasEnabled(tenantId: string, enabled: boolean): Promise<void>;
   setBillingState(tenantId: string, patch: BillingPatch): Promise<Tenant | null>;
   listTenantsByBillingStatus(status: BillingStatus): Promise<Tenant[]>;

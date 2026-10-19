@@ -43,8 +43,22 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
   const pre = requireAuth(app);
 
   app.get("/api/v1/admin/cameras", { preHandler: pre }, async (req) => {
-    const cameras = await deps.repos.listCameras(req.user!.tenantId);
-    return { cameras };
+    const tenantId = req.user!.tenantId;
+    const [cameras, stats] = await Promise.all([
+      deps.repos.listCameras(tenantId),
+      deps.repos.cameraStats(tenantId),
+    ]);
+    return {
+      cameras: cameras.map((camera) => ({
+        ...camera,
+        ...(stats.get(camera.id) ?? {
+          imageCount: 0,
+          totalBytes: 0,
+          firstCaptureAt: null,
+          lastCaptureAt: null,
+        }),
+      })),
+    };
   });
 
   app.post("/api/v1/admin/cameras", { preHandler: pre, config: { rateLimit: RATE_LIMIT } }, async (req, reply) => {

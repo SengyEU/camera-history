@@ -23,6 +23,15 @@ import type { Repos } from "./repos.types.js";
 
 type TenantRow = typeof tenants.$inferSelect;
 
+function toDate(value: unknown): Date | null {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  return null;
+}
+
 function toTenant(row: TenantRow): Tenant {
   return { ...row, planMonths: Number(row.planMonths) };
 }
@@ -167,12 +176,37 @@ export function createRepos(db: Db): Repos {
         .from(images)
         .innerJoin(cameras, eq(images.cameraId, cameras.id))
         .where(eq(cameras.tenantId, tenantId));
-      if (!row || row.bytes === 0) return { usageBytes: 0, spanDays: 0 };
-      const first = row.first;
-      const last = row.last;
+      if (!row || Number(row.bytes) === 0) return { usageBytes: 0, spanDays: 0 };
+      const first = toDate(row.first);
+      const last = toDate(row.last);
       if (!first || !last) return { usageBytes: Number(row.bytes), spanDays: 0 };
       const spanDays = Math.max(1, Math.ceil((last.getTime() - first.getTime()) / 86_400_000));
       return { usageBytes: Number(row.bytes), spanDays };
+    },
+    async cameraStats(tenantId: string) {
+      const rows = await db
+        .select({
+          cameraId: images.cameraId,
+          imageCount: sql<number>`COUNT(*)`,
+          totalBytes: sql<number>`COALESCE(SUM(${images.sizeBytes}), 0)`,
+          first: sql<Date | null>`MIN(${images.timestamp})`,
+          last: sql<Date | null>`MAX(${images.timestamp})`,
+        })
+        .from(images)
+        .innerJoin(cameras, eq(images.cameraId, cameras.id))
+        .where(eq(cameras.tenantId, tenantId))
+        .groupBy(images.cameraId);
+      return new Map(
+        rows.map((row) => [
+          row.cameraId,
+          {
+            imageCount: Number(row.imageCount),
+            totalBytes: Number(row.totalBytes),
+            firstCaptureAt: toDate(row.first)?.toISOString() ?? null,
+            lastCaptureAt: toDate(row.last)?.toISOString() ?? null,
+          },
+        ]),
+      );
     },
     async setTenantCamerasEnabled(tenantId: string, enabled: boolean) {
       await db.update(cameras).set({ enabled }).where(eq(cameras.tenantId, tenantId));

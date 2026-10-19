@@ -49,6 +49,27 @@ describe("App login", () => {
     expect(calls.filter((c) => c.endsWith("/api/v1/auth/login"))).toHaveLength(1);
   });
 
+  it("toggles password visibility on the login screen", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("login-form");
+    const input = screen.getByTestId("login-password");
+    expect(input).toHaveAttribute("type", "password");
+    await userEvent.click(screen.getByTestId("login-password-toggle"));
+    expect(input).toHaveAttribute("type", "text");
+    expect(screen.getByTestId("login-password-toggle")).toHaveTextContent("Hide");
+    await userEvent.click(screen.getByTestId("login-password-toggle"));
+    expect(input).toHaveAttribute("type", "password");
+  });
+
   it("shows an error when login fails", async () => {
     vi.stubGlobal(
       "fetch",
@@ -224,6 +245,41 @@ describe("App camera CRUD", () => {
     await waitFor(() => expect(calls.some((c) => c.u.includes("/cam-1") && c.init?.method === "PUT")).toBe(true));
     const put = calls.find((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")!;
     expect(JSON.parse(String(put.init?.body))).toMatchObject({ name: "Renamed cam", showNight: true });
+  });
+
+  it("shows per-camera statistics and a fleet summary", async () => {
+    const { fn } = listServer({
+      imageCount: 120,
+      totalBytes: 1_500_000,
+      firstCaptureAt: "2026-09-20T12:00:00.000Z",
+      lastCaptureAt: "2026-09-23T13:00:00.000Z",
+    });
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    expect(screen.getByTestId("camera-images-cam-1")).toHaveTextContent("120");
+    expect(screen.getByTestId("camera-bytes-cam-1")).toHaveTextContent("1.5 MB");
+    expect(screen.getByTestId("camera-running-cam-1")).not.toHaveTextContent("—");
+    expect(screen.getByTestId("summary-images")).toHaveTextContent("120");
+    expect(screen.getByTestId("summary-bytes")).toHaveTextContent("1.5 MB");
+    expect(screen.getByTestId("summary-since")).toHaveTextContent(/2026/);
+  });
+
+  it("opens the camera editor as a separate page with a back link", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+    expect(screen.getByTestId("camera-summary")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
+    expect(screen.queryByTestId("camera-summary")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("form-back"));
+    expect(screen.getByTestId("camera-summary")).toBeInTheDocument();
+    expect(screen.queryByTestId("camera-editor")).not.toBeInTheDocument();
   });
 
   it("deletes a camera", async () => {

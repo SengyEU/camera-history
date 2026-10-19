@@ -13,7 +13,7 @@
     return Array.prototype.slice.call(document.querySelectorAll("iframe")).filter(function (frame) {
       try {
         return new URL(frame.src, window.location.href).origin === ORIGIN;
-      } catch (error) {
+      } catch {
         return false;
       }
     });
@@ -77,7 +77,7 @@
         frame.style.height = Math.ceil(doc.body.getBoundingClientRect().height) + 2 + "px";
         sendFont(frame.contentWindow);
       }
-    } catch (error) {
+    } catch {
       // Cross-origin frames report their height through postMessage.
     }
   }

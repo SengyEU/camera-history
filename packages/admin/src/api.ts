@@ -19,6 +19,9 @@ export interface AdminCamera {
   status: CameraStatus;
   lastCaptureAt: string | null;
   lastError: string | null;
+  imageCount?: number;
+  totalBytes?: number;
+  firstCaptureAt?: string | null;
 }
 
 export interface CameraInput {

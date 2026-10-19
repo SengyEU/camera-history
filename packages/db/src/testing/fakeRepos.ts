@@ -175,6 +175,25 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       const spanDays = Math.max(1, Math.ceil((Math.max(...times) - Math.min(...times)) / 86_400_000));
       return { usageBytes, spanDays };
     },
+    async cameraStats(tenantId: string) {
+      const cameraIds = new Set(db.cameras.filter((c) => c.tenantId === tenantId).map((c) => c.id));
+      const stats = new Map<
+        string,
+        { imageCount: number; totalBytes: number; firstCaptureAt: string | null; lastCaptureAt: string | null }
+      >();
+      for (const cameraId of cameraIds) {
+        const owned = db.images.filter((i) => i.cameraId === cameraId);
+        if (owned.length === 0) continue;
+        const times = owned.map((i) => i.timestamp.getTime());
+        stats.set(cameraId, {
+          imageCount: owned.length,
+          totalBytes: owned.reduce((sum, i) => sum + i.sizeBytes, 0),
+          firstCaptureAt: new Date(Math.min(...times)).toISOString(),
+          lastCaptureAt: new Date(Math.max(...times)).toISOString(),
+        });
+      }
+      return stats;
+    },
     async setTenantCamerasEnabled(tenantId: string, enabled: boolean) {
       for (let i = 0; i < db.cameras.length; i += 1) {
         if (db.cameras[i]!.tenantId === tenantId) db.cameras[i] = { ...db.cameras[i]!, enabled };

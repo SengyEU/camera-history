@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type BillingDto, type BillingStatus } from "./api";
+import { formatBytes } from "./format";
 
 const STATUS_LABELS: Record<BillingStatus, string> = {
   none: "not activated",
@@ -16,12 +17,6 @@ const STATUS_PILL: Record<BillingStatus, string> = {
   unpaid: "pill pill-offline",
   canceled: "pill pill-offline",
 };
-
-function formatBytes(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} MB`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)} kB`;
-  return `${n} B`;
-}
 
 export function BillingPage() {
   const [data, setData] = useState<BillingDto | null>(null);

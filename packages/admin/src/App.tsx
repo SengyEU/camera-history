@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup } from "./api";
 import { BillingPage } from "./Billing";
+import { formatAge, formatBytes } from "./format";
 import "./App.css";
 
 const STATUS_LABELS: Record<AdminCamera["status"], string> = {
@@ -28,6 +29,53 @@ function currentView(): "cameras" | "groups" | "billing" {
   if (window.location.hash.startsWith("#/billing")) return "billing";
   if (window.location.hash.startsWith("#/groups")) return "groups";
   return "cameras";
+}
+
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  testId,
+  toggleTestId,
+  autoComplete,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  testId: string;
+  toggleTestId: string;
+  autoComplete?: string;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <label className="field" htmlFor={id}>
+      {label}
+      <span className="password-field">
+        <input
+          id={id}
+          type={visible ? "text" : "password"}
+          placeholder={placeholder}
+          value={value}
+          autoComplete={autoComplete}
+          onChange={(e) => onChange(e.target.value)}
+          data-testid={testId}
+        />
+        <button
+          type="button"
+          className="password-toggle"
+          onClick={() => setVisible((current) => !current)}
+          aria-label={visible ? "Hide password" : "Show password"}
+          data-testid={toggleTestId}
+        >
+          {visible ? "Hide" : "Show"}
+        </button>
+      </span>
+    </label>
+  );
 }
 
 function Login({ onSuccess, onRegister }: { onSuccess: (email: string) => void; onRegister: () => void }) {
@@ -63,17 +111,16 @@ function Login({ onSuccess, onRegister }: { onSuccess: (email: string) => void; 
           data-testid="login-email"
         />
       </label>
-      <label className="field" htmlFor="login-password">
-        Password
-        <input
-          id="login-password"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          data-testid="login-password"
-        />
-      </label>
+      <PasswordField
+        id="login-password"
+        label="Password"
+        placeholder="Password"
+        value={password}
+        onChange={setPassword}
+        testId="login-password"
+        toggleTestId="login-password-toggle"
+        autoComplete="current-password"
+      />
       {error && (
         <p className="error" data-testid="login-error">
           {error}
@@ -182,18 +229,16 @@ function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void;
           required
         />
       </label>
-      <label className="field" htmlFor="register-password">
-        Password
-        <input
-          id="register-password"
-          type="password"
-          placeholder="Password (min 8 characters)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          data-testid="register-password"
-          required
-        />
-      </label>
+      <PasswordField
+        id="register-password"
+        label="Password"
+        placeholder="Password (min 8 characters)"
+        value={password}
+        onChange={setPassword}
+        testId="register-password"
+        toggleTestId="register-password-toggle"
+        autoComplete="new-password"
+      />
       {error && (
         <p className="error" data-testid="register-error">
           {error}
@@ -295,9 +340,14 @@ function CameraForm({
   };
 
   return (
-    <div className="modal">
-      <form className="modal-body" onSubmit={submit} data-testid="camera-form">
-        <h3>{initial.name ? "Edit camera" : "New camera"}</h3>
+    <section className="panel camera-editor" data-testid="camera-editor">
+      <div className="panel-head">
+        <h2>{initial.name ? "Edit camera" : "New camera"}</h2>
+        <button type="button" className="secondary" onClick={onCancel} data-testid="form-back">
+          ← Back to cameras
+        </button>
+      </div>
+      <form className="camera-form" onSubmit={submit} data-testid="camera-form">
         {error && (
           <p className="error" data-testid="form-error">
             {error}
@@ -435,11 +485,44 @@ function CameraForm({
           </button>
         </div>
       </form>
+    </section>
+  );
+}
+
+function CameraSummary({ cameras }: { cameras: AdminCamera[] }) {
+  const images = cameras.reduce((total, cam) => total + (cam.imageCount ?? 0), 0);
+  const bytes = cameras.reduce((total, cam) => total + (cam.totalBytes ?? 0), 0);
+  const oldest =
+    cameras
+      .map((cam) => cam.firstCaptureAt)
+      .filter((value): value is string => Boolean(value))
+      .sort()[0] ?? null;
+
+  return (
+    <div className="camera-summary" data-testid="camera-summary">
+      <div>
+        <span>Cameras</span>
+        <strong>{cameras.length}</strong>
+      </div>
+      <div>
+        <span>Images collected</span>
+        <strong data-testid="summary-images">{images.toLocaleString()}</strong>
+      </div>
+      <div>
+        <span>Stored</span>
+        <strong data-testid="summary-bytes">{formatBytes(bytes)}</strong>
+      </div>
+      <div>
+        <span>Collecting since</span>
+        <strong data-testid="summary-since">
+          {oldest ? new Date(oldest).toLocaleDateString() : "—"}
+        </strong>
+      </div>
     </div>
   );
 }
 
-function CameraRow({
+function CameraCard({
   cam,
   onEdit,
   onDelete,
@@ -467,32 +550,16 @@ function CameraRow({
     };
   }, [cam.id]);
 
+  const showThumb = previewUrl && !thumbError;
+
   return (
-    <tr data-testid={`camera-${cam.id}`}>
-      <td className="cell-name">{cam.name}</td>
-      <td>{FEED_LABELS[cam.feedType]}</td>
-      <td>{cam.enabled ? "yes" : "no"}</td>
-      <td>
-        <span className={`pill pill-${cam.status}`} data-testid={`status-${cam.id}`}>
-          {STATUS_LABELS[cam.status]}
-        </span>
-      </td>
-      <td>
-        {cam.lastCaptureAt ? (
-          <span className="ts-chip">{new Date(cam.lastCaptureAt).toLocaleString()}</span>
-        ) : (
-          "—"
-        )}
-      </td>
-      <td data-testid={`last-error-${cam.id}`} className="cell-error">
-        {cam.lastError ? <span className="cell-error-text">{cam.lastError}</span> : <span className="dash">—</span>}
-      </td>
-      <td>
-        {previewUrl && !thumbError ? (
+    <article className="camera-card" data-testid={`camera-${cam.id}`}>
+      <div className="camera-media">
+        {showThumb ? (
           <>
-            {!thumbLoaded && <span className="dash">—</span>}
+            {!thumbLoaded && <span className="camera-media-placeholder">Loading preview…</span>}
             <img
-              className={`thumb${thumbLoaded ? "" : " thumb-hidden"}`}
+              className={`camera-thumb${thumbLoaded ? "" : " thumb-hidden"}`}
               src={previewUrl}
               alt={`preview ${cam.name}`}
               ref={(node) => {
@@ -503,18 +570,58 @@ function CameraRow({
             />
           </>
         ) : (
-          <span className="dash">—</span>
+          <span className="camera-media-placeholder">No preview yet</span>
         )}
-      </td>
-      <td className="cell-actions">
-        <button className="secondary" onClick={onEdit} data-testid={`edit-${cam.id}`}>
-          Edit
-        </button>
-        <button className="danger" onClick={onDelete} data-testid={`delete-${cam.id}`}>
-          Delete
-        </button>
-      </td>
-    </tr>
+        <span className={`pill pill-${cam.status}`} data-testid={`status-${cam.id}`}>
+          {STATUS_LABELS[cam.status]}
+        </span>
+      </div>
+      <div className="camera-card-body">
+        <div className="camera-card-head">
+          <h3 className="cell-name">{cam.name}</h3>
+          <span className={`pill ${cam.enabled ? "pill-operational" : "pill-neutral"}`}>
+            {cam.enabled ? "Enabled" : "Disabled"}
+          </span>
+        </div>
+        <p className="camera-meta">
+          {FEED_LABELS[cam.feedType]} · every {cam.intervalMinutes} min · {cam.timezone}
+        </p>
+        <dl className="camera-stats">
+          <div>
+            <dt>Images</dt>
+            <dd data-testid={`camera-images-${cam.id}`}>{(cam.imageCount ?? 0).toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Stored</dt>
+            <dd data-testid={`camera-bytes-${cam.id}`}>{formatBytes(cam.totalBytes ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>Running</dt>
+            <dd data-testid={`camera-running-${cam.id}`}>{formatAge(cam.firstCaptureAt ?? null)}</dd>
+          </div>
+          <div>
+            <dt>Last capture</dt>
+            <dd>{cam.lastCaptureAt ? new Date(cam.lastCaptureAt).toLocaleString() : "—"}</dd>
+          </div>
+        </dl>
+        {cam.firstCaptureAt && (
+          <p className="camera-since">
+            Since {new Date(cam.firstCaptureAt).toLocaleDateString()}
+          </p>
+        )}
+        <p className="cell-error camera-error" data-testid={`last-error-${cam.id}`}>
+          {cam.lastError ? <span className="cell-error-text">{cam.lastError}</span> : <span className="dash">—</span>}
+        </p>
+        <div className="camera-actions">
+          <button className="secondary" onClick={onEdit} data-testid={`edit-${cam.id}`}>
+            Edit
+          </button>
+          <button className="danger" onClick={onDelete} data-testid={`delete-${cam.id}`}>
+            Delete
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -1005,6 +1112,16 @@ export function App() {
          <BillingPage />
        ) : view === "groups" ? (
          <GroupsView cameras={cameras} groups={groups} loading={groupsLoading} tenantSlug={tenantSlug} onGroupsChange={reloadGroups} />
+       ) : editing !== null ? (
+         <CameraForm
+           initial={editing}
+           onSave={saveCamera}
+           onCancel={() => {
+             setEditing(null);
+             setEditingId(null);
+           }}
+           cameraId={editingId}
+         />
        ) : (
         <section className="panel">
           <div className="panel-head">
@@ -1019,65 +1136,41 @@ export function App() {
               + New camera
             </button>
           </div>
-          <table className="cameras">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Enabled</th>
-                <th>Status</th>
-                <th>Last capture</th>
-                <th>Error</th>
-                <th>Preview</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {cameras.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="empty">
-                    {camerasLoading ? (
-                      <p className="loading">Loading…</p>
-                    ) : (
-                      <div className="empty-state" data-testid="empty-state">
-                        <p className="empty-title">No cameras yet</p>
-                        <p>Add your first camera to start building its history.</p>
-                        <button
-                          onClick={() => {
-                            setEditingId(null);
-                            setEditing(emptyInput());
-                          }}
-                          data-testid="empty-add-camera"
-                        >
-                          Add your first camera
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              )}
-              {cameras.map((cam) => (
-                <CameraRow
-                  key={cam.id}
-                  cam={cam}
-                  onEdit={() => {
-                    setEditingId(cam.id);
-                    setEditing(toInput(cam));
-                  }}
-                  onDelete={() => setConfirming(cam)}
-                />
-              ))}
-            </tbody>
-          </table>
+          {camerasLoading && cameras.length === 0 ? (
+            <p className="loading">Loading…</p>
+          ) : cameras.length === 0 ? (
+            <div className="empty-state" data-testid="empty-state">
+              <p className="empty-title">No cameras yet</p>
+              <p>Add your first camera to start building its history.</p>
+              <button
+                onClick={() => {
+                  setEditingId(null);
+                  setEditing(emptyInput());
+                }}
+                data-testid="empty-add-camera"
+              >
+                Add your first camera
+              </button>
+            </div>
+          ) : (
+            <>
+              <CameraSummary cameras={cameras} />
+              <div className="camera-grid">
+                {cameras.map((cam) => (
+                  <CameraCard
+                    key={cam.id}
+                    cam={cam}
+                    onEdit={() => {
+                      setEditingId(cam.id);
+                      setEditing(toInput(cam));
+                    }}
+                    onDelete={() => setConfirming(cam)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </section>
-      )}
-      {editing !== null && (
-        <CameraForm
-          initial={editing}
-          onSave={saveCamera}
-          onCancel={() => setEditing(null)}
-          cameraId={editingId}
-        />
       )}
       {confirming !== null && (
         <div className="modal">
