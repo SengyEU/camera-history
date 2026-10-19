@@ -37,6 +37,10 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 
 ## Frame expand / collapse
 
+- A day with exactly one visible capture renders directly in the expanded presentation:
+  the OSD label and share button are always visible and there is no click-to-expand
+  toggle (nothing to expand).
+
 - Flex transition 900 ms `--ease-out`.
 - OSD chip, arrows and share button animate in with 80 ms stagger, 220 ms
   fade + slight scale. Collapse is instant (elements unmount).

@@ -177,8 +177,9 @@ export function FilmStrip({
         ))}
       {!loading &&
         images.map((image, index) => {
-          const isOpen = openImage !== undefined && image.id === openImage.id;
-          const isClosing = frozenId === image.id && !isOpen;
+          const single = images.length === 1;
+          const isOpen = single || (openImage !== undefined && image.id === openImage.id);
+          const isClosing = !single && frozenId === image.id && !isOpen;
           const hour = viewerHourParts(image.timestamp, timezone);
           const label = isOpen ? viewerCaptureLabel(image.timestamp, timezone) : "";
           const sliceStep = images.length > 28 ? 14 : sliceWidth;
@@ -186,12 +187,14 @@ export function FilmStrip({
             <div
               key={image.id}
               ref={isOpen ? openRef : undefined}
-              className={`frame${isOpen ? " frame-open" : ""}${isClosing ? " frame-closing" : ""}${isOpen && quietOpenId === image.id ? " frame-quiet" : ""}`}
-              data-testid={isOpen ? "frame-open" : `frame-${image.id}`}
-              role="button"
-              tabIndex={0}
-              aria-label={isOpen ? "Collapse capture" : `Open capture ${hour.hour} ${hour.meridiem}`}
-              onMouseDown={(event) => event.preventDefault()}
+              className={`frame${isOpen ? " frame-open" : ""}${isClosing ? " frame-closing" : ""}${isOpen && quietOpenId === image.id ? " frame-quiet" : ""}${single ? " frame-single" : ""}`}
+              data-testid={isOpen && !single ? "frame-open" : `frame-${image.id}`}
+              role={single ? undefined : "button"}
+              tabIndex={single ? undefined : 0}
+              aria-label={
+                single ? undefined : isOpen ? "Collapse capture" : `Open capture ${hour.hour} ${hour.meridiem}`
+              }
+              onMouseDown={single ? undefined : (event) => event.preventDefault()}
               style={
                 isOpen
                   ? undefined
@@ -200,26 +203,34 @@ export function FilmStrip({
                       backgroundPosition: `${Math.round(-index * sliceStep)}px center`,
                     }
               }
-              onClick={() => {
-                if (!isOpen) {
-                  onOpenChange(image.id);
-                  return;
-                }
-                if (suppressClickRef.current) {
-                  suppressClickRef.current = false;
-                  return;
-                }
-                onOpenChange(null);
-              }}
-              onPointerDown={isOpen ? handlePointerDown : undefined}
-              onPointerUp={isOpen ? handlePointerUp : undefined}
-              onPointerCancel={isOpen ? handlePointerCancel : undefined}
-              onKeyDown={(event) => {
-                if (event.target !== event.currentTarget) return;
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                onOpenChange(isOpen ? null : image.id);
-              }}
+              onClick={
+                single
+                  ? undefined
+                  : () => {
+                      if (!isOpen) {
+                        onOpenChange(image.id);
+                        return;
+                      }
+                      if (suppressClickRef.current) {
+                        suppressClickRef.current = false;
+                        return;
+                      }
+                      onOpenChange(null);
+                    }
+              }
+              onPointerDown={isOpen && !single ? handlePointerDown : undefined}
+              onPointerUp={isOpen && !single ? handlePointerUp : undefined}
+              onPointerCancel={isOpen && !single ? handlePointerCancel : undefined}
+              onKeyDown={
+                single
+                  ? undefined
+                  : (event) => {
+                      if (event.target !== event.currentTarget) return;
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      onOpenChange(isOpen ? null : image.id);
+                    }
+              }
             >
               {isOpen || isClosing ? (
                 <>

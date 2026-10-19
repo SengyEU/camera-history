@@ -443,9 +443,9 @@ describe("App widget", () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-10-17&hour=18");
     render(<App />);
 
-    const open = await screen.findByTestId("frame-open");
-    expect(open).toHaveTextContent("October 17, 2026 · 6 PM");
-    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/e1.jpg");
+    const open = await screen.findByTestId("frame-e1");
+    expect(open.querySelector(".frame-osd")).toHaveTextContent("October 17, 2026 · 6 PM");
+    expect(open.querySelector("img")).toHaveAttribute("src", "/e1.jpg");
 
     await user.click(screen.getByTestId("share-open"));
     expect(screen.getByTestId("share-popup")).toHaveTextContent("October 17, 2026 · 6 PM");
@@ -596,15 +596,15 @@ describe("App widget", () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=9");
     render(<App />);
 
-    const before = await screen.findByTestId("frame-open");
-    expect(before.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d1.jpg");
+    const before = await screen.findByTestId("frame-d1");
+    expect(before.querySelector(".frame-osd")).toHaveTextContent("9 AM");
 
     await act(async () => {
       resolveCamera(makeCamera({ showNight: false }));
     });
 
     await waitFor(() =>
-      expect(screen.getByTestId("frame-open").querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d1.jpg"),
+      expect(screen.getByTestId("frame-d1").querySelector(".frame-osd")).toHaveTextContent("9 AM"),
     );
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
   });
@@ -903,6 +903,26 @@ describe("App widget", () => {
     expect(document.querySelector('[class*="content-exit"]')).toBeNull();
   });
 
+  it("shows a lone capture expanded with share and without a toggle", async () => {
+    vi.mocked(getImages).mockResolvedValue([
+      makeImage("only", "2026-09-18T09:00:00Z", "/only.jpg"),
+    ]);
+    const user = userEvent.setup();
+    render(<App />);
+
+    const frame = await screen.findByTestId("frame-only");
+    expect(frame.querySelector(".frame-osd")).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(frame).not.toHaveAttribute("role", "button");
+    expect(frame).not.toHaveAttribute("tabindex");
+    expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Next capture")).not.toBeInTheDocument();
+    expect(screen.getByTestId("share-open")).toBeInTheDocument();
+
+    await user.click(frame);
+    expect(screen.getByTestId("frame-only")).toBeInTheDocument();
+    expect(screen.getByTestId("share-open")).toBeInTheDocument();
+  });
+
   it("shows the pinned empty copy for a day without images", async () => {
     vi.mocked(getImages).mockResolvedValue([]);
     render(<App />);
@@ -1049,13 +1069,14 @@ describe("App group widget", () => {
     render(<App />);
 
     const alphaFrame = await screen.findByTestId("frame-e1");
-    expect(alphaFrame).toHaveTextContent("12 AM");
+    expect(alphaFrame.querySelector(".frame-osd")).toHaveTextContent("October 18, 2026 · 12 AM");
 
     await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
-    await waitFor(() => expect(screen.getByTestId("frame-e1")).toHaveTextContent("6 PM"));
-
-    await user.click(screen.getByTestId("frame-e1"));
-    expect(screen.getByTestId("frame-open")).toHaveTextContent("October 17, 2026 · 6 PM");
+    await waitFor(() =>
+      expect(screen.getByTestId("frame-e1").querySelector(".frame-osd")).toHaveTextContent(
+        "October 17, 2026 · 6 PM",
+      ),
+    );
     await user.click(screen.getByTestId("share-open"));
     expect(screen.getByTestId("share-popup")).toHaveTextContent("October 17, 2026 · 6 PM");
     const url = new URL((screen.getByLabelText("Share URL") as HTMLInputElement).value);
@@ -1302,15 +1323,13 @@ describe("App group widget", () => {
     window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
     render(<App />);
 
-    await user.click(await screen.findByTestId("frame-cam-a-2026-10-10"));
-    expect(screen.getByTestId("frame-open")).toBeInTheDocument();
+    expect(await screen.findByTestId("frame-cam-a-2026-10-10")).toBeInTheDocument();
     await user.click(screen.getByTestId("share-open"));
     expect(screen.getByTestId("share-popup")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
 
     expect(await screen.findByTestId("frame-cam-b-2026-10-10")).toBeInTheDocument();
-    expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument();
     expect(screen.queryByTestId("share-popup")).not.toBeInTheDocument();
   });
 
