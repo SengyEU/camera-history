@@ -149,7 +149,7 @@ export function FilmStrip({
             >
               {isOpen ? (
                 <>
-                  <img className="frame-img" src={image.url} alt={label} />
+                  <img key={image.id} className="frame-img" src={image.url} alt={label} />
                   <span className="frame-osd">{label}</span>
                   {index > 0 && (
                     <button

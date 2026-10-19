@@ -10,6 +10,7 @@ import {
 } from "./api";
 import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
 import { SharePopup } from "./SharePopup";
+import { ContentTransition, type TransitionDirection } from "./ContentTransition";
 import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
 import "./App.css";
 
@@ -97,6 +98,8 @@ interface WidgetBodyProps {
   onCloseShare: () => void;
   switcher?: ReactNode;
   children?: ReactNode;
+  contentKey: string;
+  direction: TransitionDirection;
 }
 
 function WidgetBody({
@@ -118,40 +121,44 @@ function WidgetBody({
   onCloseShare,
   switcher,
   children,
+  contentKey,
+  direction,
 }: WidgetBodyProps) {
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       {switcher && <div className="widget-header">{switcher}</div>}
-      {loading && !hasLoadedOnce ? (
-        <FilmStrip
-          images={[]}
-          loading
-          timezone={timezone}
-          openId={null}
-          onOpenChange={() => {}}
-          onShare={() => {}}
-        />
-      ) : images.length === 0 ? (
-        <div className="empty-state" data-testid="empty-state">
-          <p className="empty">No images for this date.</p>
-          <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
-        </div>
-      ) : visibleImages.length === 0 ? (
-        <div className="empty-state" data-testid="empty-state">
-          <p className="empty" data-testid="day-only-empty">
-            No daytime captures for this date.
-          </p>
-        </div>
-      ) : (
-        <FilmStrip
-          images={visibleImages}
-          loading={false}
-          timezone={timezone}
-          openId={openId}
-          onOpenChange={onOpenChange}
-          onShare={onShare}
-        />
-      )}
+      <ContentTransition transitionKey={contentKey} direction={direction}>
+        {loading && !hasLoadedOnce ? (
+          <FilmStrip
+            images={[]}
+            loading
+            timezone={timezone}
+            openId={null}
+            onOpenChange={() => {}}
+            onShare={() => {}}
+          />
+        ) : images.length === 0 ? (
+          <div className="empty-state" data-testid="empty-state">
+            <p className="empty">No images for this date.</p>
+            <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
+          </div>
+        ) : visibleImages.length === 0 ? (
+          <div className="empty-state" data-testid="empty-state">
+            <p className="empty" data-testid="day-only-empty">
+              No daytime captures for this date.
+            </p>
+          </div>
+        ) : (
+          <FilmStrip
+            images={visibleImages}
+            loading={false}
+            timezone={timezone}
+            openId={openId}
+            onOpenChange={onOpenChange}
+            onShare={onShare}
+          />
+        )}
+      </ContentTransition>
       <div className="date-nav" data-testid="date-nav">
         <button
           type="button"
@@ -209,6 +216,7 @@ export function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shareImage, setShareImage] = useState<ImageDto | null>(null);
+  const [transitionDirection, setTransitionDirection] = useState<TransitionDirection>("next");
   const initialDateRef = useRef<string | null>(
     new URLSearchParams(window.location.search).get("date"),
   );
@@ -313,6 +321,7 @@ export function App() {
     () => (showNight ? images : images.filter((image) => image.isDaylight !== false)),
     [images, showNight],
   );
+  const contentKey = `${cameraId}|${images[0]?.id ?? ""}|${images.length}`;
 
   useEffect(() => {
     if (!cameraId) {
@@ -336,6 +345,7 @@ export function App() {
               if (latest) fallbackRef.current.latest.set(cameraId, latest);
             }
             if (latest && latest !== date) {
+              setTransitionDirection(latest >= date ? "next" : "prev");
               setDate(latest);
               return;
             }
@@ -406,6 +416,7 @@ export function App() {
     fallbackRef.current.attempted.add(`${cameraId}:${next}`);
     dateTouchedRef.current = true;
     setDateReady(true);
+    setTransitionDirection(next >= date ? "next" : "prev");
     setDate(next);
     setOpenId(null);
     setShareImage(null);
@@ -464,6 +475,8 @@ export function App() {
         theme={theme}
         loading={loading}
         hasLoadedOnce={hasLoadedOnce}
+        contentKey={contentKey}
+        direction={transitionDirection}
         images={images}
         visibleImages={visibleImages}
         openId={openId}
@@ -479,7 +492,10 @@ export function App() {
               data-testid="camera-switcher"
               aria-label="Camera"
               value={selectedCameraId ?? ""}
-              onChange={(e) => setSelectedCameraId(e.target.value)}
+              onChange={(e) => {
+                setTransitionDirection("next");
+                setSelectedCameraId(e.target.value);
+              }}
             >
               {group.cameras.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -503,6 +519,8 @@ export function App() {
       theme={theme}
       loading={loading}
       hasLoadedOnce={hasLoadedOnce}
+      contentKey={contentKey}
+      direction={transitionDirection}
       images={images}
       visibleImages={visibleImages}
       openId={openId}

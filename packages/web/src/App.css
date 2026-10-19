@@ -1,5 +1,11 @@
 * { box-sizing: border-box; }
 
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 160ms;
+  --dur-med: 320ms;
+}
+
 :root,
 :root[data-theme="light"] {
   --bg: #f8fafb;
@@ -102,7 +108,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   overflow: hidden;
   cursor: pointer;
   font: inherit;
-  transition: flex-basis 0.5s ease, width 0.5s ease;
+  transition: flex-basis 420ms var(--ease-out), width 420ms var(--ease-out);
 }
 .frame:hover { box-shadow: inset 0 0 0 2px var(--accent); }
 .frame:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -171,7 +177,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   background: rgba(11, 18, 32, 0.55);
   color: #f1f5f9;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 .frame-arrow:hover,
 .frame-share:hover { background: var(--accent); border-color: var(--accent); color: #06121a; }
@@ -231,6 +238,39 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   max-width: 100%;
 }
 
+/* Content hand-off layers */
+.content-transition {
+  display: grid;
+}
+.content-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.content-layer-leaving {
+  z-index: 2;
+  pointer-events: none;
+}
+.content-enter-next { animation: content-in-next var(--dur-med) var(--ease-out) both; }
+.content-enter-prev { animation: content-in-prev var(--dur-med) var(--ease-out) both; }
+.content-exit-next { animation: content-out-next var(--dur-med) var(--ease-out) both; }
+.content-exit-prev { animation: content-out-prev var(--dur-med) var(--ease-out) both; }
+@keyframes content-in-next {
+  from { transform: translateX(28px); }
+  to { transform: translateX(0); }
+}
+@keyframes content-in-prev {
+  from { transform: translateX(-28px); }
+  to { transform: translateX(0); }
+}
+@keyframes content-out-next {
+  from { transform: translateX(0); }
+  to { transform: translateX(-28px); }
+}
+@keyframes content-out-prev {
+  from { transform: translateX(0); }
+  to { transform: translateX(28px); }
+}
+
 /* Date nav below the strip */
 .date-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 0; }
 .date-nav button {
@@ -250,7 +290,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   font: inherit;
   font-size: 18px;
   line-height: 1;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 .date-nav button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .date-nav button:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -264,9 +305,9 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   z-index: 20;
-  animation: overlay-in 0.2s ease both;
+  animation: overlay-in 180ms var(--ease-out) both;
 }
-.share-overlay-closing { animation: overlay-out 0.16s ease both; }
+.share-overlay-closing { animation: overlay-out 140ms var(--ease-in, ease) both; }
 .share-popup {
   position: fixed;
   top: 50%;
@@ -282,9 +323,9 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   border-radius: 14px;
   padding: 16px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28), 0 2px 12px rgba(0, 0, 0, 0.12);
-  animation: popup-in 0.2s ease-in-out both;
+  animation: popup-in 220ms var(--ease-out) both;
 }
-.share-popup-closing { animation: popup-out 0.16s ease-in both; }
+.share-popup-closing { animation: popup-out 140ms var(--ease-in, ease) both; }
 @keyframes overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -296,7 +337,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 @keyframes popup-in {
   from {
     opacity: 0;
-    transform: translate(-50%, calc(-50% - 6%)) scale(1.2);
+    transform: translate(-50%, calc(-50% - 8px)) scale(0.96);
   }
   to {
     opacity: 1;
@@ -365,7 +406,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 .share-close:hover {
   background: var(--accent);
@@ -404,7 +446,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   border-radius: 50%;
   background: color-mix(in srgb, var(--brand) 12%, transparent);
   color: var(--brand);
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 .share-network svg { display: block; }
 .share-network:hover,
@@ -437,7 +480,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 .share-other:hover {
   border-color: var(--accent);
@@ -492,7 +536,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: filter 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: filter var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 .share-copy button:hover { filter: brightness(1.08); }
 .share-copy button.is-copied {
@@ -524,7 +569,15 @@ button { color: var(--ink); }
   .share-overlay,
   .share-overlay-closing,
   .share-popup,
-  .share-popup-closing {
+  .share-popup-closing,
+  .content-enter-next,
+  .content-enter-prev,
+  .content-exit-next,
+  .content-exit-prev,
+  .frame-osd,
+  .frame-arrow,
+  .frame-share,
+  .frame-img {
     animation: none;
   }
   .frame,
@@ -539,3 +592,24 @@ button { color: var(--ink); }
     transition: none;
   }
 }
+
+/* Motion polish */
+.frame-osd { animation: osd-in 180ms var(--ease-out) both; }
+.frame-arrow,
+.frame-share { animation: osd-in 180ms var(--ease-out) 60ms both; }
+.frame-img { animation: img-in var(--dur-fast) var(--ease-out) both; }
+@keyframes osd-in {
+  from { opacity: 0; scale: 0.92; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes img-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.date-nav button:active:not(:disabled) { transform: scale(0.97); }
+.frame-arrow:active { transform: translateY(-50%) scale(0.97); }
+.frame-share:active,
+.share-close:active,
+.share-network:active,
+.share-other:active,
+.share-copy button:active { transform: scale(0.97); }

@@ -810,14 +810,61 @@ describe("App widget", () => {
       ),
     );
     render(<App />);
-    const strip = await screen.findByTestId("film-strip");
-    await waitFor(() => expect(strip).toHaveClass("film-strip-scroll"));
+    await waitFor(() =>
+      expect(screen.getByTestId("film-strip")).toHaveClass("film-strip-scroll"),
+    );
+    const strip = screen.getByTestId("film-strip");
 
     await user.click(screen.getByTestId("frame-s0"));
     const open = screen.getByTestId("frame-open");
     expect(open).toHaveClass("frame-open");
     expect(strip).toHaveClass("film-strip-scroll");
     expect(open.closest(".film-strip-scroll")).toBe(strip);
+  });
+
+  it("keeps showing the old day while the next date loads, then swaps once", async () => {
+    const user = userEvent.setup();
+    let resolveNext!: (images: ImageDto[]) => void;
+    vi.mocked(getImages).mockImplementationOnce(async () => defaultImages);
+    vi.mocked(getImages).mockImplementationOnce(
+      () => new Promise<ImageDto[]>((resolve) => (resolveNext = resolve)),
+    );
+    render(<App />);
+    await screen.findByTestId("frame-img-1");
+
+    await user.click(screen.getByLabelText("Next day"));
+    expect(screen.getByTestId("frame-img-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("film-skeleton")).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveNext([
+        makeImage("n1", "2026-09-19T09:00:00Z", "/n1.jpg"),
+        makeImage("n2", "2026-09-19T12:00:00Z", "/n2.jpg"),
+      ]);
+    });
+    expect(await screen.findByTestId("frame-n1")).toBeInTheDocument();
+    expect(screen.queryByTestId("frame-img-1")).not.toBeInTheDocument();
+  });
+
+  it("points the day-switch transition in the navigation direction", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockImplementation(async (_cameraId, date) =>
+      date === "2026-09-17"
+        ? [makeImage("p1", "2026-09-17T09:00:00Z", "/p1.jpg")]
+        : defaultImages,
+    );
+    render(<App />);
+    await screen.findByTestId("frame-img-1");
+
+    await user.click(screen.getByLabelText("Previous day"));
+    await waitFor(() =>
+      expect(document.querySelector(".content-layer")).toHaveClass("content-enter-prev"),
+    );
+
+    await user.click(screen.getByLabelText("Next day"));
+    await waitFor(() =>
+      expect(document.querySelector(".content-layer")).toHaveClass("content-enter-next"),
+    );
   });
 
   it("shows the pinned empty copy for a day without images", async () => {
@@ -940,6 +987,28 @@ describe("App group widget", () => {
     expect(vi.mocked(getCameraLatest)).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByTestId("widget")).toHaveAttribute("data-theme", "dark"));
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("slides camera switches forward", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroup).mockResolvedValue(summitGroup);
+    vi.mocked(getImages).mockImplementation(async (cameraId, date) => [
+      makeImage(`${cameraId}-${date}`, `${date}T09:00:00Z`, `/api/v1/${cameraId}.jpg`),
+    ]);
+    window.history.pushState({}, "", "/group/t/summit?date=2026-10-10");
+    render(<App />);
+
+    await screen.findByTestId("frame-cam-a-2026-10-10");
+    await user.click(screen.getByLabelText("Previous day"));
+    await waitFor(() =>
+      expect(document.querySelector(".content-layer")).toHaveClass("content-enter-prev"),
+    );
+
+    await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
+    await waitFor(() =>
+      expect(document.querySelector(".content-layer")).toHaveClass("content-enter-next"),
+    );
+    expect(await screen.findByTestId("frame-cam-b-2026-10-09")).toBeInTheDocument();
   });
 
   it("uses the selected camera's timezone for labels and share links", async () => {
