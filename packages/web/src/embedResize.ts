@@ -46,12 +46,25 @@ export function setupEmbedResize(): void {
   let lastHeight = 0;
   let frame = 0;
 
+  const applyHeight = (height: number) => {
+    try {
+      const ownFrame = window.frameElement as HTMLIFrameElement | null;
+      if (ownFrame) {
+        const next = `${height}px`;
+        if (ownFrame.style.height !== next) ownFrame.style.height = next;
+      }
+    } catch {
+      // Cross-origin parents are handled through postMessage below.
+    }
+    window.parent.postMessage({ type: RESIZE_TYPE, height }, "*");
+  };
+
   const post = () => {
     frame = 0;
-    const height = Math.ceil(document.body.getBoundingClientRect().height) + 1;
+    const height = Math.ceil(document.body.getBoundingClientRect().height) + 2;
     if (Math.abs(height - lastHeight) < 1) return;
     lastHeight = height;
-    window.parent.postMessage({ type: RESIZE_TYPE, height }, "*");
+    applyHeight(height);
   };
 
   const schedule = () => {
@@ -63,8 +76,19 @@ export function setupEmbedResize(): void {
   const observer =
     typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
   observer?.observe(document.body);
+  const mutations =
+    typeof MutationObserver === "undefined" ? null : new MutationObserver(schedule);
+  mutations?.observe(document.body, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["class", "style"],
+  });
   window.addEventListener("resize", schedule);
   window.addEventListener("load", schedule);
   void document.fonts?.ready.then(schedule).catch(() => {});
-  window.setTimeout(schedule, 300);
+  for (const delay of [0, 100, 400, 1200, 2500]) {
+    window.setTimeout(schedule, delay);
+  }
 }

@@ -41,5 +41,14 @@ window.addEventListener("message", (event) => {
 for (const frame of document.querySelectorAll("iframe")) {
   frame.addEventListener("load", () => {
     if (frame.contentWindow) sendFont(frame.contentWindow);
+    // Same-origin embeds can be sized directly, even before any message arrives.
+    try {
+      const doc = frame.contentDocument;
+      if (doc?.body) {
+        frame.style.height = `${Math.ceil(doc.body.getBoundingClientRect().height) + 2}px`;
+      }
+    } catch {
+      // Cross-origin frames are sized via postMessage.
+    }
   });
 }
