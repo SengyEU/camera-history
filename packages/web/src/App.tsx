@@ -98,6 +98,7 @@ interface WidgetBodyProps {
   switcher?: ReactNode;
   children?: ReactNode;
   contentKey: string;
+  showEmbedNotice: boolean;
 }
 
 function WidgetBody({
@@ -120,9 +121,17 @@ function WidgetBody({
   switcher,
   children,
   contentKey,
+  showEmbedNotice,
 }: WidgetBodyProps) {
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
+      {showEmbedNotice && (
+        <div className="embed-warning" role="status">
+          <strong>Embed script missing.</strong> Add{" "}
+          <code>{'<script src="https://camera.sengycraft.cz/embed.js"></script>'}</code> to
+          this page so the widget can size itself.
+        </div>
+      )}
       {switcher && <div className="widget-header">{switcher}</div>}
       {loading && !hasLoadedOnce ? (
         <FilmStrip
@@ -215,6 +224,7 @@ export function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shareImage, setShareImage] = useState<ImageDto | null>(null);
+  const [embedScriptMissing, setEmbedScriptMissing] = useState(false);
   const initialDateRef = useRef<string | null>(
     new URLSearchParams(window.location.search).get("date"),
   );
@@ -256,6 +266,17 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    const onMissing = () => setEmbedScriptMissing(true);
+    const onReady = () => setEmbedScriptMissing(false);
+    window.addEventListener("camera-history:script-missing", onMissing);
+    window.addEventListener("camera-history:script-ok", onReady);
+    return () => {
+      window.removeEventListener("camera-history:script-missing", onMissing);
+      window.removeEventListener("camera-history:script-ok", onReady);
+    };
+  }, []);
 
   useEffect(() => {
     if (groupRoute || !cameraId) return;
@@ -472,6 +493,7 @@ export function App() {
         loading={loading}
         hasLoadedOnce={hasLoadedOnce}
         contentKey={contentKey}
+        showEmbedNotice={embedScriptMissing}
         images={images}
         visibleImages={visibleImages}
         openId={openId}
@@ -512,6 +534,7 @@ export function App() {
       loading={loading}
       hasLoadedOnce={hasLoadedOnce}
       contentKey={contentKey}
+      showEmbedNotice={embedScriptMissing}
       images={images}
       visibleImages={visibleImages}
       openId={openId}

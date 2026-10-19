@@ -1,6 +1,10 @@
 const RESIZE_TYPE = "camera-history:resize";
 const HELLO_TYPE = "camera-history:hello";
 const FONT_TYPE = "camera-history:font";
+const SCRIPT_OK_TYPE = "camera-history:script-ok";
+const SCRIPT_MISSING_EVENT = "camera-history:script-missing";
+const SCRIPT_OK_EVENT = "camera-history:script-ok";
+const SCRIPT_NOTICE_DELAY_MS = 2500;
 
 interface FontMessage {
   type?: string;
@@ -21,23 +25,26 @@ export function setupEmbedResize(): void {
   document.documentElement.style.overflow = "hidden";
   document.body.style.overflow = "hidden";
 
-  window.addEventListener("message", (event) => {
-    const data = event.data as FontMessage | null;
-    if (!data || data.type !== FONT_TYPE) return;
-    if (typeof data.fontFamily === "string" && data.fontFamily.trim()) {
-      const family = data.fontFamily.replace(/[;{}<>]/g, "").trim().slice(0, 300);
-      document.documentElement.style.setProperty("--widget-font", family);
+  const noEmbedNotice = new URLSearchParams(window.location.search).get("noembed") === "1";
+  let scriptConfirmed = false;
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const confirmScript = () => {
+    if (scriptConfirmed) return;
+    scriptConfirmed = true;
+    if (noticeTimer !== undefined) {
+      clearTimeout(noticeTimer);
+      noticeTimer = undefined;
     }
-    for (const href of data.fontLinks ?? []) {
-      if (typeof href !== "string" || !href.startsWith("https://")) continue;
-      if (document.querySelector(`link[data-embed-font="${CSS.escape(href)}"]`)) continue;
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = href;
-      link.dataset.embedFont = href;
-      document.head.appendChild(link);
-    }
-  });
+    window.dispatchEvent(new CustomEvent(SCRIPT_OK_EVENT));
+  };
+
+  if (!noEmbedNotice) {
+    noticeTimer = setTimeout(() => {
+      noticeTimer = undefined;
+      if (!scriptConfirmed) window.dispatchEvent(new CustomEvent(SCRIPT_MISSING_EVENT));
+    }, SCRIPT_NOTICE_DELAY_MS);
+  }
 
   const hello = () => window.parent.postMessage({ type: HELLO_TYPE }, "*");
   hello();
@@ -73,6 +80,36 @@ export function setupEmbedResize(): void {
     // setTimeout (not rAF) so embeds below the fold still report their height.
     window.setTimeout(post, 0);
   };
+
+  window.addEventListener("message", (event) => {
+    const data = event.data as FontMessage | null;
+    if (!data) return;
+
+    if (data.type === SCRIPT_OK_TYPE) {
+      confirmScript();
+      return;
+    }
+
+    if (data.type !== FONT_TYPE) return;
+    confirmScript();
+    if (typeof data.fontFamily === "string" && data.fontFamily.trim()) {
+      const family = data.fontFamily.replace(/[;{}<>]/g, "").trim().slice(0, 300);
+      document.documentElement.style.setProperty("--widget-font", family);
+    }
+    // The parent script may load after the iframe; re-report our height even if
+    // an earlier retry already sent the same value.
+    lastHeight = 0;
+    schedule();
+    for (const href of data.fontLinks ?? []) {
+      if (typeof href !== "string" || !href.startsWith("https://")) continue;
+      if (document.querySelector(`link[data-embed-font="${CSS.escape(href)}"]`)) continue;
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = href;
+      link.dataset.embedFont = href;
+      document.head.appendChild(link);
+    }
+  });
 
   schedule();
   const observer =

@@ -45,6 +45,13 @@ function wp_parse_args($args, $defaults) { return array_merge($defaults, (array)
 
 function shortcode_atts($defaults, $atts, $shortcode) { return array_merge($defaults, (array) $atts); }
 function add_shortcode($tag, $callback) { $GLOBALS['ch_shortcodes'][$tag] = $callback; }
+function wp_enqueue_script($handle, $src = '', $deps = array(), $ver = null, $in_footer = false) {
+    if (!isset($GLOBALS['ch_scripts'][$handle])) {
+        $GLOBALS['ch_scripts'][$handle] = array('src' => $src, 'ver' => $ver, 'footer' => $in_footer);
+    }
+}
+function wp_script_is($handle, $list = 'enqueued') { return isset($GLOBALS['ch_scripts'][$handle]); }
+function did_action($hook) { return false; }
 function esc_url($url) { return htmlspecialchars((string) $url, ENT_QUOTES, 'UTF-8'); }
 function esc_attr($str) { return htmlspecialchars((string) $str, ENT_QUOTES, 'UTF-8'); }
 function esc_html($str) { return htmlspecialchars((string) $str, ENT_QUOTES, 'UTF-8'); }
@@ -152,6 +159,9 @@ check('missing config returns WP_Error', is_wp_error($err) && $err->get_error_me
 
 // ---- shortcode tests ----
 require dirname(__DIR__) . '/camera-history/includes/class-shortcode.php';
+if (!defined('CH_EMBED_URL')) {
+    define('CH_EMBED_URL', 'https://camera.sengycraft.cz/embed.js');
+}
 Ch_Shortcode::register();
 
 $GLOBALS['ch_options'] = array(
@@ -160,8 +170,18 @@ $GLOBALS['ch_options'] = array(
 );
 $html = Ch_Shortcode::render(array('camera' => 'cam-1'));
 check('shortcode builds iframe src', strpos($html, 'src="https://camera.sengycraft.cz/widget/acme-basins/cam-1"') !== false);
-check('shortcode defaults width/height', strpos($html, 'width="100%"') !== false && strpos($html, 'height="600"') !== false);
+check('shortcode defaults width/height', strpos($html, 'width="100%"') !== false && strpos($html, 'height="720"') !== false);
 check('shortcode includes iframe attrs', strpos($html, 'allowfullscreen') !== false && strpos($html, 'loading="lazy"') !== false);
+
+$GLOBALS['ch_scripts'] = array();
+$first = Ch_Shortcode::render(array('camera' => 'cam-1'));
+$second = Ch_Shortcode::render(array('camera' => 'cam-2'));
+check('embed helper enqueued once for two shortcodes', isset($GLOBALS['ch_scripts']['camera-history-embed']) && count($GLOBALS['ch_scripts']) === 1);
+check('embed helper points to production', ($GLOBALS['ch_scripts']['camera-history-embed']['src'] ?? '') === CH_EMBED_URL);
+check('embed helper loads in footer', ($GLOBALS['ch_scripts']['camera-history-embed']['footer'] ?? false) === true);
+check('embed helper has no version query', ($GLOBALS['ch_scripts']['camera-history-embed']['ver'] ?? null) === null);
+check('second shortcode renders its own iframe', strpos($second, 'cam-2') !== false);
+check('shortcode does not inline the helper before wp_footer', strpos($first, '<script') === false);
 
 $dark = Ch_Shortcode::render(array('camera' => 'cam-1', 'theme' => 'dark'));
 check('shortcode theme pass-through', strpos($dark, '?theme=dark') !== false);

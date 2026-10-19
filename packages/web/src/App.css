@@ -286,6 +286,24 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   to { opacity: 0; }
 }
 
+/* Embed script missing warning */
+.embed-warning {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #7c2d12;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.embed-warning strong { font-weight: 600; }
+.embed-warning code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
 /* Date nav below the strip */
 .date-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 0; }
 .date-nav button {

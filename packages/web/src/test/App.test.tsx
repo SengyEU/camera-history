@@ -923,6 +923,23 @@ describe("App widget", () => {
     expect(screen.getByTestId("share-open")).toBeInTheDocument();
   });
 
+  it("warns when the embed helper script is missing and clears it when it appears", async () => {
+    render(<App />);
+    await screen.findByTestId("frame-img-1");
+    expect(screen.queryByText(/Embed script missing/)).not.toBeInTheDocument();
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent("camera-history:script-missing"));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Embed script missing");
+    expect(screen.getByRole("status")).toHaveTextContent("embed.js");
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent("camera-history:script-ok"));
+    });
+    expect(screen.queryByText(/Embed script missing/)).not.toBeInTheDocument();
+  });
+
   it("shows the pinned empty copy for a day without images", async () => {
     vi.mocked(getImages).mockResolvedValue([]);
     render(<App />);

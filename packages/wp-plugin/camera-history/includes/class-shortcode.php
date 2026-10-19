@@ -25,7 +25,7 @@ class Ch_Shortcode {
 			array(
 				'camera' => '',
 				'width'  => '100%',
-				'height' => '600',
+				'height' => '720',
 				'theme'  => '',
 			),
 			$atts,
@@ -45,11 +45,22 @@ class Ch_Shortcode {
 			$url .= '?theme=' . rawurlencode( (string) $options['theme'] );
 		}
 
-		return sprintf(
+		// One helper script per page is enough, even with several shortcodes.
+		wp_enqueue_script( 'camera-history-embed', CH_EMBED_URL, array(), null, true );
+
+		$iframe = sprintf(
 			'<iframe src="%s" width="%s" height="%s" style="border:0" allowfullscreen loading="lazy"></iframe>',
 			esc_url( $url ),
 			esc_attr( $options['width'] ),
 			esc_attr( $options['height'] )
 		);
+
+		// If the shortcode renders after wp_footer (widgets, builders), enqueue
+		// alone is too late; print the helper next to the iframe instead.
+		if ( function_exists( 'did_action' ) && did_action( 'wp_footer' ) ) {
+			$iframe .= '<script src="' . esc_url( CH_EMBED_URL ) . '" defer></script>';
+		}
+
+		return $iframe;
 	}
 }

@@ -1,11 +1,13 @@
 (function () {
   if (window.__cameraHistoryEmbed) return;
   window.__cameraHistoryEmbed = true;
+  window.__cameraHistoryEmbedVersion = "20261019";
 
   var ORIGIN = "https://camera.sengycraft.cz";
   var RESIZE = "camera-history:resize";
   var HELLO = "camera-history:hello";
   var FONT = "camera-history:font";
+  var SCRIPT_OK = "camera-history:script-ok";
 
   function widgetFrames() {
     return Array.prototype.slice.call(document.querySelectorAll("iframe")).filter(function (frame) {
@@ -30,6 +32,7 @@
 
   function sendFont(source) {
     if (!source || typeof source.postMessage !== "function") return;
+    source.postMessage({ type: SCRIPT_OK }, "*");
     source.postMessage(
       {
         type: FONT,
@@ -60,6 +63,13 @@
       sendFont(frame.contentWindow);
     });
     sameOriginMeasure(frame);
+    // The frame may have loaded before this script was injected, or the widget
+    // may still be booting; keep offering the font/measurement for a while.
+    [0, 500, 1500, 3000].forEach(function (delay) {
+      window.setTimeout(function () {
+        sendFont(frame.contentWindow);
+      }, delay);
+    });
   }
 
   window.addEventListener("message", function (event) {

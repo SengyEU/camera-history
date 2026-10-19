@@ -91,6 +91,15 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 - Production serves `/embed.js` as a drop-in parent script: it finds all Camera History
   iframes, wires height messages (also for lazy/below-the-fold frames via setTimeout,
   not rAF), retries same-origin sizing and sends the host font.
+- Handshake: the widget waits ~2.5 s for `camera-history:script-ok` (or a font
+  message); otherwise it shows an "Embed script missing" bar with the script URL.
+  A late script clears the bar. `?noembed=1` suppresses the notice for intentional
+  fixed-height embeds.
+- The WordPress plugin enqueues `/embed.js` once per page for its shortcodes and prints
+  it next to the iframe if the shortcode renders after `wp_footer`. Its `height`
+  attribute is only a fallback (default 720).
+- No URL versioning: Cloudflare must bypass its cache for `/embed.js`; the origin sends
+  `Cache-Control: no-cache`.
 - Hour chips shrink to 8 px below 640 px viewport width.
 
 ## Testing
