@@ -191,7 +191,7 @@ describe("App widget", () => {
 
     const open = screen.getByTestId("frame-open");
     expect(open.querySelector(".frame-osd")).toHaveTextContent("September 18, 2026 · 9 AM");
-    expect(open.querySelector("img")).toHaveAttribute(
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/090000.jpg",
     );
@@ -200,6 +200,27 @@ describe("App widget", () => {
     await user.click(open);
     expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument();
     expect(screen.getByTestId("frame-img-1")).toBeInTheDocument();
+  });
+
+  it("crossfades the image when stepping between captures", async () => {
+    vi.mocked(getImages).mockResolvedValue(threeImages());
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByTestId("frame-d1"));
+    const open = screen.getByTestId("frame-open");
+    expect(open.querySelectorAll("img")).toHaveLength(1);
+    expect(open).not.toHaveClass("frame-stepping");
+
+    await user.click(screen.getByLabelText("Next capture"));
+    const stepped = screen.getByTestId("frame-open");
+    expect(stepped).toHaveClass("frame-stepping");
+    const images = stepped.querySelectorAll("img");
+    expect(images).toHaveLength(2);
+    expect(images[0]).toHaveAttribute("src", "/d1.jpg");
+    expect(images[0]).toHaveAttribute("aria-hidden", "true");
+    expect(images[1]).toHaveAttribute("src", "/d2.jpg");
+    expect(images[1]).toHaveClass("frame-img-step");
   });
 
   it("steps through the filtered list with the arrow buttons", async () => {
@@ -217,7 +238,7 @@ describe("App widget", () => {
 
     await user.click(screen.getByLabelText("Next capture"));
     const open = screen.getByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d2.jpg");
     expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
 
     await user.click(screen.getByLabelText("Previous capture"));
@@ -239,7 +260,7 @@ describe("App widget", () => {
     await user.keyboard("{Enter}");
 
     const open = screen.getByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d2.jpg");
     expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
   });
 
@@ -251,22 +272,22 @@ describe("App widget", () => {
 
     fireEvent.keyDown(document, { key: "ArrowRight" });
     let open = screen.getByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d2.jpg");
 
     fireEvent.keyDown(document, { key: "ArrowRight" });
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d3.jpg");
+    expect(screen.getByTestId("frame-open").querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d3.jpg");
 
     fireEvent.keyDown(document, { key: "ArrowRight" });
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d3.jpg");
+    expect(screen.getByTestId("frame-open").querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d3.jpg");
 
     fireEvent.keyDown(document, { key: "ArrowLeft" });
     open = screen.getByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d2.jpg");
 
     await user.click(screen.getByTestId("share-open"));
     const input = screen.getByLabelText("Share URL");
     fireEvent.keyDown(input, { key: "ArrowRight" });
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(screen.getByTestId("frame-open").querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d2.jpg");
   });
 
   it("navigates with horizontal touch swipes on the open frame", async () => {
@@ -277,14 +298,14 @@ describe("App widget", () => {
 
     fireSwipe(screen.getByTestId("frame-open"), 200, 140);
     let open = screen.getByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d2.jpg");
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d2.jpg");
 
     fireSwipe(screen.getByTestId("frame-open"), 140, 200);
     open = screen.getByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d1.jpg");
 
     fireSwipe(screen.getByTestId("frame-open"), 200, 140, "mouse");
-    expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    expect(screen.getByTestId("frame-open").querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d1.jpg");
   });
 
   it("opens the share popup with network links and a copy field", async () => {
@@ -398,7 +419,7 @@ describe("App widget", () => {
 
     const open = await screen.findByTestId("frame-open");
     expect(open).toHaveTextContent("October 17, 2026 · 6 PM");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/e1.jpg");
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/e1.jpg");
 
     await user.click(screen.getByTestId("share-open"));
     expect(screen.getByTestId("share-popup")).toHaveTextContent("October 17, 2026 · 6 PM");
@@ -481,7 +502,7 @@ describe("App widget", () => {
     render(<App />);
     const open = await screen.findByTestId("frame-open");
     expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
-    expect(open.querySelector("img")).toHaveAttribute(
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
     );
@@ -491,7 +512,7 @@ describe("App widget", () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&img=img-2");
     render(<App />);
     const open = await screen.findByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute(
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
     );
@@ -501,7 +522,7 @@ describe("App widget", () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=9&img=img-2");
     render(<App />);
     const open = await screen.findByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute(
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/090000.jpg",
     );
@@ -531,7 +552,7 @@ describe("App widget", () => {
     render(<App />);
 
     const open = await screen.findByTestId("frame-open");
-    expect(open.querySelector("img")).toHaveAttribute("src", "/n1.jpg");
+    expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/n1.jpg");
   });
 
   it("keeps a day deep link open when camera metadata resolves after the images", async () => {
@@ -550,14 +571,14 @@ describe("App widget", () => {
     render(<App />);
 
     const before = await screen.findByTestId("frame-open");
-    expect(before.querySelector("img")).toHaveAttribute("src", "/d1.jpg");
+    expect(before.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d1.jpg");
 
     await act(async () => {
       resolveCamera(makeCamera({ showNight: false }));
     });
 
     await waitFor(() =>
-      expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/d1.jpg"),
+      expect(screen.getByTestId("frame-open").querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d1.jpg"),
     );
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
   });
@@ -585,7 +606,7 @@ describe("App widget", () => {
     );
     if (viewerMatches) {
       const before = await screen.findByTestId("frame-open");
-      expect(before.querySelector("img")).toHaveAttribute(
+      expect(before.querySelector("img:not(.frame-img-previous)")).toHaveAttribute(
         "src",
         new Date(e1Timestamp).getHours() === 18 ? "/e1.jpg" : "/e2.jpg",
       );
@@ -596,7 +617,7 @@ describe("App widget", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByTestId("frame-open").querySelector("img")).toHaveAttribute("src", "/e1.jpg"),
+      expect(screen.getByTestId("frame-open").querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/e1.jpg"),
     );
     expect(screen.getByTestId("frame-open")).toHaveTextContent("October 17, 2026 · 6 PM");
   });

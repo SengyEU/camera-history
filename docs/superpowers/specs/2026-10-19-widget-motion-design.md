@@ -29,22 +29,23 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 
 ### Motion
 
-- 700 ms crossfade (`--dur-med`, `ease-in-out`): the old layer sits above the static new
+- 420 ms crossfade (`--dur-med`, `ease-in-out`): the old layer sits above the static new
   layer and fades from opacity 1 to 0. No movement, no gap, no background bleed.
 - CSS grid stacking (`grid-area: 1 / 1`) keeps the height constant; empty states keep
   the same 4/3 box, so the widget never reflows.
-- Settle timer 820 ms.
+- Settle timer 560 ms.
 
 ## Frame expand / collapse
 
-- Flex transition 560 ms `--ease-out`.
+- Flex transition 900 ms `--ease-out`.
 - OSD chip, arrows and share button animate in with 80 ms stagger, 220 ms
   fade + slight scale. Collapse is instant (elements unmount).
 
 ## Capture step inside an open frame
 
-- The open frame's `<img>` is keyed by image id; it remounts with a 220 ms fade-in
-  (arrows/swipe/keyboard). No gap during the swap.
+- Stepping between captures crossfades: the previous capture stays mounted beneath the
+  new one, which fades in over 350 ms (`ease-in-out`). OSD/arrows/share do not re-animate
+  while stepping, only when the frame first opens.
 
 ## Share popup
 
@@ -64,7 +65,7 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --dur-fast: 180ms;
-  --dur-med: 520ms;
+  --dur-med: 420ms;
 }
 ```
 

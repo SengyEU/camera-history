@@ -51,6 +51,16 @@ export function FilmStrip({
   const stripRef = useRef<HTMLDivElement | null>(null);
   const [sliceWidth, setSliceWidth] = useState(0);
   const openRef = useRef<HTMLDivElement | null>(null);
+  const lastOpenRef = useRef<ImageDto | null>(null);
+
+  useEffect(() => {
+    lastOpenRef.current = openImage ?? null;
+  }, [openImage]);
+
+  const steppingFrom =
+    openImage && lastOpenRef.current && lastOpenRef.current.id !== openImage.id
+      ? lastOpenRef.current
+      : null;
 
   useEffect(() => {
     const strip = stripRef.current;
@@ -144,7 +154,7 @@ export function FilmStrip({
             <div
               key={image.id}
               ref={isOpen ? openRef : undefined}
-              className={`frame${isOpen ? " frame-open" : ""}`}
+              className={`frame${isOpen ? " frame-open" : ""}${isOpen && steppingFrom ? " frame-stepping" : ""}`}
               data-testid={isOpen ? "frame-open" : `frame-${image.id}`}
               role="button"
               tabIndex={0}
@@ -181,7 +191,19 @@ export function FilmStrip({
             >
               {isOpen ? (
                 <>
-                  <img className="frame-img" src={image.url} alt={label} />
+                  {steppingFrom && (
+                    <img
+                      className="frame-img frame-img-previous"
+                      src={steppingFrom.url}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  )}
+                  <img
+                    className={`frame-img${steppingFrom ? " frame-img-step" : ""}`}
+                    src={image.url}
+                    alt={label}
+                  />
                   <span className="frame-osd">{label}</span>
                   {index > 0 && (
                     <button

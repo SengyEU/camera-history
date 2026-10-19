@@ -12,7 +12,7 @@ interface ContentTransitionProps {
   animate?: boolean;
 }
 
-const SETTLE_MS = 820;
+const SETTLE_MS = 560;
 
 const isTestRun = import.meta.env?.MODE === "test";
 

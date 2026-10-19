@@ -4,7 +4,7 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --dur-fast: 200ms;
-  --dur-med: 700ms;
+  --dur-med: 420ms;
 }
 
 :root,
@@ -111,7 +111,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   overflow: hidden;
   cursor: pointer;
   font: inherit;
-  transition: flex-basis 700ms var(--ease-out), width 700ms var(--ease-out);
+  transition: flex-basis 900ms var(--ease-out), width 900ms var(--ease-out);
 }
 .frame:hover { box-shadow: inset 0 0 0 2px var(--accent); }
 .frame:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -253,6 +253,25 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   z-index: 2;
   pointer-events: none;
   animation: content-fade-out var(--dur-med) ease-in-out both;
+}
+.frame-img-previous {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.frame-img-step {
+  position: relative;
+  z-index: 1;
+  animation: frame-step-in 350ms ease-in-out both;
+}
+.frame-stepping .frame-osd,
+.frame-stepping .frame-arrow,
+.frame-stepping .frame-share {
+  animation: none;
+}
+@keyframes frame-step-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes content-fade-out {
   from { opacity: 1; }
