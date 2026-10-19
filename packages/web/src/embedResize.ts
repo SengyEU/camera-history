@@ -10,6 +10,7 @@ interface FontMessage {
   type?: string;
   fontFamily?: string;
   fontLinks?: string[];
+  backgroundColor?: string;
 }
 
 /**
@@ -95,6 +96,12 @@ export function setupEmbedResize(): void {
     if (typeof data.fontFamily === "string" && data.fontFamily.trim()) {
       const family = data.fontFamily.replace(/[;{}<>]/g, "").trim().slice(0, 300);
       document.documentElement.style.setProperty("--widget-font", family);
+    }
+    if (typeof data.backgroundColor === "string") {
+      const background = data.backgroundColor.trim();
+      if (/^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([^)]*\))$/i.test(background)) {
+        document.documentElement.style.setProperty("--widget-bg", background);
+      }
     }
     // The parent script may load after the iframe; re-report our height even if
     // an earlier retry already sent the same value.

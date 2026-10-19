@@ -114,8 +114,23 @@ export function FilmStrip({
 
   useEffect(() => {
     if (!openId) return;
-    openRef.current?.scrollIntoView?.({ block: "nearest", inline: "center", behavior: "smooth" });
-  }, [openId]);
+    const strip = stripRef.current;
+    if (!strip || !strip.classList.contains("film-strip-scroll")) return;
+    const index = images.findIndex((image) => image.id === openId);
+    if (index < 0) return;
+    // Scroll only the strip; scrollIntoView could also shift the host page.
+    const scroll = () => {
+      const gap = 2;
+      const closedWidth = 14;
+      const openWidth = strip.clientWidth * 0.97;
+      const target = index * (closedWidth + gap) - (strip.clientWidth - openWidth) / 2;
+      strip.scrollTo?.({ left: Math.max(0, target), behavior: "smooth" });
+    };
+    scroll();
+    // The open frame only becomes scrollable once its flex transition ends.
+    const timer = setTimeout(scroll, 950);
+    return () => clearTimeout(timer);
+  }, [openId, images]);
 
   useEffect(() => {
     if (!openId) return;

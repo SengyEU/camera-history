@@ -56,7 +56,8 @@
   --on-pine: #06231a;
 }
 
-body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); background: var(--bg); color: var(--ink); }
+html, body { overflow-x: hidden; }
+body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); background: var(--widget-bg, var(--bg)); color: var(--ink); }
 
 .widget {
   --font-mono: var(--widget-font, ui-monospace, "SF Mono", Menlo, Consolas, monospace);

@@ -30,7 +30,33 @@
       });
   }
 
-  function sendFont(source) {
+  function isOpaque(color) {
+    return Boolean(color) && color !== "rgba(0, 0, 0, 0)" && color !== "transparent";
+  }
+
+  function pageBackgroundColor(frame) {
+    var el = frame ? frame.parentElement : null;
+    while (el) {
+      var background = window.getComputedStyle(el).backgroundColor;
+      if (isOpaque(background)) return background;
+      el = el.parentElement;
+    }
+    var body = window.getComputedStyle(document.body).backgroundColor;
+    if (isOpaque(body)) return body;
+    var html = window.getComputedStyle(document.documentElement).backgroundColor;
+    if (isOpaque(html)) return html;
+    return "";
+  }
+
+  function frameFor(source) {
+    var frames = widgetFrames();
+    for (var i = 0; i < frames.length; i += 1) {
+      if (frames[i].contentWindow === source) return frames[i];
+    }
+    return null;
+  }
+
+  function sendFont(source, frame) {
     if (!source || typeof source.postMessage !== "function") return;
     source.postMessage({ type: SCRIPT_OK }, "*");
     source.postMessage(
@@ -38,6 +64,7 @@
         type: FONT,
         fontFamily: window.getComputedStyle(document.body).fontFamily,
         fontLinks: fontLinks(),
+        backgroundColor: pageBackgroundColor(frame || frameFor(source)),
       },
       "*",
     );
@@ -60,14 +87,14 @@
     frame.__cameraHistoryWired = true;
     frame.addEventListener("load", function () {
       sameOriginMeasure(frame);
-      sendFont(frame.contentWindow);
+      sendFont(frame.contentWindow, frame);
     });
     sameOriginMeasure(frame);
     // The frame may have loaded before this script was injected, or the widget
     // may still be booting; keep offering the font/measurement for a while.
     [0, 500, 1500, 3000].forEach(function (delay) {
       window.setTimeout(function () {
-        sendFont(frame.contentWindow);
+        sendFont(frame.contentWindow, frame);
       }, delay);
     });
   }
