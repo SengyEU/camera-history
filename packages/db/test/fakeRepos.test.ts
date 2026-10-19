@@ -64,6 +64,39 @@ describe("fakeRepos", () => {
     expect(pub?.timezone).toBe("UTC");
   });
 
+  it("inherits the tenant plan and supports a per-camera plan", async () => {
+    const repos = createFakeRepos();
+    const tenant = await repos.createTenant({ ...newTenant, planMonths: 24 });
+    const inherited = await repos.createCamera(tenant.id, {
+      name: "Inherited",
+      feedType: "static_url",
+      feedUrl: "https://example.com/inherit.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    expect(inherited.planMonths).toBeNull();
+    expect((await repos.getPublicCamera(inherited.id))?.retentionMonths).toBe(24);
+
+    const short = await repos.createCamera(tenant.id, {
+      name: "Short",
+      feedType: "static_url",
+      feedUrl: "https://example.com/short.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+      planMonths: 3,
+    });
+    expect(short.planMonths).toBe(3);
+    expect((await repos.getPublicCamera(short.id))?.retentionMonths).toBe(3);
+
+    const cleared = await repos.updateCamera(short.id, { planMonths: null });
+    expect(cleared?.planMonths).toBeNull();
+    expect((await repos.getPublicCamera(short.id))?.retentionMonths).toBe(24);
+  });
+
   it("creates camera with default status and updates it", async () => {
     const repos = createFakeRepos();
     const tenant = await repos.createTenant(newTenant);
@@ -169,9 +202,16 @@ describe("fakeRepos", () => {
     await repos.setGroupCameras(group.id, [plain.id, night.id]);
     const pub = await repos.getGroupBySlug("acme", "g");
     expect(pub?.cameras.map((c) => [c.name, c.showNight, c.timezone, c.retentionMonths])).toEqual([
-      ["Night", true, "UTC", 12],
       ["Plain", false, "UTC", 12],
+      ["Night", true, "UTC", 12],
     ]);
+
+    await repos.setGroupCameras(group.id, [night.id, plain.id]);
+    expect((await repos.getGroupBySlug("acme", "g"))?.cameras.map((c) => c.name)).toEqual([
+      "Night",
+      "Plain",
+    ]);
+    expect((await repos.listGroups(tenant.id))[0]?.cameraIds).toEqual([night.id, plain.id]);
   });
 
   it("counts cameras and reports usage stats for a tenant", async () => {

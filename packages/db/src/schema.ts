@@ -75,6 +75,7 @@ export const cameras = pgTable("cameras", {
   enabled: boolean("enabled").notNull().default(true),
   theme: text("theme").notNull().default("light"),
   themeColors: jsonb("theme_colors").$type<import("@ch/core").ThemeColors | null>(),
+  planMonths: numeric("plan_months", { precision: 4, scale: 1 }),
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
   daylightOnly: boolean("daylight_only").notNull().default(false),
@@ -125,10 +126,12 @@ export const cameraGroupMembers = pgTable(
     cameraId: uuid("camera_id")
       .notNull()
       .references(() => cameras.id, { onDelete: "cascade" }),
+    position: integer("position").notNull().default(0),
   },
   (t) => [
     primaryKey({ columns: [t.cameraGroupId, t.cameraId] }),
     index("camera_group_members_camera_idx").on(t.cameraId),
+    index("camera_group_members_group_position_idx").on(t.cameraGroupId, t.position),
   ],
 );
 

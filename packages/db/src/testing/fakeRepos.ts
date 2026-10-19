@@ -25,7 +25,7 @@ export interface FakeDb {
   cameras: Camera[];
   images: ImageRecord[];
   cameraGroups: CameraGroup[];
-  cameraGroupMembers: { cameraGroupId: string; cameraId: string }[];
+  cameraGroupMembers: { cameraGroupId: string; cameraId: string; position: number }[];
 }
 
 export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeDb } {
@@ -88,6 +88,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         enabled: input.enabled ?? true,
         theme: input.theme ?? "light",
         themeColors: input.themeColors ?? null,
+        planMonths: input.planMonths ?? null,
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,
         daylightOnly: input.daylightOnly ?? false,
@@ -129,7 +130,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         theme: cam.theme,
         themeColors: cam.themeColors ?? null,
         timezone: cam.timezone,
-        retentionMonths: tenant?.planMonths ?? 12,
+        retentionMonths: cam.planMonths ?? tenant?.planMonths ?? 12,
         latitude: cam.latitude,
         longitude: cam.longitude,
         showNight: cam.showNight,
@@ -223,7 +224,10 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
           id: g.id,
           name: g.name,
           slug: g.slug,
-          cameraIds: db.cameraGroupMembers.filter((m) => m.cameraGroupId === g.id).map((m) => m.cameraId),
+          cameraIds: db.cameraGroupMembers
+            .filter((m) => m.cameraGroupId === g.id)
+            .sort((a, b) => a.position - b.position)
+            .map((m) => m.cameraId),
         }));
     },
     async getGroup(id: string) {
@@ -242,7 +246,9 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     },
     async setGroupCameras(groupId: string, cameraIds: string[]) {
       db.cameraGroupMembers = db.cameraGroupMembers.filter((m) => m.cameraGroupId !== groupId);
-      for (const cameraId of cameraIds) db.cameraGroupMembers.push({ cameraGroupId: groupId, cameraId });
+      for (const [position, cameraId] of cameraIds.entries()) {
+        db.cameraGroupMembers.push({ cameraGroupId: groupId, cameraId, position });
+      }
     },
     async getGroupBySlug(tenantSlug: string, groupSlug: string): Promise<PublicGroupWithCameras | null> {
       const tenant = db.tenants.find((t) => t.slug === tenantSlug);
@@ -251,6 +257,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       if (!group) return null;
       const cams = db.cameraGroupMembers
         .filter((m) => m.cameraGroupId === group.id)
+        .sort((a, b) => a.position - b.position)
         .map((m) => db.cameras.find((c) => c.id === m.cameraId))
         .filter((c): c is Camera => !!c && c.enabled)
         .map((c) => ({
@@ -259,10 +266,9 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
           theme: c.theme,
           themeColors: c.themeColors ?? null,
           timezone: c.timezone,
-          retentionMonths: tenant.planMonths,
+          retentionMonths: c.planMonths ?? tenant.planMonths,
           showNight: c.showNight,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+        }));
       return { group: { id: group.id, name: group.name, slug: group.slug }, cameras: cams };
     },
   };

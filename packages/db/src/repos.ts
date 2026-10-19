@@ -22,6 +22,7 @@ import { cameraGroupMembers, cameraGroups, cameras, images, tenants, users } fro
 import type { Repos } from "./repos.types.js";
 
 type TenantRow = typeof tenants.$inferSelect;
+type CameraRow = typeof cameras.$inferSelect;
 
 function toDate(value: unknown): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
@@ -34,6 +35,13 @@ function toDate(value: unknown): Date | null {
 
 function toTenant(row: TenantRow): Tenant {
   return { ...row, planMonths: Number(row.planMonths) };
+}
+
+function toCamera(row: CameraRow): Camera {
+  return {
+    ...row,
+    planMonths: row.planMonths === null ? null : Number(row.planMonths),
+  };
 }
 
 export function createRepos(db: Db): Repos {
@@ -85,30 +93,40 @@ export function createRepos(db: Db): Repos {
           enabled: input.enabled ?? true,
           theme: input.theme ?? "light",
           themeColors: input.themeColors ?? null,
+          planMonths: input.planMonths === null || input.planMonths === undefined ? null : String(input.planMonths),
           latitude: input.latitude ?? null,
           longitude: input.longitude ?? null,
           daylightOnly: input.daylightOnly ?? false,
           showNight: input.showNight ?? false,
         })
         .returning();
-      return row!;
+      return toCamera(row!);
     },
     async getCameraById(id: string) {
       const [row] = await db.select().from(cameras).where(eq(cameras.id, id));
-      return row ?? null;
+      return row ? toCamera(row) : null;
     },
     async listCameras(tenantId: string) {
-      return db.select().from(cameras).where(eq(cameras.tenantId, tenantId));
+      const rows = await db.select().from(cameras).where(eq(cameras.tenantId, tenantId));
+      return rows.map(toCamera);
     },
     async updateCamera(id: string, patch: CameraPatch) {
-      const [row] = await db.update(cameras).set(patch).where(eq(cameras.id, id)).returning();
-      return row ?? null;
+      const { planMonths, ...rest } = patch;
+      const values = {
+        ...rest,
+        ...(planMonths !== undefined
+          ? { planMonths: planMonths === null ? null : String(planMonths) }
+          : {}),
+      };
+      const [row] = await db.update(cameras).set(values).where(eq(cameras.id, id)).returning();
+      return row ? toCamera(row) : null;
     },
     async deleteCamera(id: string) {
       await db.delete(cameras).where(eq(cameras.id, id));
     },
     async listEnabledCameras() {
-      return db.select().from(cameras).where(eq(cameras.enabled, true));
+      const rows = await db.select().from(cameras).where(eq(cameras.enabled, true));
+      return rows.map(toCamera);
     },
     async getPublicCamera(cameraId: string): Promise<PublicCamera | null> {
       const rows = await db
@@ -118,7 +136,8 @@ export function createRepos(db: Db): Repos {
           theme: cameras.theme,
           themeColors: cameras.themeColors,
           timezone: cameras.timezone,
-          retentionMonths: tenants.planMonths,
+          cameraPlan: cameras.planMonths,
+          tenantPlan: tenants.planMonths,
           latitude: cameras.latitude,
           longitude: cameras.longitude,
           showNight: cameras.showNight,
@@ -134,7 +153,7 @@ export function createRepos(db: Db): Repos {
             theme: row.theme,
             themeColors: row.themeColors ?? null,
             timezone: row.timezone,
-            retentionMonths: Number(row.retentionMonths ?? 12),
+            retentionMonths: Number(row.cameraPlan ?? row.tenantPlan ?? 12),
             latitude: row.latitude,
             longitude: row.longitude,
             showNight: row.showNight,
@@ -242,15 +261,23 @@ export function createRepos(db: Db): Repos {
     async listGroups(tenantId: string): Promise<AdminCameraGroup[]> {
       const groups = await db.select().from(cameraGroups).where(eq(cameraGroups.tenantId, tenantId));
       const members = await db
-        .select({ groupId: cameraGroupMembers.cameraGroupId, cameraId: cameraGroupMembers.cameraId })
+        .select({
+          groupId: cameraGroupMembers.cameraGroupId,
+          cameraId: cameraGroupMembers.cameraId,
+          position: cameraGroupMembers.position,
+        })
         .from(cameraGroupMembers)
         .innerJoin(cameraGroups, eq(cameraGroups.id, cameraGroupMembers.cameraGroupId))
-        .where(eq(cameraGroups.tenantId, tenantId));
+        .where(eq(cameraGroups.tenantId, tenantId))
+        .orderBy(cameraGroupMembers.position);
       return groups.map((g) => ({
         id: g.id,
         name: g.name,
         slug: g.slug,
-        cameraIds: members.filter((m) => m.groupId === g.id).map((m) => m.cameraId),
+        cameraIds: members
+          .filter((m) => m.groupId === g.id)
+          .sort((a, b) => a.position - b.position)
+          .map((m) => m.cameraId),
       }));
     },
     async getGroup(id: string) {
@@ -266,29 +293,34 @@ export function createRepos(db: Db): Repos {
       await db.delete(cameraGroups).where(eq(cameraGroups.id, id));
     },
     async setGroupCameras(groupId: string, cameraIds: string[]) {
-      const existing = await db
-        .select()
-        .from(cameraGroupMembers)
-        .where(eq(cameraGroupMembers.cameraGroupId, groupId));
-      const existingIds = new Set(existing.map((m) => m.cameraId));
-      const want = new Set(cameraIds);
-      const toDelete = [...existingIds].filter((id) => !want.has(id));
-      const toInsert = cameraIds.filter((id) => !existingIds.has(id));
-      if (toDelete.length > 0) {
-        await db
-          .delete(cameraGroupMembers)
-          .where(
-            and(
-              eq(cameraGroupMembers.cameraGroupId, groupId),
-              inArray(cameraGroupMembers.cameraId, toDelete),
-            ),
-          );
-      }
-      if (toInsert.length > 0) {
-        await db
-          .insert(cameraGroupMembers)
-          .values(toInsert.map((cameraId) => ({ cameraGroupId: groupId, cameraId })));
-      }
+      await db.transaction(async (tx) => {
+        const existing = await tx
+          .select()
+          .from(cameraGroupMembers)
+          .where(eq(cameraGroupMembers.cameraGroupId, groupId));
+        const existingIds = new Set(existing.map((m) => m.cameraId));
+        const want = new Set(cameraIds);
+        const toDelete = [...existingIds].filter((id) => !want.has(id));
+        if (toDelete.length > 0) {
+          await tx
+            .delete(cameraGroupMembers)
+            .where(
+              and(
+                eq(cameraGroupMembers.cameraGroupId, groupId),
+                inArray(cameraGroupMembers.cameraId, toDelete),
+              ),
+            );
+        }
+        for (const [position, cameraId] of cameraIds.entries()) {
+          await tx
+            .insert(cameraGroupMembers)
+            .values({ cameraGroupId: groupId, cameraId, position })
+            .onConflictDoUpdate({
+              target: [cameraGroupMembers.cameraGroupId, cameraGroupMembers.cameraId],
+              set: { position },
+            });
+        }
+      });
     },
     async getGroupBySlug(tenantSlug: string, groupSlug: string): Promise<PublicGroupWithCameras | null> {
       const rows = await db
@@ -303,7 +335,9 @@ export function createRepos(db: Db): Repos {
           ctimezone: cameras.timezone,
           cenabled: cameras.enabled,
           cshowNight: cameras.showNight,
-          cretentionMonths: tenants.planMonths,
+          cplanMonths: cameras.planMonths,
+          tplanMonths: tenants.planMonths,
+          cposition: cameraGroupMembers.position,
         })
         .from(cameraGroups)
         .innerJoin(tenants, eq(tenants.id, cameraGroups.tenantId))
@@ -314,16 +348,16 @@ export function createRepos(db: Db): Repos {
       const group = { id: rows[0]!.groupId, name: rows[0]!.gname, slug: rows[0]!.gslug };
       const cams = rows
         .filter((r) => r.cameraId && r.cenabled)
+        .sort((a, b) => (a.cposition ?? 0) - (b.cposition ?? 0) || a.cname!.localeCompare(b.cname!))
         .map((r) => ({
           id: r.cameraId!,
           name: r.cname!,
           theme: r.ctheme!,
           themeColors: r.cthemeColors ?? null,
           timezone: r.ctimezone!,
-          retentionMonths: Number(r.cretentionMonths ?? 12),
+          retentionMonths: Number(r.cplanMonths ?? r.tplanMonths ?? 12),
           showNight: r.cshowNight!,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+        }));
       return { group, cameras: cams };
     },
   };

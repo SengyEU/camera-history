@@ -46,6 +46,7 @@ export interface Camera {
   enabled: boolean;
   theme: string;
   themeColors: ThemeColors | null;
+  planMonths: number | null;
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
@@ -100,6 +101,7 @@ export interface NewCamera {
   enabled?: boolean;
   theme?: string;
   themeColors?: ThemeColors | null;
+  planMonths?: number | null;
   latitude?: number | null;
   longitude?: number | null;
   daylightOnly?: boolean;
@@ -118,6 +120,7 @@ export interface CameraPatch {
   enabled?: boolean;
   theme?: string;
   themeColors?: ThemeColors | null;
+  planMonths?: number | null;
   latitude?: number | null;
   longitude?: number | null;
   daylightOnly?: boolean;

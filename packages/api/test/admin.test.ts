@@ -71,6 +71,83 @@ describe("admin cameras", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("creates a camera with a per-camera plan and inherits when cleared", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Short plan",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        planMonths: 3,
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().camera.planMonths).toBe(3);
+    const id = created.json().camera.id as string;
+
+    const cleared = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+      payload: { planMonths: null },
+    });
+    expect(cleared.statusCode).toBe(200);
+    expect(cleared.json().camera.planMonths).toBeNull();
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("updates a non-custom camera with null themeColors", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Plain",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        theme: "light",
+        themeColors: null,
+      },
+    });
+    const id = created.json().camera.id as string;
+    const updated = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+      payload: { theme: "light", themeColors: null, planMonths: 3 },
+    });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json().camera).toMatchObject({ theme: "light", planMonths: 3 });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects an unknown per-camera plan", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Bad plan",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        planMonths: 7,
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("rejects bad interval", async () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);
@@ -810,6 +887,47 @@ describe("admin groups", () => {
     expect((await app.inject({ method: "GET", url: `/api/v1/admin/groups/${gid}`, headers: { cookie } })).statusCode).toBe(404);
   });
 
+  it("persists the configured group camera order", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const makeCamera = async (name: string) => {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/v1/admin/cameras",
+        headers: { cookie },
+        payload: {
+          name,
+          feedType: "static_url",
+          feedUrl: `https://example.com/${name}.jpg`,
+          intervalMinutes: 15,
+        },
+      });
+      return res.json().camera.id as string;
+    };
+    const first = await makeCamera("first");
+    const second = await makeCamera("second");
+    const group = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/groups",
+      headers: { cookie },
+      payload: { name: "Ordered", slug: "ordered" },
+    });
+    const gid = group.json().group.id as string;
+
+    const updated = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/groups/${gid}/cameras`,
+      headers: { cookie },
+      payload: { cameraIds: [second, first] },
+    });
+    expect(updated.statusCode).toBe(204);
+    const list = await app.inject({ method: "GET", url: "/api/v1/admin/groups", headers: { cookie } });
+    expect(
+      list.json().groups.find((item: { id: string }) => item.id === gid).cameraIds,
+    ).toEqual([second, first]);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("returns the tenant slug for embed snippets", async () => {
     const { app } = makeApp();
     const reg = await app.inject({
@@ -821,6 +939,7 @@ describe("admin groups", () => {
     const res = await app.inject({ method: "GET", url: "/api/v1/admin/tenant", headers: { cookie } });
     expect(res.statusCode).toBe(200);
     expect(res.json().tenant.slug).toBe("slug-src");
+    expect(res.json().tenant.planMonths).toBe(12);
   });
 
   it("returns 404 for group routes owned by another tenant", async () => {

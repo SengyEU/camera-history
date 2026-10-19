@@ -101,7 +101,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     const night = await repos.createCamera(tenant.id, {
       name: "Night", feedType: "static_url", feedUrl: "https://e.com/n.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
-      showNight: true,
+      showNight: true, planMonths: 3,
     });
     expect(night.showNight).toBe(true);
 
@@ -137,7 +137,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     const a = await repos.createCamera(tenant.id, {
       name: "Alpha", feedType: "static_url", feedUrl: "https://e.com/a.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
-      showNight: true,
+      showNight: true, planMonths: 3,
     });
     const b = await repos.createCamera(tenant.id, {
       name: "Beta", feedType: "static_url", feedUrl: "https://e.com/b.jpg",
@@ -155,7 +155,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     expect(pub?.cameras.map((c) => c.id)).toEqual([a.id]); // disabled Beta excluded
     expect(pub?.cameras[0]?.showNight).toBe(true); // per-camera showNight reaches the group DTO
     expect(pub?.cameras[0]?.timezone).toBe("UTC"); // camera timezone reaches the group DTO
-    expect(pub?.cameras[0]?.retentionMonths).toBe(12); // tenant retention reaches the group DTO
+    expect(pub?.cameras[0]?.retentionMonths).toBe(3); // per-camera plan reaches the group DTO
     expect(await repos.getGroupBySlug(tenant.slug, "nope")).toBeNull();
 
     const noop = await repos.updateGroup(g.id, {});
@@ -167,7 +167,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     await pool.end();
   });
 
-  it("orders public group cameras by name regardless of creation order", async () => {
+  it("orders public group cameras by configured position", async () => {
     const cfg = loadConfig(process.env);
     const db = createDb(cfg.databaseUrl);
     const repos = createRepos(db);
@@ -184,7 +184,14 @@ describe.skipIf(!RUN)("PG integration", () => {
     await repos.setGroupCameras(g.id, [zulu.id, alpha.id]);
 
     const pub = await repos.getGroupBySlug(tenant.slug, "order");
-    expect(pub?.cameras.map((c) => c.name)).toEqual(["Alpha", "Zulu"]);
+    expect(pub?.cameras.map((c) => c.name)).toEqual(["Zulu", "Alpha"]);
+    expect((await repos.listGroups(tenant.id))[0]?.cameraIds).toEqual([zulu.id, alpha.id]);
+
+    await repos.setGroupCameras(g.id, [alpha.id, zulu.id]);
+    expect((await repos.getGroupBySlug(tenant.slug, "order"))?.cameras.map((c) => c.name)).toEqual([
+      "Alpha",
+      "Zulu",
+    ]);
 
     await db.delete(tenants).where(eq(tenants.id, tenant.id));
     const pool = db.$client as import("pg").Pool;

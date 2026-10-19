@@ -347,36 +347,32 @@ describe("public routes", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("returns public group with enabled cameras ordered by name", async () => {
+  it("returns public group cameras in configured order with per-camera retention", async () => {
     const { app, repos } = makeApp();
     const t = await repos.createTenant({ name: "T", slug: "t-one", planMonths: 24 });
     const cam = await repos.createCamera(t.id, {
       name: "Zulu", feedType: "static_url", feedUrl: "https://e.com/z.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59",
-      timezone: "America/Edmonton", theme: "dark", showNight: true,
+      timezone: "America/Edmonton", theme: "dark", showNight: true, planMonths: 3,
+    });
+    const alpha = await repos.createCamera(t.id, {
+      name: "Alpha", feedType: "static_url", feedUrl: "https://e.com/a.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
     });
     const off = await repos.createCamera(t.id, {
       name: "Off", feedType: "static_url", feedUrl: "https://e.com/o.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC", enabled: false,
     });
     const g = await repos.createGroup(t.id, { name: "G", slug: "g-one" });
-    await repos.setGroupCameras(g.id, [cam.id, off.id]);
+    await repos.setGroupCameras(g.id, [cam.id, alpha.id, off.id]);
 
     const res = await app.inject({ method: "GET", url: "/api/v1/groups/t-one/g-one" });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.group.slug).toBe("g-one");
-    expect(body.cameras).toEqual([
-      {
-        id: cam.id,
-        name: "Zulu",
-        theme: "dark",
-        themeColors: null,
-        timezone: "America/Edmonton",
-        retentionMonths: 24,
-        showNight: true,
-      },
-    ]);
+    expect(body.cameras.map((c: { name: string }) => c.name)).toEqual(["Zulu", "Alpha"]);
+    expect(body.cameras[0]).toMatchObject({ retentionMonths: 3, showNight: true });
+    expect(body.cameras[1]).toMatchObject({ retentionMonths: 24 });
   });
 
   it("404s for unknown public group with a group-specific detail", async () => {

@@ -1,5 +1,12 @@
 import type { FastifyInstance } from "fastify";
-import { THEMES, isValidTheme, normalizeThemeColors, HttpError, rfc7807 } from "@ch/core";
+import {
+  THEMES,
+  isValidPlanMonths,
+  isValidTheme,
+  normalizeThemeColors,
+  HttpError,
+  rfc7807,
+} from "@ch/core";
 import type { AppDeps } from "../app.js";
 import { requireAuth } from "../plugins/auth.js";
 
@@ -25,6 +32,14 @@ function publicImageUrl(baseUrl: string, cameraId: string, storageKey: string): 
   const date = parts[parts.length - 2];
   const file = parts[parts.length - 1];
   return `${baseUrl.replace(/\/+$/, "")}/api/v1/cameras/${cameraId}/${date}/${file}`;
+}
+
+function parsePlanMonths(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "number" || !isValidPlanMonths(value)) {
+    throw new HttpError(400, "bad_request", "planMonths must be one of the available plans");
+  }
+  return value;
 }
 
 function parseCoordinate(value: unknown, field: "latitude" | "longitude"): number | null {
@@ -92,6 +107,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!schemeMatches(feedType, feedUrl)) {
       throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${feedType}"`);
     }
+    const planMonths = parsePlanMonths(body.planMonths);
 
     const latitude = parseCoordinate(body.latitude, "latitude");
     const longitude = parseCoordinate(body.longitude, "longitude");
@@ -128,6 +144,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       enabled: body.enabled === undefined ? true : Boolean(body.enabled),
       theme,
       themeColors,
+      planMonths,
       latitude,
       longitude,
       daylightOnly,
@@ -165,6 +182,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
           "enabled",
           "theme",
           "themeColors",
+          "planMonths",
           "latitude",
           "longitude",
           "daylightOnly",
@@ -180,7 +198,10 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (patch.theme !== undefined && !isValidTheme(String(patch.theme))) {
       throw new HttpError(400, "bad_request", `theme must be one of ${THEMES.join(", ")}`);
     }
-    if (patch.themeColors !== undefined) {
+    if (patch.planMonths !== undefined) {
+      patch.planMonths = parsePlanMonths(patch.planMonths);
+    }
+    if (patch.themeColors !== undefined && patch.themeColors !== null) {
       const colors = normalizeThemeColors(patch.themeColors);
       if (!colors) {
         throw new HttpError(400, "bad_request", "themeColors must contain valid #rrggbb colors");
@@ -189,6 +210,9 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     }
     const effectiveTheme = patch.theme !== undefined ? String(patch.theme) : camera.theme;
     if (effectiveTheme === "custom" && !(patch.themeColors ?? camera.themeColors)) {
+      throw new HttpError(400, "bad_request", "themeColors are required when theme is custom");
+    }
+    if (effectiveTheme === "custom" && patch.themeColors === null) {
       throw new HttpError(400, "bad_request", "themeColors are required when theme is custom");
     }
     const effectiveLatitude =
@@ -337,6 +361,6 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
   app.get("/api/v1/admin/tenant", { preHandler: pre }, async (req, reply) => {
     const t = await deps.repos.getTenantById(req.user!.tenantId);
     if (!t) return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Tenant not found"));
-    return { tenant: { id: t.id, name: t.name, slug: t.slug } };
+    return { tenant: { id: t.id, name: t.name, slug: t.slug, planMonths: t.planMonths } };
   });
 }
