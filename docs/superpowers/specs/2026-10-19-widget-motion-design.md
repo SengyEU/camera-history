@@ -19,9 +19,12 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
   (`aria-hidden`, `pointer-events: none`) and the new content renders live beneath it.
   The old layer is removed after 400 ms (settle > animation length).
 - Rapid switches replace the pending old layer — never more than two layers.
-- The key is `cameraId|date|firstImageId`, so it only changes once the new images
+- The key is `cameraId|firstImageId|imageCount`, so it only changes once the new images
   actually arrive (`preloadImages` → `setImages`). While the fetch is pending the old
   strip stays and no transition starts.
+- The loading skeleton renders outside `ContentTransition` and never animates (no
+  slide-in offset). The first content mount is instant (no hand-off from nothing).
+- The wrapper exposes `data-direction` for tests and debugging.
 - Direction is decided at intent time: `changeDate` compares the new date with the
   current one (`prev` = older, `next` = newer); camera switch and group-latest fallback
   use `next`. The direction is frozen per transition inside `ContentTransition`.
@@ -29,7 +32,8 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 
 ### Motion
 
-- 320 ms, `cubic-bezier(0.22, 1, 0.36, 1)` (`--ease-out`), translateX only (±28 px).
+- 520 ms, `cubic-bezier(0.22, 1, 0.36, 1)` (`--ease-out`), translateX only (±28 px),
+  `will-change: transform` while sliding. Settle timer 640 ms.
 - `prev`: new content enters from the left, old slides out right (timeline going back).
 - `next`: new content enters from the right, old slides out left.
 - Both layers are fully opaque and overlap at all times — no gap, no fade to background.
@@ -38,23 +42,23 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 
 ## Frame expand / collapse
 
-- Flex transition 420 ms `--ease-out` (replaces the current 0.5 s ease).
-- OSD chip, arrows and share button animate in with 60 ms stagger, 180 ms
+- Flex transition 560 ms `--ease-out`.
+- OSD chip, arrows and share button animate in with 80 ms stagger, 220 ms
   fade + slight scale. Collapse is instant (elements unmount).
 
 ## Capture step inside an open frame
 
-- The open frame's `<img>` is keyed by image id; it remounts with a 160 ms fade-in
+- The open frame's `<img>` is keyed by image id; it remounts with a 220 ms fade-in
   (arrows/swipe/keyboard). No gap during the swap.
 
 ## Share popup
 
-- Popup: 220 ms `--ease-out`, scale from 0.96 (was 1.2).
-- Overlay: 180 ms fade. Close: 140 ms.
+- Popup: 280 ms `--ease-out`, scale from 0.96.
+- Overlay: 220 ms fade. Close: 180/160 ms.
 
 ## Controls
 
-- Unified hover/focus transitions 160 ms (`--dur-fast`).
+- Unified hover/focus transitions 180 ms (`--dur-fast`).
 - `:active` scale 0.97 on buttons (arrows, share, date nav, popup controls).
 - Skeleton shimmer unchanged.
 
@@ -63,8 +67,9 @@ Scope: `packages/web` — all widget transitions unified into one calm, premium 
 ```css
 :root {
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur-fast: 160ms;
-  --dur-med: 320ms;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 180ms;
+  --dur-med: 520ms;
 }
 ```
 

@@ -8,7 +8,9 @@ const enterNext = () => document.querySelector(".content-enter-next");
 const enterPrev = () => document.querySelector(".content-enter-prev");
 const exitNext = () => document.querySelector(".content-exit-next");
 const exitPrev = () => document.querySelector(".content-exit-prev");
+const anyEnter = () => document.querySelector('[class*="content-enter"]');
 const layerCount = () => document.querySelectorAll(".content-layer").length;
+const SETTLE = 700;
 
 function Content({ label }: { label: string }) {
   return <p data-testid="content">{label}</p>;
@@ -24,14 +26,23 @@ describe("ContentTransition", () => {
     vi.unstubAllGlobals();
   });
 
+  it("does not animate the very first content on mount", () => {
+    render(
+      <ContentTransition transitionKey="a" direction="next" animate>
+        <Content label="A" />
+      </ContentTransition>,
+    );
+    expect(screen.getAllByTestId("content")).toHaveLength(1);
+    expect(anyEnter()).toBeNull();
+    expect(document.querySelector('[class*="content-exit"]')).toBeNull();
+  });
+
   it("keeps the old layer under the new one and removes it after settling", () => {
     const { rerender } = render(
       <ContentTransition transitionKey="a" direction="next" animate>
         <Content label="A" />
       </ContentTransition>,
     );
-    expect(screen.getAllByTestId("content")).toHaveLength(1);
-
     rerender(
       <ContentTransition transitionKey="b" direction="next" animate>
         <Content label="B" />
@@ -46,11 +57,12 @@ describe("ContentTransition", () => {
     expect(leaving).toHaveAttribute("aria-hidden", "true");
 
     act(() => {
-      vi.advanceTimersByTime(400);
+      vi.advanceTimersByTime(SETTLE);
     });
     expect(screen.getAllByTestId("content")).toHaveLength(1);
     expect(screen.getByText("B")).toBeInTheDocument();
     expect(exitNext()).toBeNull();
+    expect(anyEnter()).toBeNull();
   });
 
   it("updates the live layer while the old layer is leaving", () => {
@@ -72,7 +84,7 @@ describe("ContentTransition", () => {
     expect(screen.getByText("B2")).toBeInTheDocument();
     expect(screen.getByText("A")).toBeInTheDocument();
     act(() => {
-      vi.advanceTimersByTime(400);
+      vi.advanceTimersByTime(SETTLE);
     });
     expect(screen.getAllByTestId("content")).toHaveLength(1);
     expect(screen.getByText("B2")).toBeInTheDocument();
@@ -116,7 +128,7 @@ describe("ContentTransition", () => {
     expect(screen.getByText("C")).toBeInTheDocument();
     expect(screen.queryByText("A")).not.toBeInTheDocument();
     act(() => {
-      vi.advanceTimersByTime(400);
+      vi.advanceTimersByTime(SETTLE);
     });
     expect(screen.getAllByTestId("content")).toHaveLength(1);
     expect(screen.getByText("C")).toBeInTheDocument();
@@ -137,6 +149,7 @@ describe("ContentTransition", () => {
     expect(screen.getAllByTestId("content")).toHaveLength(1);
     expect(screen.getByText("B")).toBeInTheDocument();
     expect(exitNext()).toBeNull();
+    expect(anyEnter()).toBeNull();
   });
 
   it("swaps instantly when animate is false (default in test runs)", () => {
@@ -153,5 +166,27 @@ describe("ContentTransition", () => {
     expect(screen.getAllByTestId("content")).toHaveLength(1);
     expect(screen.getByText("B")).toBeInTheDocument();
     expect(exitNext()).toBeNull();
+    expect(anyEnter()).toBeNull();
+  });
+
+  it("exposes the pending transition direction on the wrapper", () => {
+    const { rerender } = render(
+      <ContentTransition transitionKey="a" direction="next">
+        <Content label="A" />
+      </ContentTransition>,
+    );
+    expect(document.querySelector(".content-transition")).toHaveAttribute(
+      "data-direction",
+      "next",
+    );
+    rerender(
+      <ContentTransition transitionKey="b" direction="prev">
+        <Content label="B" />
+      </ContentTransition>,
+    );
+    expect(document.querySelector(".content-transition")).toHaveAttribute(
+      "data-direction",
+      "prev",
+    );
   });
 });

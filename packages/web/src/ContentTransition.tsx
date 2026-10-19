@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 export type TransitionDirection = "next" | "prev";
 
@@ -16,22 +16,25 @@ interface ContentTransitionProps {
   animate?: boolean;
 }
 
-const SETTLE_MS = 400;
+const SETTLE_MS = 640;
 
 const isTestRun = import.meta.env?.MODE === "test";
+
+/** Animations are on in real runs, off in test runs (keeps tests deterministic). */
+export const animationsEnabled = !isTestRun;
 
 /**
  * Sliding content hand-off: the current content renders live while a frozen
  * snapshot of the previous content slides out the opposite way. Both layers
  * share one grid cell and stay fully opaque, so the widget never blinks and
- * its height never jumps. Honors prefers-reduced-motion and test runs by
- * swapping instantly.
+ * its height never jumps. The first content mount and reduced-motion users
+ * swap without animating; test runs default to instant swaps.
  */
 export function ContentTransition({
   transitionKey,
   direction,
   children,
-  animate = !isTestRun,
+  animate = animationsEnabled,
 }: ContentTransitionProps) {
   const [leaving, setLeaving] = useState<FrozenLayer | null>(null);
   const [enterDirection, setEnterDirection] = useState(direction);
@@ -46,7 +49,7 @@ export function ContentTransition({
   );
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const old = previous.current;
     if (old.key === transitionKey) return;
     if (timer.current !== null) clearTimeout(timer.current);
@@ -73,7 +76,7 @@ export function ContentTransition({
   }, []);
 
   return (
-    <div className="content-transition">
+    <div className="content-transition" data-direction={enterDirection}>
       {leaving !== null && (
         <div
           key={leaving.key}
@@ -83,7 +86,10 @@ export function ContentTransition({
           {leaving.node}
         </div>
       )}
-      <div key={transitionKey} className={`content-layer content-enter-${enterDirection}`}>
+      <div
+        key={transitionKey}
+        className={`content-layer${leaving !== null ? ` content-enter-${enterDirection}` : ""}`}
+      >
         {children}
       </div>
     </div>

@@ -858,13 +858,29 @@ describe("App widget", () => {
 
     await user.click(screen.getByLabelText("Previous day"));
     await waitFor(() =>
-      expect(document.querySelector(".content-layer")).toHaveClass("content-enter-prev"),
+      expect(document.querySelector(".content-transition")).toHaveAttribute(
+        "data-direction",
+        "prev",
+      ),
     );
 
     await user.click(screen.getByLabelText("Next day"));
     await waitFor(() =>
-      expect(document.querySelector(".content-layer")).toHaveClass("content-enter-next"),
+      expect(document.querySelector(".content-transition")).toHaveAttribute(
+        "data-direction",
+        "next",
+      ),
     );
+  });
+
+  it("keeps the loading skeleton outside the transition wrapper without slide-in classes", async () => {
+    vi.mocked(getImages).mockImplementation(() => new Promise(() => {}));
+    render(<App />);
+    const strip = screen.getByTestId("film-strip");
+    expect(strip).toHaveClass("film-strip");
+    await act(async () => {});
+    expect(document.querySelector('[class*="content-enter"]')).toBeNull();
+    expect(document.querySelector('[class*="content-exit"]')).toBeNull();
   });
 
   it("shows the pinned empty copy for a day without images", async () => {
@@ -1001,12 +1017,18 @@ describe("App group widget", () => {
     await screen.findByTestId("frame-cam-a-2026-10-10");
     await user.click(screen.getByLabelText("Previous day"));
     await waitFor(() =>
-      expect(document.querySelector(".content-layer")).toHaveClass("content-enter-prev"),
+      expect(document.querySelector(".content-transition")).toHaveAttribute(
+        "data-direction",
+        "prev",
+      ),
     );
 
     await user.selectOptions(screen.getByTestId("camera-switcher"), "cam-b");
     await waitFor(() =>
-      expect(document.querySelector(".content-layer")).toHaveClass("content-enter-next"),
+      expect(document.querySelector(".content-transition")).toHaveAttribute(
+        "data-direction",
+        "next",
+      ),
     );
     expect(await screen.findByTestId("frame-cam-b-2026-10-09")).toBeInTheDocument();
   });

@@ -2,8 +2,9 @@
 
 :root {
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur-fast: 160ms;
-  --dur-med: 320ms;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 180ms;
+  --dur-med: 520ms;
 }
 
 :root,
@@ -108,7 +109,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   overflow: hidden;
   cursor: pointer;
   font: inherit;
-  transition: flex-basis 420ms var(--ease-out), width 420ms var(--ease-out);
+  transition: flex-basis 560ms var(--ease-out), width 560ms var(--ease-out);
 }
 .frame:hover { box-shadow: inset 0 0 0 2px var(--accent); }
 .frame:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -250,6 +251,11 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   z-index: 2;
   pointer-events: none;
 }
+.content-layer-leaving,
+.content-transition .content-enter-next,
+.content-transition .content-enter-prev {
+  will-change: transform;
+}
 .content-enter-next { animation: content-in-next var(--dur-med) var(--ease-out) both; }
 .content-enter-prev { animation: content-in-prev var(--dur-med) var(--ease-out) both; }
 .content-exit-next { animation: content-out-next var(--dur-med) var(--ease-out) both; }
@@ -305,9 +311,9 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   z-index: 20;
-  animation: overlay-in 180ms var(--ease-out) both;
+  animation: overlay-in 220ms var(--ease-out) both;
 }
-.share-overlay-closing { animation: overlay-out 140ms var(--ease-in, ease) both; }
+.share-overlay-closing { animation: overlay-out 180ms var(--ease-in) both; }
 .share-popup {
   position: fixed;
   top: 50%;
@@ -323,9 +329,9 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   border-radius: 14px;
   padding: 16px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28), 0 2px 12px rgba(0, 0, 0, 0.12);
-  animation: popup-in 220ms var(--ease-out) both;
+  animation: popup-in 280ms var(--ease-out) both;
 }
-.share-popup-closing { animation: popup-out 140ms var(--ease-in, ease) both; }
+.share-popup-closing { animation: popup-out 160ms var(--ease-in) both; }
 @keyframes overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -594,10 +600,10 @@ button { color: var(--ink); }
 }
 
 /* Motion polish */
-.frame-osd { animation: osd-in 180ms var(--ease-out) both; }
+.frame-osd { animation: osd-in 220ms var(--ease-out) both; }
 .frame-arrow,
-.frame-share { animation: osd-in 180ms var(--ease-out) 60ms both; }
-.frame-img { animation: img-in var(--dur-fast) var(--ease-out) both; }
+.frame-share { animation: osd-in 220ms var(--ease-out) 80ms both; }
+.frame-img { animation: img-in 220ms var(--ease-out) both; }
 @keyframes osd-in {
   from { opacity: 0; scale: 0.92; }
   to { opacity: 1; scale: 1; }

@@ -10,8 +10,7 @@ import {
 } from "./api";
 import { FilmStrip, viewerCaptureLabel } from "./FilmStrip";
 import { SharePopup } from "./SharePopup";
-import { ContentTransition, type TransitionDirection } from "./ContentTransition";
-import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
+import { ContentTransition, type TransitionDirection } from "./ContentTransition";import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
@@ -127,38 +126,40 @@ function WidgetBody({
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       {switcher && <div className="widget-header">{switcher}</div>}
-      <ContentTransition transitionKey={contentKey} direction={direction}>
-        {loading && !hasLoadedOnce ? (
-          <FilmStrip
-            images={[]}
-            loading
-            timezone={timezone}
-            openId={null}
-            onOpenChange={() => {}}
-            onShare={() => {}}
-          />
-        ) : images.length === 0 ? (
-          <div className="empty-state" data-testid="empty-state">
-            <p className="empty">No images for this date.</p>
-            <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
-          </div>
-        ) : visibleImages.length === 0 ? (
-          <div className="empty-state" data-testid="empty-state">
-            <p className="empty" data-testid="day-only-empty">
-              No daytime captures for this date.
-            </p>
-          </div>
-        ) : (
-          <FilmStrip
-            images={visibleImages}
-            loading={false}
-            timezone={timezone}
-            openId={openId}
-            onOpenChange={onOpenChange}
-            onShare={onShare}
-          />
-        )}
-      </ContentTransition>
+      {loading && !hasLoadedOnce ? (
+        <FilmStrip
+          images={[]}
+          loading
+          timezone={timezone}
+          openId={null}
+          onOpenChange={() => {}}
+          onShare={() => {}}
+        />
+      ) : (
+        <ContentTransition transitionKey={contentKey} direction={direction}>
+          {images.length === 0 ? (
+            <div className="empty-state" data-testid="empty-state">
+              <p className="empty">No images for this date.</p>
+              <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
+            </div>
+          ) : visibleImages.length === 0 ? (
+            <div className="empty-state" data-testid="empty-state">
+              <p className="empty" data-testid="day-only-empty">
+                No daytime captures for this date.
+              </p>
+            </div>
+          ) : (
+            <FilmStrip
+              images={visibleImages}
+              loading={false}
+              timezone={timezone}
+              openId={openId}
+              onOpenChange={onOpenChange}
+              onShare={onShare}
+            />
+          )}
+        </ContentTransition>
+      )}
       <div className="date-nav" data-testid="date-nav">
         <button
           type="button"
