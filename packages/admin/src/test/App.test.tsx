@@ -301,6 +301,7 @@ describe("App camera CRUD", () => {
     const { fn } = listServer({
       imageCount: 120,
       totalBytes: 1_500_000,
+      planMonths: 3,
       firstCaptureAt: "2026-09-20T12:00:00.000Z",
       lastCaptureAt: "2026-09-23T13:00:00.000Z",
     });
@@ -309,6 +310,7 @@ describe("App camera CRUD", () => {
     await screen.findByText("Beach cam");
 
     expect(screen.getByTestId("camera-images-cam-1")).toHaveTextContent("120");
+    expect(screen.getByTestId("camera-plan-cam-1")).toHaveTextContent("3 months");
     expect(screen.getByTestId("camera-running-cam-1")).not.toHaveTextContent("—");
     expect(screen.getByTestId("summary-images")).toHaveTextContent("120");
     expect(screen.getByTestId("summary-since")).toHaveTextContent(/2026/);
@@ -411,6 +413,14 @@ describe("App camera CRUD", () => {
     expect(window.location.hash).toBe("#/cameras");
   });
 
+  it("shows the inherited account plan on a camera card", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+    expect(screen.getByTestId("camera-plan-cam-1")).toHaveTextContent("Account (12 months)");
+  });
+
   it("shows and saves a per-camera plan", async () => {
     const { fn, calls } = listServer({ planMonths: 3 });
     vi.stubGlobal("fetch", fn);
@@ -418,12 +428,16 @@ describe("App camera CRUD", () => {
     await screen.findByText("Beach cam");
 
     await userEvent.click(screen.getByTestId("edit-cam-1"));
+    expect(screen.getByTestId("camera-plan-card")).toBeInTheDocument();
+    expect(screen.getByTestId("camera-plan-card").closest(".camera-preview")).not.toBeNull();
+    expect(screen.getByTestId("camera-plan-current")).toHaveTextContent("3 months");
     const plan = screen.getByTestId("form-plan") as HTMLSelectElement;
     expect(plan.value).toBe("3");
     expect(plan).toHaveTextContent("Inherit from account (12 months)");
     expect(plan).toHaveTextContent("6 months");
 
     await userEvent.selectOptions(plan, "6");
+    expect(screen.getByTestId("camera-plan-current")).toHaveTextContent("6 months");
     await userEvent.click(screen.getByTestId("form-submit"));
 
     await waitFor(() =>

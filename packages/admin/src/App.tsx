@@ -538,29 +538,6 @@ function CameraForm({
             ))}
           </select>
         </label>
-        <label>
-          Plan
-          <select
-            value={input.planMonths === null ? "" : String(input.planMonths)}
-            onChange={(e) =>
-              setInput((state) => ({
-                ...state,
-                planMonths: e.target.value === "" ? null : Number(e.target.value),
-              }))
-            }
-            data-testid="form-plan"
-          >
-            <option value="">{`Inherit from account (${planLabel(tenantPlanMonths)})`}</option>
-            {PLAN_OPTIONS.map((option) => (
-              <option key={option.months} value={option.months}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <span className="field-hint">
-            Retention for this camera. Billing still follows the account plan for now.
-          </span>
-        </label>
         <div className="form-row">
           <label>
             Active from
@@ -685,6 +662,40 @@ function CameraForm({
             Theme changes apply to the preview instantly and are saved automatically. Other settings
             apply after saving.
           </p>
+          <div className="camera-plan-card" data-testid="camera-plan-card">
+            <div className="panel-head">
+              <h3>Retention plan</h3>
+              <span className="ts-chip">PLAN</span>
+            </div>
+            <strong className="camera-plan-current" data-testid="camera-plan-current">
+              {input.planMonths === null
+                ? `Account plan · ${planLabel(tenantPlanMonths)}`
+                : planLabel(input.planMonths)}
+            </strong>
+            <label className="camera-plan-field">
+              Plan
+              <select
+                value={input.planMonths === null ? "" : String(input.planMonths)}
+                onChange={(e) =>
+                  setInput((state) => ({
+                    ...state,
+                    planMonths: e.target.value === "" ? null : Number(e.target.value),
+                  }))
+                }
+                data-testid="form-plan"
+              >
+                <option value="">{`Inherit from account (${planLabel(tenantPlanMonths)})`}</option>
+                {PLAN_OPTIONS.map((option) => (
+                  <option key={option.months} value={option.months}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="field-hint">
+              Applies after saving. Billing still follows the account plan for now.
+            </span>
+          </div>
           {cameraId && tenantSlug ? (
             <EmbedCodePanel
               code={embedCode}
@@ -733,11 +744,13 @@ function CameraSummary({ cameras }: { cameras: AdminCamera[] }) {
 function CameraCard({
   cam,
   tenantSlug,
+  tenantPlanMonths,
   onEdit,
   onDelete,
 }: {
   cam: AdminCamera;
   tenantSlug: string;
+  tenantPlanMonths: number;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -817,6 +830,14 @@ function CameraCard({
           <div>
             <dt>Images</dt>
             <dd data-testid={`camera-images-${cam.id}`}>{(cam.imageCount ?? 0).toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Plan</dt>
+            <dd data-testid={`camera-plan-${cam.id}`}>
+              {cam.planMonths === null || cam.planMonths === undefined
+                ? `Account (${planLabel(tenantPlanMonths)})`
+                : planLabel(cam.planMonths)}
+            </dd>
           </div>
           <div>
             <dt>Running</dt>
@@ -1161,6 +1182,7 @@ export function App() {
                tenantSlug={tenantSlug}
                onSave={saveGroup}
                onCancel={closeGroup}
+               onOrderSaved={reloadGroups}
              />
            ) : groupsLoading ? (
              <p className="loading">Loading…</p>
@@ -1175,6 +1197,7 @@ export function App() {
                    tenantSlug={tenantSlug}
                    onSave={saveGroup}
                    onCancel={closeGroup}
+                   onOrderSaved={reloadGroups}
                  />
                ) : (
                  <section className="panel camera-editor">
@@ -1250,6 +1273,7 @@ export function App() {
                     key={cam.id}
                     cam={cam}
                     tenantSlug={tenantSlug}
+                    tenantPlanMonths={tenantPlanMonths}
                     onEdit={() => openCamera(cam.id)}
                     onDelete={() => setConfirming(cam)}
                   />

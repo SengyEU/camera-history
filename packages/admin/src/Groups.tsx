@@ -207,18 +207,22 @@ export function GroupEditor({
   tenantSlug,
   onSave,
   onCancel,
+  onOrderSaved,
 }: {
   group: AdminGroup | null;
   cameras: AdminCamera[];
   tenantSlug: string;
   onSave: (input: GroupInput) => Promise<void>;
   onCancel: () => void;
+  onOrderSaved?: () => void | Promise<unknown>;
 }) {
   const [name, setName] = useState(group?.name ?? "");
   const [slug, setSlug] = useState(group?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(group));
   const [cameraIds, setCameraIds] = useState<string[]>(group?.cameraIds ?? []);
   const [error, setError] = useState<string | null>(null);
+  const [orderSaveState, setOrderSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [previewVersion, setPreviewVersion] = useState(0);
 
   const selected = useMemo(
     () =>
@@ -237,12 +241,26 @@ export function GroupEditor({
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    setCameraIds((ids) => {
-      const from = ids.indexOf(String(active.id));
-      const to = ids.indexOf(String(over.id));
-      if (from < 0 || to < 0) return ids;
-      return arrayMove(ids, from, to);
-    });
+    const from = cameraIds.indexOf(String(active.id));
+    const to = cameraIds.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(cameraIds, from, to);
+    const previous = cameraIds;
+    setCameraIds(next);
+    if (!group) return;
+    setOrderSaveState("saving");
+    void api
+      .setGroupCameras(group.id, next)
+      .then(async () => {
+        setOrderSaveState("saved");
+        setPreviewVersion((version) => version + 1);
+        await onOrderSaved?.();
+      })
+      .catch((err: unknown) => {
+        setOrderSaveState("error");
+        setError(err instanceof Error ? err.message : "Saving camera order failed");
+        setCameraIds(previous);
+      });
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -336,6 +354,15 @@ export function GroupEditor({
                 </SortableContext>
               </DndContext>
             )}
+            {group && orderSaveState !== "idle" && (
+              <span className="field-hint" data-testid="group-order-save-state">
+                {orderSaveState === "saving"
+                  ? "Saving order…"
+                  : orderSaveState === "saved"
+                    ? "Order saved"
+                    : "Order save failed"}
+              </span>
+            )}
           </div>
           <div className="form-section">
             <h4>Add cameras</h4>
@@ -375,6 +402,7 @@ export function GroupEditor({
           </div>
           {group && tenantSlug ? (
             <iframe
+              key={`${group.id}-${previewVersion}`}
               data-testid="group-preview"
               src={groupEmbedSrc(tenantSlug, group.slug)}
               title={`${group.name} preview`}
