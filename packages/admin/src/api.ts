@@ -108,12 +108,42 @@ export const THEME_LABELS: Record<string, string> = {
 
 export const THEMES = Object.keys(THEME_LABELS);
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+const AUTH_PATHS = ["/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/logout"];
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function refreshSession(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch("/api/v1/auth/refresh", { method: "POST", credentials: "include" })
+      .then((res) => res.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
 async function json<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
+  const request = () =>
+    fetch(url, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      ...init,
+    });
+
+  let res = await request();
+  if (res.status === 401 && !AUTH_PATHS.some((path) => url.startsWith(path))) {
+    if (await refreshSession()) res = await request();
+  }
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
     try {
@@ -122,7 +152,7 @@ async function json<T>(url: string, init: RequestInit = {}): Promise<T> {
     } catch {
       // non-json error body
     }
-    throw new Error(detail);
+    throw new ApiError(detail, res.status);
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

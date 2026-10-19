@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup } from "./api";
+import { api, ApiError, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup } from "./api";
 import { BillingPage } from "./Billing";
 import { formatAge, formatBytes } from "./format";
 import { DEFAULT_THEME_COLORS, THEME_COLOR_FIELDS, contrastWarnings } from "./theme";
@@ -1111,11 +1111,35 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    api
-      .listCameras()
-      .then(() => setEmail(""))
-      .catch(() => setEmail(null))
-      .finally(() => setChecked(true));
+    let active = true;
+    let attempt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const checkSession = async () => {
+      try {
+        await api.listCameras();
+        if (!active) return;
+        setEmail("");
+        setChecked(true);
+      } catch (err) {
+        if (!active) return;
+        // A rebuilt API may be unavailable for a few seconds; retry transient
+        // failures instead of dropping the user back to the login screen.
+        if (!(err instanceof ApiError && err.status === 401) && attempt < 6) {
+          attempt += 1;
+          timer = setTimeout(() => void checkSession(), 500 * attempt);
+          return;
+        }
+        setEmail(null);
+        setChecked(true);
+      }
+    };
+
+    void checkSession();
+    return () => {
+      active = false;
+      if (timer !== undefined) clearTimeout(timer);
+    };
   }, []);
 
   const reloadGroups = useCallback(

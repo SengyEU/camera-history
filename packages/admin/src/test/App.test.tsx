@@ -71,6 +71,52 @@ describe("App login", () => {
     expect(input).toHaveAttribute("type", "password");
   });
 
+  it("refreshes an expired session instead of logging out", async () => {
+    let camerasCalls = 0;
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) {
+          camerasCalls += 1;
+          return camerasCalls === 1
+            ? jsonResponse({ detail: "invalid access token" }, 401)
+            : jsonResponse({ cameras: [] });
+        }
+        if (u.endsWith("/api/v1/auth/refresh")) return jsonResponse({ status: "ok" });
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    expect(await screen.findByTestId("admin-app")).toBeInTheDocument();
+    expect(screen.queryByTestId("login-form")).not.toBeInTheDocument();
+    expect(calls.filter((u) => u.endsWith("/api/v1/auth/refresh"))).toHaveLength(1);
+    expect(calls.filter((u) => u.endsWith("/api/v1/admin/cameras")).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("retries the initial session check after a transient API failure", async () => {
+    let camerasCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) {
+          camerasCalls += 1;
+          if (camerasCalls === 1) return jsonResponse({ detail: "bad gateway" }, 502);
+          return jsonResponse({ cameras: [] });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    expect(await screen.findByTestId("admin-app", {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(camerasCalls).toBeGreaterThanOrEqual(2);
+  });
+
   it("shows an error when login fails", async () => {
     vi.stubGlobal(
       "fetch",
