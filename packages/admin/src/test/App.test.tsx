@@ -223,14 +223,16 @@ describe("App camera CRUD", () => {
 
   function listServer(seed: Partial<Record<string, unknown>> = {}) {
     const calls: Array<{ u: string; init?: RequestInit }> = [];
+    let created: ReturnType<typeof camera> | null = null;
     const fn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const u = String(url);
       calls.push({ u, init });
       if (u.endsWith("/api/v1/admin/cameras") && (!init || init.method === "GET" || init.method === undefined)) {
-        return jsonResponse({ cameras: [camera(seed)] });
+        return jsonResponse({ cameras: created ? [camera(seed), created] : [camera(seed)] });
       }
       if (u.endsWith("/api/v1/admin/cameras") && init?.method === "POST") {
-        return jsonResponse({ camera: camera({ id: "cam-new", name: "New cam" }) }, 201);
+        created = camera({ id: "cam-new", name: "New cam" });
+        return jsonResponse({ camera: created }, 201);
       }
       if (u.includes("/api/v1/admin/cameras/cam-1") && init?.method === "PUT") {
         return jsonResponse({ camera: camera({ name: "Renamed cam" }) });
@@ -262,6 +264,9 @@ describe("App camera CRUD", () => {
     expect(body).toMatchObject({ name: "New cam", feedType: "static_url", theme: "light" });
     expect(body.latitude).toBeNull();
     expect(body.longitude).toBeNull();
+    expect(await screen.findByTestId("camera-saved")).toHaveTextContent("Saved");
+    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
+    expect(window.location.hash).toBe("#/cameras/cam-new");
   });
 
   it("creates a camera with a selected theme", async () => {
@@ -295,6 +300,8 @@ describe("App camera CRUD", () => {
     await waitFor(() => expect(calls.some((c) => c.u.includes("/cam-1") && c.init?.method === "PUT")).toBe(true));
     const put = calls.find((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")!;
     expect(JSON.parse(String(put.init?.body))).toMatchObject({ name: "Renamed cam", showNight: true });
+    expect(await screen.findByTestId("camera-saved")).toHaveTextContent("Saved");
+    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
   });
 
   it("shows per-camera statistics and a fleet summary", async () => {
@@ -447,6 +454,8 @@ describe("App camera CRUD", () => {
       (c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT",
     )!;
     expect(JSON.parse(String(put.init?.body))).toMatchObject({ planMonths: 6 });
+    expect(await screen.findByTestId("camera-saved")).toHaveTextContent("Saved");
+    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
   });
 
   it("clears a per-camera plan back to inherit", async () => {
@@ -466,6 +475,8 @@ describe("App camera CRUD", () => {
       (c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT",
     )!;
     expect(JSON.parse(String(put.init?.body))).toMatchObject({ planMonths: null });
+    expect(await screen.findByTestId("camera-saved")).toHaveTextContent("Saved");
+    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
   });
 
   it("shows a live widget preview beside the camera settings", async () => {
@@ -926,8 +937,10 @@ describe("App groups", () => {
       (c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT",
     )!;
     expect(JSON.parse(String(put.init?.body))).toEqual({ cameraIds: ["cam-2", "cam-1"] });
-    await screen.findByTestId("groups-view");
-    expect(screen.getByTestId("group-count-grp-1")).toHaveTextContent("2 cameras");
+    expect(await screen.findByTestId("group-saved")).toHaveTextContent("Saved");
+    expect(screen.getByTestId("group-editor")).toBeInTheDocument();
+    expect(window.location.hash).toBe("#/groups/grp-1");
+    expect(await screen.findByTestId("group-embed-code")).toHaveTextContent("/group/acme/summit-ridge");
   });
 
   it("edits group fields and membership", async () => {
@@ -952,7 +965,10 @@ describe("App groups", () => {
       (c) => c.u.endsWith("/api/v1/admin/groups/grp-1/cameras") && c.init?.method === "PUT",
     )!;
     expect(JSON.parse(String(put.init?.body))).toEqual({ cameraIds: ["cam-1"] });
-    expect(await screen.findByTestId("group-count-grp-1")).toHaveTextContent("1 camera");
+    expect(await screen.findByTestId("group-saved")).toHaveTextContent("Saved");
+    expect(screen.getByTestId("group-editor")).toBeInTheDocument();
+    expect(await screen.findByTestId("group-embed-code")).toHaveTextContent("/group/acme/summit");
+    expect(window.location.hash).toBe("#/groups/grp-1");
   });
 
   it("renders sortable camera handles and preserves the saved order", async () => {

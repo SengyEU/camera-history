@@ -897,6 +897,10 @@ export function App() {
   const [view, setView] = useState<"cameras" | "groups" | "billing">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
+  const [cameraSavedNotice, setCameraSavedNotice] = useState<string | null>(null);
+  const [groupSavedNotice, setGroupSavedNotice] = useState<string | null>(null);
+  const [cameraVersion, setCameraVersion] = useState(0);
+  const [groupVersion, setGroupVersion] = useState(0);
 
   useEffect(() => {
     const onHash = () => {
@@ -966,12 +970,14 @@ export function App() {
       .catch(() => setTenantSlug(""));
   }, [email]);
 
-  const refresh = useCallback(() => {
-    api
-      .listCameras()
-      .then(setCameras)
-      .catch(() => setCameras([]))
-      .finally(() => setCamerasLoading(false));
+  const refresh = useCallback(async () => {
+    try {
+      setCameras(await api.listCameras());
+    } catch {
+      setCameras([]);
+    } finally {
+      setCamerasLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -1011,37 +1017,44 @@ export function App() {
         : null;
 
   const openNewCamera = () => {
+    setCameraSavedNotice(null);
     setCameraRoute({ mode: "new" });
     if (window.location.hash !== "#/cameras/new") window.location.hash = "#/cameras/new";
   };
 
   const openCamera = (id: string) => {
+    setCameraSavedNotice(null);
     setCameraRoute({ mode: "edit", id });
     if (window.location.hash !== `#/cameras/${id}`) window.location.hash = `#/cameras/${id}`;
   };
 
   const closeCamera = () => {
+    setCameraSavedNotice(null);
     setCameraRoute(null);
     if (window.location.hash !== "#/cameras") window.location.hash = "#/cameras";
   };
 
   const openNewGroup = () => {
+    setGroupSavedNotice(null);
     setGroupRoute({ mode: "new" });
     if (window.location.hash !== "#/groups/new") window.location.hash = "#/groups/new";
   };
 
   const openGroup = (id: string) => {
+    setGroupSavedNotice(null);
     setGroupRoute({ mode: "edit", id });
     if (window.location.hash !== `#/groups/${id}`) window.location.hash = `#/groups/${id}`;
   };
 
   const closeGroup = () => {
+    setGroupSavedNotice(null);
     setGroupRoute(null);
     if (window.location.hash !== "#/groups") window.location.hash = "#/groups";
   };
 
   const saveGroup = async (input: GroupInput) => {
     setGroupNotice(null);
+    setGroupSavedNotice(null);
     if (groupRoute?.mode === "edit") {
       const current = groups.find((group) => group.id === groupRoute.id);
       if (!current) throw new Error("Group not found");
@@ -1052,7 +1065,8 @@ export function App() {
         await api.setGroupCameras(current.id, input.cameraIds);
       }
       await reloadGroups();
-      closeGroup();
+      setGroupVersion((version) => version + 1);
+      setGroupSavedNotice("Saved");
       return;
     }
 
@@ -1064,9 +1078,12 @@ export function App() {
       cameraError = err instanceof Error ? err : new Error("Updating cameras failed");
     }
     await reloadGroups();
-    closeGroup();
+    openGroup(created.id);
+    setGroupVersion((version) => version + 1);
     if (cameraError) {
       setGroupNotice(`Group created, but the camera order was not saved: ${cameraError.message}`);
+    } else {
+      setGroupSavedNotice("Saved");
     }
   };
 
@@ -1075,40 +1092,35 @@ export function App() {
     groupUpdates?: { groupId: string; selected: boolean; cameraIds: string[] }[],
   ) => {
     setGroupNotice(null);
+    setCameraSavedNotice(null);
     let camId = editingId;
-    try {
-      if (editingId) {
-        await api.updateCamera(editingId, input);
-      } else {
-        const created = await api.createCamera(input);
-        camId = created.id;
-      }
-    } catch (err) {
-      throw err;
-    }
-
-    const closeAndRefresh = async () => {
-      closeCamera();
-      await refresh();
-    };
-
-    if (!camId) {
-      await closeAndRefresh();
-      return;
+    if (editingId) {
+      await api.updateCamera(editingId, input);
+    } else {
+      const created = await api.createCamera(input);
+      camId = created.id;
     }
 
     let groupError: Error | null = null;
-    try {
-      for (const upd of groupUpdates ?? []) {
-        const has = upd.cameraIds.includes(camId);
-        if (upd.selected === has) continue;
-        const next = upd.selected ? [...upd.cameraIds, camId] : upd.cameraIds.filter((id) => id !== camId);
-        await api.setGroupCameras(upd.groupId, next);
+    if (camId) {
+      try {
+        for (const upd of groupUpdates ?? []) {
+          const has = upd.cameraIds.includes(camId);
+          if (upd.selected === has) continue;
+          const next = upd.selected ? [...upd.cameraIds, camId] : upd.cameraIds.filter((id) => id !== camId);
+          await api.setGroupCameras(upd.groupId, next);
+        }
+      } catch (err) {
+        groupError = err instanceof Error ? err : new Error("Updating groups failed");
       }
-    } catch (err) {
-      groupError = err instanceof Error ? err : new Error("Updating groups failed");
-    } finally {
-      await closeAndRefresh();
+    }
+
+    await refresh();
+    setCameraVersion((version) => version + 1);
+    setCameraSavedNotice("Saved");
+    if (!editingId && camId) {
+      setCameraRoute({ mode: "edit", id: camId });
+      if (window.location.hash !== `#/cameras/${camId}`) window.location.hash = `#/cameras/${camId}`;
     }
     if (groupError) {
       setGroupNotice(groupError.message || "Updating groups failed");
@@ -1170,13 +1182,23 @@ export function App() {
            {groupNotice}
          </p>
        )}
+       {cameraRoute !== null && cameraSavedNotice && (
+         <p className="notice" data-testid="camera-saved">
+           {cameraSavedNotice}
+         </p>
+       )}
+       {groupRoute !== null && groupSavedNotice && (
+         <p className="notice" data-testid="group-saved">
+           {groupSavedNotice}
+         </p>
+       )}
        {view === "billing" ? (
          <BillingPage />
        ) : view === "groups" ? (
          groupRoute !== null ? (
            groupRoute.mode === "new" ? (
              <GroupEditor
-               key="new"
+               key={`new-${groupVersion}`}
                group={null}
                cameras={cameras}
                tenantSlug={tenantSlug}
@@ -1191,7 +1213,7 @@ export function App() {
                const group = groups.find((item) => item.id === groupRoute.id);
                return group ? (
                  <GroupEditor
-                   key={group.id}
+                   key={`${group.id}-${groupVersion}`}
                    group={group}
                    cameras={cameras}
                    tenantSlug={tenantSlug}
@@ -1225,7 +1247,7 @@ export function App() {
        ) : cameraRoute !== null ? (
          editing !== null ? (
            <CameraForm
-             key={editingId ?? "new"}
+             key={`${editingId ?? "new"}-${cameraVersion}`}
              initial={editing}
              onSave={saveCamera}
              onCancel={closeCamera}
