@@ -125,8 +125,8 @@ a:hover { text-decoration: underline; }
 
 .embed-shell { min-width: 0; }
 .embed {
+  display: block;
   width: 100%;
-  height: clamp(420px, 58vw, 640px);
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--night);

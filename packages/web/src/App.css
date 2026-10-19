@@ -84,8 +84,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   display: flex;
   gap: 2px;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  max-height: 68vh;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   background: #0b1220;
   border: 1px solid var(--line);
@@ -229,8 +228,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
   justify-content: center;
   gap: 6px;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  max-height: 68vh;
+  aspect-ratio: 16 / 9;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
