@@ -428,6 +428,48 @@ describe("App camera CRUD", () => {
     );
   });
 
+  it("copies an embed snippet for an individual camera", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    const writeText = vi.fn(async (_text: string) => {});
+    Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("embed-cam-1"));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const snippet = writeText.mock.calls[0]![0];
+    expect(snippet).toContain(`${window.location.origin}/embed.js`);
+    expect(snippet).toContain("/widget/acme/cam-1");
+    expect(snippet).toContain('id="camera-history-widget-acme-cam-1"');
+    expect(snippet).toContain('title="Beach cam — Camera History"');
+    expect(snippet).toContain('loading="lazy"');
+    expect(await screen.findByTestId("embed-copied-cam-1")).toHaveTextContent("Copied");
+  });
+
+  it("shows and copies the camera embed code in the editor", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    const writeText = vi.fn(async (_text: string) => {});
+    Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+
+    expect(await screen.findByTestId("camera-embed")).toHaveTextContent("/widget/acme/cam-1");
+    expect(screen.getByTestId("camera-embed-hint")).toHaveTextContent(
+      "#camera-history-widget-acme-cam-1",
+    );
+
+    await userEvent.click(screen.getByTestId("camera-embed-copy"));
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('id="camera-history-widget-acme-cam-1"'),
+    );
+    expect(await screen.findByTestId("camera-embed-copied")).toHaveTextContent("Copied");
+  });
+
   it("deletes a camera", async () => {
     const { fn, calls } = listServer();
     vi.stubGlobal("fetch", fn);
@@ -802,6 +844,15 @@ describe("App groups", () => {
     await userEvent.click(screen.getByTestId("group-copy-grp-1"));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/group/acme/summit-ridge"));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("embed.js"));
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('id="camera-history-group-acme-summit-ridge"'),
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('title="Summit Ridge — Camera History"'),
+    );
+    expect(screen.getByTestId("group-embed-hint-grp-1")).toHaveTextContent(
+      "#camera-history-group-acme-summit-ridge",
+    );
 
     window.location.hash = "";
   });

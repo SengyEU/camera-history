@@ -859,9 +859,17 @@ button.link:hover {
 
 .camera-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.4rem;
   margin-top: auto;
   padding-top: 4px;
+}
+
+.camera-copied {
+  color: var(--pine);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 /* Custom theme color fields */
@@ -928,6 +936,34 @@ button.link:hover {
 
 .camera-preview iframe {
   display: block;
+}
+
+.camera-embed {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.camera-embed pre {
+  margin: 0 0 10px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.camera-embed pre code {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.camera-embed .group-embed-actions {
+  margin-top: 0;
 }
 
 @media (max-width: 1000px) {

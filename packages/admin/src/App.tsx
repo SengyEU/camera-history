@@ -297,6 +297,7 @@ function CameraForm({
   const [initialMemberships, setInitialMemberships] = useState<Record<string, boolean>>({});
   const previewRef = useRef<HTMLIFrameElement | null>(null);
   const [themeSaveState, setThemeSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [embedCopied, setEmbedCopied] = useState(false);
   const savedThemeRef = useRef(
     JSON.stringify({ theme: initial.theme, colors: initial.themeColors ?? null }),
   );
@@ -399,6 +400,26 @@ function CameraForm({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     }
+  };
+
+  const embedId = cameraId && tenantSlug ? cameraEmbedId(tenantSlug, cameraId) : "";
+  const embedCode =
+    cameraId && tenantSlug
+      ? embedSnippet(
+          cameraEmbedSrc(tenantSlug, cameraId),
+          embedId,
+          `${initial.name || "Camera"} — Camera History`,
+        )
+      : "";
+
+  const copyEmbed = () => {
+    if (!embedCode) return;
+    const clip = navigator.clipboard;
+    if (!clip?.writeText) return;
+    void clip
+      .writeText(embedCode)
+      .then(() => setEmbedCopied(true))
+      .catch(() => setEmbedCopied(false));
   };
 
   return (
@@ -628,6 +649,7 @@ function CameraForm({
               onLoad={postPreviewTheme}
               title="Camera preview"
               loading="lazy"
+              data-camera-history-preview="1"
               style={{ width: "100%", height: 640, border: 0, borderRadius: 8 }}
             />
           ) : (
@@ -646,6 +668,33 @@ function CameraForm({
             Theme changes apply to the preview instantly and are saved automatically. Other settings
             apply after saving.
           </p>
+          {cameraId && tenantSlug ? (
+            <div className="camera-embed" data-testid="camera-embed">
+              <div className="panel-head">
+                <h3>Embed code</h3>
+                <span className="ts-chip">EMBED</span>
+              </div>
+              <pre>
+                <code>{embedCode}</code>
+              </pre>
+              <div className="group-embed-actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={copyEmbed}
+                  data-testid="camera-embed-copy"
+                >
+                  Copy embed code
+                </button>
+                {embedCopied && <span data-testid="camera-embed-copied">Copied</span>}
+              </div>
+              <p className="field-hint" data-testid="camera-embed-hint">
+                Share your page URL with <code>#{embedId}</code> to scroll straight to this camera.
+              </p>
+            </div>
+          ) : (
+            <p className="field-hint">Save the camera to get its embed code.</p>
+          )}
         </aside>
       </div>
     </section>
@@ -687,16 +736,19 @@ function CameraSummary({ cameras }: { cameras: AdminCamera[] }) {
 
 function CameraCard({
   cam,
+  tenantSlug,
   onEdit,
   onDelete,
 }: {
   cam: AdminCamera;
+  tenantSlug: string;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [thumbLoaded, setThumbLoaded] = useState(false);
   const [thumbError, setThumbError] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -714,6 +766,22 @@ function CameraCard({
   }, [cam.id]);
 
   const showThumb = previewUrl && !thumbError;
+
+  const copyEmbed = () => {
+    if (!tenantSlug) return;
+    const id = cameraEmbedId(tenantSlug, cam.id);
+    const snippet = embedSnippet(
+      cameraEmbedSrc(tenantSlug, cam.id),
+      id,
+      `${cam.name} — Camera History`,
+    );
+    const clip = navigator.clipboard;
+    if (!clip?.writeText) return;
+    void clip
+      .writeText(snippet)
+      .then(() => setCopied(true))
+      .catch(() => setCopied(false));
+  };
 
   return (
     <article className="camera-card" data-testid={`camera-${cam.id}`}>
@@ -776,20 +844,58 @@ function CameraCard({
           {cam.lastError ? <span className="cell-error-text">{cam.lastError}</span> : <span className="dash">—</span>}
         </p>
         <div className="camera-actions">
+          <button
+            className="secondary"
+            onClick={copyEmbed}
+            data-testid={`embed-${cam.id}`}
+            disabled={!tenantSlug}
+          >
+            Copy embed
+          </button>
           <button className="secondary" onClick={onEdit} data-testid={`edit-${cam.id}`}>
             Edit
           </button>
           <button className="danger" onClick={onDelete} data-testid={`delete-${cam.id}`}>
             Delete
           </button>
+          {copied && (
+            <span className="camera-copied" data-testid={`embed-copied-${cam.id}`}>
+              Copied
+            </span>
+          )}
         </div>
       </div>
     </article>
   );
 }
 
-function embedSrc(tenantSlug: string, slug: string): string {
+function groupEmbedSrc(tenantSlug: string, slug: string): string {
   return `${window.location.origin}/group/${tenantSlug}/${slug}`;
+}
+
+function cameraEmbedSrc(tenantSlug: string, cameraId: string): string {
+  return `${window.location.origin}/widget/${tenantSlug}/${cameraId}`;
+}
+
+function groupEmbedId(tenantSlug: string, slug: string): string {
+  return `camera-history-group-${tenantSlug}-${slug}`;
+}
+
+function cameraEmbedId(tenantSlug: string, cameraId: string): string {
+  return `camera-history-widget-${tenantSlug}-${cameraId}`;
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function embedSnippet(url: string, id: string, title: string): string {
+  const scriptUrl = `${window.location.origin}/embed.js`;
+  return `<script src="${scriptUrl}" defer></script>\n<iframe id="${id}" src="${url}" title="${escapeHtmlAttribute(title)}" style="width:100%;height:720px;border:0;border-radius:12px" loading="lazy"></iframe>`;
 }
 
 function GroupsView({
@@ -888,9 +994,12 @@ function GroupsView({
 
   const copyEmbed = (g: AdminGroup) => {
     if (!tenantSlug) return;
-    const url = embedSrc(tenantSlug, g.slug);
-    const scriptUrl = `${window.location.origin}/embed.js`;
-    const snippet = `<script src="${scriptUrl}" defer></script>\n<iframe src="${url}" style="width:100%;height:720px;border:0;border-radius:12px" loading="lazy"></iframe>`;
+    const url = groupEmbedSrc(tenantSlug, g.slug);
+    const snippet = embedSnippet(
+      url,
+      groupEmbedId(tenantSlug, g.slug),
+      `${g.name} — Camera History`,
+    );
     const clip = navigator.clipboard;
     if (!clip?.writeText) return;
     void clip
@@ -1036,10 +1145,11 @@ function GroupsView({
                   <>
                     <iframe
                       data-testid={`group-embed-${g.id}`}
-                      src={embedSrc(tenantSlug, g.slug)}
+                      src={groupEmbedSrc(tenantSlug, g.slug)}
                       title={`${g.name} embed`}
                       width="640"
                       height="360"
+                      data-camera-history-preview="1"
                     />
                     <div className="group-embed-actions">
                       <button type="button" className="secondary" onClick={() => copyEmbed(g)} data-testid={`group-copy-${g.id}`}>
@@ -1047,6 +1157,10 @@ function GroupsView({
                       </button>
                       {copiedId === g.id && <span data-testid={`group-copied-${g.id}`}>Copied</span>}
                     </div>
+                    <p className="field-hint" data-testid={`group-embed-hint-${g.id}`}>
+                      Share your page URL with <code>#{groupEmbedId(tenantSlug, g.slug)}</code> to
+                      scroll straight to this group.
+                    </p>
                   </>
                 ) : (
                   <>
@@ -1375,6 +1489,7 @@ export function App() {
                   <CameraCard
                     key={cam.id}
                     cam={cam}
+                    tenantSlug={tenantSlug}
                     onEdit={() => openCamera(cam.id)}
                     onDelete={() => setConfirming(cam)}
                   />
