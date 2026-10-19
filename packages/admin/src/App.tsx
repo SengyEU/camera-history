@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type ThemeColors } from "./api";
+import { api, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup } from "./api";
 import { BillingPage } from "./Billing";
 import { formatAge, formatBytes } from "./format";
 import { DEFAULT_THEME_COLORS, THEME_COLOR_FIELDS, contrastWarnings } from "./theme";

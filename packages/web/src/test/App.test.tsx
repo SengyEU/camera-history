@@ -1108,7 +1108,6 @@ describe("App group widget", () => {
   });
 
   it("resyncs night visibility when switching cameras", async () => {
-    const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue({
       group: { id: "g1", name: "Summit", slug: "summit" },
       cameras: [
@@ -1140,7 +1139,6 @@ describe("App group widget", () => {
   });
 
   it("falls back to the latest date once when the camera has no images", async () => {
-    const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getCameraLatest).mockResolvedValue("2026-10-09");
     vi.mocked(getImages).mockImplementation(async (cameraId, date) => {
@@ -1181,7 +1179,6 @@ describe("App group widget", () => {
   });
 
   it("does not loop when the switched camera has no images on the selected or latest date", async () => {
-    const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getCameraLatest).mockResolvedValue("2026-10-09");
     vi.mocked(getImages).mockImplementation(async (cameraId) =>
@@ -1358,7 +1355,6 @@ describe("App group widget", () => {
   });
 
   it("keeps the old camera on screen until the new camera's first response arrives", async () => {
-    const user = userEvent.setup();
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     const pending: Array<(images: ImageDto[]) => void> = [];
     vi.mocked(getImages).mockImplementation(
