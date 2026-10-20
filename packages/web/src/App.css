@@ -1,66 +1,59 @@
 * { box-sizing: border-box; }
 
-:root {
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
-  --dur-fast: 200ms;
-  --dur-med: 420ms;
-}
-
 :root,
 :root[data-theme="light"] {
-  --bg: #f8fafb;
-  --surface: #ffffff;
-  --ink: #101828;
-  --muted: #5b6b7c;
-  --line: #e3e9ef;
-  --accent: #0e7490;
-  --on-accent: #ffffff;
-  --pine: #1e7d4e;
-  --on-pine: #ffffff;
+  --bg: var(--theme-light-bg);
+  --surface: var(--theme-light-surface);
+  --ink: var(--theme-light-ink);
+  --muted: var(--theme-light-muted);
+  --line: var(--theme-light-line);
+  --accent: var(--theme-light-accent);
+  --on-accent: var(--theme-light-on-accent);
+  --pine: var(--theme-light-pine);
+  --on-pine: var(--theme-light-on-pine);
 }
 
 :root[data-theme="dark"] {
-  --bg: #0b1220;
-  --surface: #131c2e;
-  --ink: #e6ecf5;
-  --muted: #8b99ad;
-  --line: #223046;
-  --accent: #7fbf9a;
-  --on-accent: #0b1220;
-  --pine: #3f9e6f;
-  --on-pine: #06231a;
+  --bg: var(--theme-dark-bg);
+  --surface: var(--theme-dark-surface);
+  --ink: var(--theme-dark-ink);
+  --muted: var(--theme-dark-muted);
+  --line: var(--theme-dark-line);
+  --accent: var(--theme-dark-accent);
+  --on-accent: var(--theme-dark-on-accent);
+  --pine: var(--theme-dark-pine);
+  --on-pine: var(--theme-dark-on-pine);
 }
 
 :root[data-theme="forest"] {
-  --bg: #0f1a12;
-  --surface: #16241a;
-  --ink: #e2efe4;
-  --muted: #93ad98;
-  --line: #24382a;
-  --accent: #5bbd6e;
-  --on-accent: #0f1a12;
-  --pine: #3f9e6f;
-  --on-pine: #06231a;
+  --bg: var(--theme-forest-bg);
+  --surface: var(--theme-forest-surface);
+  --ink: var(--theme-forest-ink);
+  --muted: var(--theme-forest-muted);
+  --line: var(--theme-forest-line);
+  --accent: var(--theme-forest-accent);
+  --on-accent: var(--theme-forest-on-accent);
+  --pine: var(--theme-forest-pine);
+  --on-pine: var(--theme-forest-on-pine);
 }
 
 :root[data-theme="midnight"] {
-  --bg: #0f172a;
-  --surface: #1a2436;
-  --ink: #e6ecf5;
-  --muted: #93a3b8;
-  --line: #2d3a4e;
-  --accent: #5f8fd6;
-  --on-accent: #0f172a;
-  --pine: #4f9e78;
-  --on-pine: #06231a;
+  --bg: var(--theme-midnight-bg);
+  --surface: var(--theme-midnight-surface);
+  --ink: var(--theme-midnight-ink);
+  --muted: var(--theme-midnight-muted);
+  --line: var(--theme-midnight-line);
+  --accent: var(--theme-midnight-accent);
+  --on-accent: var(--theme-midnight-on-accent);
+  --pine: var(--theme-midnight-pine);
+  --on-pine: var(--theme-midnight-on-pine);
 }
 
 html, body { overflow-x: hidden; }
-body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); background: var(--widget-bg, var(--bg)); color: var(--ink); }
+body { margin: 0; font-family: var(--widget-font, var(--font-ui)); background: var(--widget-bg, var(--bg)); color: var(--ink); }
 
 .widget {
-  --font-mono: var(--widget-font, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  --font-technical: var(--widget-font, var(--font-ui));
   max-width: 1000px;
   margin: 0 auto;
   padding: 16px;
@@ -143,7 +136,7 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: #0b1220;
+  background: var(--color-night);
   border: 1px solid var(--line);
   border-radius: 12px;
 }
@@ -162,7 +155,7 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   padding: 0;
   border: 0;
   border-radius: 0;
-  background-color: #0b1220;
+  background-color: var(--color-night);
   background-size: cover;
   background-position: center;
   overflow: hidden;
@@ -179,12 +172,12 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   left: 50%;
   top: 4px;
   transform: translateX(-50%);
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #f1f5f9;
+  color: var(--color-on-dark);
   background: rgba(11, 18, 32, 0.72);
   border-radius: 4px;
   padding: 1px 5px;
@@ -203,7 +196,7 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
 
 .frame-open {
   flex: 1 1 97%;
-  background: #0a0f1a;
+  background: var(--widget-frame-bg);
   cursor: zoom-out;
   touch-action: pan-y;
 }
@@ -222,12 +215,12 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   left: 50%;
   top: 10px;
   transform: translateX(-50%);
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f1f5f9;
+  color: var(--color-on-dark);
   background: rgba(11, 18, 32, 0.72);
   border-radius: 6px;
   padding: 3px 10px;
@@ -243,13 +236,13 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.25);
   background: rgba(11, 18, 32, 0.55);
-  color: #f1f5f9;
+  color: var(--color-on-dark);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 .frame-arrow:hover,
-.frame-share:hover { background: var(--accent); border-color: var(--accent); color: #06121a; }
+.frame-share:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .frame-arrow:focus-visible,
 .frame-share:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .frame-arrow {
@@ -347,16 +340,16 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
 .embed-warning {
   margin: 0 0 12px;
   padding: 8px 12px;
-  border: 1px solid #f59e0b;
+  border: 1px solid var(--widget-warning-border);
   border-radius: 8px;
-  background: #fef3c7;
-  color: #7c2d12;
+  background: var(--widget-warning-bg);
+  color: var(--widget-warning-ink);
   font-size: 12px;
   line-height: 1.5;
 }
 .embed-warning strong { font-weight: 600; }
 .embed-warning code {
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 11px;
   overflow-wrap: anywhere;
 }
@@ -451,7 +444,7 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   height: 160px;
   border-radius: 12px;
   overflow: hidden;
-  background: #0b1220;
+  background: var(--color-night);
 }
 .share-preview-img {
   display: block;
@@ -470,8 +463,8 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   padding: 2px 8px;
   border-radius: 6px;
   background: rgba(11, 18, 32, 0.72);
-  color: #f1f5f9;
-  font-family: var(--font-mono);
+  color: var(--color-on-dark);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -492,7 +485,7 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 50%;
   background: rgba(11, 18, 32, 0.55);
-  color: #f1f5f9;
+  color: var(--color-on-dark);
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
@@ -544,18 +537,18 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
 .share-network:focus-visible {
   background: var(--brand);
   border-color: var(--brand);
-  color: var(--brand-ink, #ffffff);
+  color: var(--brand-ink, var(--color-white));
   transform: scale(1.06);
 }
-.share-network-facebook { --brand: #1877f2; }
-.share-network-x { --brand: #0f1419; }
-.share-network-whatsapp { --brand: #25d366; }
-.share-network-telegram { --brand: #229ed9; }
+.share-network-facebook { --brand: var(--social-facebook); }
+.share-network-x { --brand: var(--social-x); }
+.share-network-whatsapp { --brand: var(--social-whatsapp); }
+.share-network-telegram { --brand: var(--social-telegram); }
 [data-theme="dark"] .share-network-x,
 [data-theme="forest"] .share-network-x,
 [data-theme="midnight"] .share-network-x {
-  --brand: #e7e9ea;
-  --brand-ink: #0f1419;
+  --brand: var(--social-x-dark);
+  --brand-ink: var(--social-x);
 }
 
 .share-other {
@@ -607,7 +600,7 @@ body { margin: 0; font-family: var(--widget-font, system-ui, sans-serif); backgr
   border: 0;
   background: transparent;
   color: var(--ink);
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 12px;
   text-overflow: ellipsis;
   outline: none;

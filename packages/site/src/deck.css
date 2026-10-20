@@ -1,24 +1,8 @@
-@import "@fontsource-variable/archivo/wdth.css";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
-@import "@fontsource/ibm-plex-mono/600.css";
+@import "@ch/design/index.css";
 
-:root {
-  --snow: #f7f9fb;
-  --surface: #ffffff;
-  --ink: #101828;
-  --muted: #5b6b7c;
-  --line: #e3e9ef;
-  --glacier: #0891b2;
-  --glacier-deep: #0e7490;
-  --glacier-weak: #e0f2fe;
-  --night: #0b1220;
-  --pine: #15803d;
-  --amber: #b45309;
-  --red: #b91c1c;
-  --radius: 10px;
-  --font-ui: "Archivo Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+body {
+  margin: 0;
+  font-family: var(--font-ui);
 }
 
 .reveal {
@@ -40,8 +24,8 @@
 .reveal .slides section > .ridge { max-width: none; }
 
 .reveal section.dark {
-  color: #f1f5f9;
-  background: #0b1220;
+  color: var(--color-on-dark);
+  background: var(--color-night);
   text-align: center;
 }
 
@@ -51,23 +35,23 @@
   top: 0.9em;
   right: 1.4em;
   z-index: 3;
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 0.5em;
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
-.reveal section.dark .slide-marker { color: #64748b; }
+.reveal section.dark .slide-marker { color: var(--color-slate-500); }
 
 /* OSD chip (BINDING markup/CSS from the plan) */
 .ts-chip {
   display: inline-block;
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f1f5f9;
+  color: var(--color-on-dark);
   background: rgba(11, 18, 32, 0.72);
   border-radius: 6px;
   padding: 2px 8px;
@@ -75,6 +59,10 @@
 .reveal .ts-chip { font-size: 0.4em; }
 
 /* ridge silhouette pinned to the bottom of dark slides */
+.reveal .ridge-a { fill: var(--deck-ridge-1); }
+.reveal .ridge-b { fill: var(--deck-ridge-2); }
+.reveal .ridge-c { fill: var(--deck-ridge-3); }
+
 .reveal .ridge {
   position: absolute;
   left: 0;
@@ -90,12 +78,11 @@
 .reveal .dark > .ridge { position: absolute; z-index: 0; }
 .reveal .dark > .slide-marker { position: absolute; z-index: 3; }
 
-/* display headings (Archivo expanded) */
+/* display headings */
 .reveal h1 {
   font-size: 2.3em;
   line-height: 1.1;
   font-weight: 700;
-  font-stretch: 125%;
   letter-spacing: -0.01em;
   text-transform: none;
 }
@@ -103,14 +90,15 @@
   font-size: 1.9em;
   line-height: 1.15;
   font-weight: 700;
-  font-stretch: 125%;
   letter-spacing: -0.01em;
   text-transform: none;
   margin: 0 0 0.35em;
 }
 .reveal .accent { color: var(--glacier); display: block; }
+.reveal section.dark .accent,
+.reveal section.dark .eyebrow { color: var(--color-glacier-bright); }
 .reveal .eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   color: var(--glacier);
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -118,7 +106,7 @@
   margin: 0 0 0.8em;
 }
 .reveal .sub { color: var(--muted); font-size: 0.62em; line-height: 1.5; max-width: 26em; }
-.reveal section.dark .sub { color: #94a3b8; }
+.reveal section.dark .sub { color: var(--color-slate-400); }
 .reveal .muted { color: var(--muted); font-size: 0.6em; margin: 0 0 0.6em; }
 
 /* two-column list slides */
@@ -150,10 +138,10 @@
 }
 
 .reveal code {
-  background: #e2e8f0;
+  background: var(--color-slate-100);
   border-radius: 6px;
   padding: 0 6px;
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 0.9em;
 }
 
@@ -240,11 +228,11 @@
 }
 .reveal .grid-2 strong { color: var(--ink); }
 
-/* pricing — IBM Plex Mono table */
+/* pricing table */
 .reveal .price-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 0.66em;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -261,7 +249,7 @@
 .reveal .btn {
   display: inline-block;
   background: var(--glacier);
-  color: #fff;
+  color: var(--color-white);
   border-radius: 999px;
   padding: 0.5em 1.2em;
   font-size: 0.6em;
@@ -270,9 +258,9 @@
   text-decoration: none;
 }
 .reveal .btn:hover { background: var(--glacier-deep); }
-.reveal .btn.ghost { background: transparent; color: inherit; border: 1px solid #475569; }
+.reveal .btn.ghost { background: transparent; color: inherit; border: 1px solid var(--color-slate-600); }
 .reveal .btn.ghost:hover { background: transparent; border-color: var(--glacier); }
-.reveal .footer-note { margin-top: 1.2em; font-size: 0.5em; color: #64748b; }
+.reveal .footer-note { margin-top: 1.2em; font-size: 0.5em; color: var(--color-slate-500); }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal .slides section { transition: none !important; }

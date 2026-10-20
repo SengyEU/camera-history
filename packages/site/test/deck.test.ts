@@ -17,8 +17,8 @@ describe("deck", () => {
 
   it("embeds the live demo and the admin screenshots", () => {
     expect(html).toContain('src="/group/alpine-summit/summit"');
-    expect(html).toContain('src="/admin-cameras.png"');
-    expect(html).toContain('src="/admin-groups.png"');
+    expect(html).toContain('src="/admin-cameras.png?v=20261020"');
+    expect(html).toContain('src="/admin-groups.png?v=20261020"');
   });
 
   it("pins the full pricing table as row pairs and the contact CTA", () => {

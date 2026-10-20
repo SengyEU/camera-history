@@ -2,8 +2,12 @@
   "name": "camera-history-saas",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["packages/*"],
-  "engines": { "node": ">=20" },
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
@@ -15,7 +19,8 @@
     "dev:api": "npm run dev --workspace @ch/api",
     "dev:worker": "npm run dev --workspace @ch/worker",
     "dev:web": "npm run dev --workspace @ch/web",
-    "dev:admin": "npm run dev --workspace @ch/admin"
+    "dev:admin": "npm run dev --workspace @ch/admin",
+    "design:check": "node scripts/check-design-system.mjs"
   },
   "devDependencies": {
     "eslint": "^9.14.0",

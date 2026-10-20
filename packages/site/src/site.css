@@ -1,26 +1,4 @@
-@import "@fontsource-variable/archivo/wdth.css";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
-@import "@fontsource/ibm-plex-mono/600.css";
-
-:root {
-  --snow: #f7f9fb;
-  --surface: #ffffff;
-  --ink: #101828;
-  --muted: #5b6b7c;
-  --line: #e3e9ef;
-  --glacier: #0e7490;
-  --glacier-deep: #0e7490;
-  --glacier-weak: #e0f2fe;
-  --night: #0b1220;
-  --pine: #15803d;
-  --amber: #b45309;
-  --red: #b91c1c;
-  --radius: 10px;
-  --maxw: 1080px;
-  --font-ui: "Archivo Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
+@import "@ch/design/index.css";
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -49,12 +27,12 @@ button:focus-visible {
 .nav-cta { font-weight: 600; }
 .ts-chip {
   display: inline-block;
-  font-family: var(--font-mono);
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f1f5f9;
+  color: var(--color-on-dark);
   background: rgba(11, 18, 32, 0.72);
   border-radius: 6px;
   padding: 2px 8px;
@@ -71,6 +49,7 @@ button:focus-visible {
   opacity: 0.12;
   pointer-events: none;
 }
+.hero .ridge-line { stroke: var(--color-glacier-bright); }
 .hero-inner {
   position: relative; z-index: 1;
   display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
@@ -79,7 +58,6 @@ button:focus-visible {
 .hero h1 {
   font-size: clamp(40px, 6vw, 72px);
   font-weight: 800;
-  font-stretch: 125%;
   letter-spacing: -0.01em;
   line-height: 1.05;
   margin: 12px 0 20px;
@@ -91,7 +69,7 @@ button:focus-visible {
   display: inline-block; padding: 12px 22px; border-radius: 999px;
   font-weight: 600; font-size: 15px;
 }
-.btn.primary { background: var(--glacier); color: #fff; }
+.btn.primary { background: var(--glacier); color: var(--color-white); }
 .btn.primary:hover { background: var(--glacier-deep); text-decoration: none; }
 .btn.ghost { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .btn.ghost:hover { border-color: var(--glacier); text-decoration: none; }
@@ -108,7 +86,7 @@ button:focus-visible {
 .cam-frame iframe { display: block; width: 100%; border-radius: 6px; }
 .cam-link { margin: 12px 4px 0; font-size: 14px; }
 .section { max-width: var(--maxw); margin: 0 auto; padding: 64px 24px; scroll-margin-top: 72px; }
-.section h2 { font-size: clamp(24px, 3vw, 34px); line-height: 1.2; margin: 0 0 20px; font-weight: 700; font-stretch: 125%; letter-spacing: -0.01em; }
+.section h2 { font-size: clamp(24px, 3vw, 34px); line-height: 1.2; margin: 0 0 20px; font-weight: 700; letter-spacing: -0.01em; }
 .muted { color: var(--muted); }
 .cols { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
 .cols li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
@@ -116,7 +94,7 @@ button:focus-visible {
 .steps li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px 18px 68px; position: relative; }
 .step-num {
   position: absolute; left: 18px; top: 18px;
-  font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
   color: var(--glacier-deep); background: var(--glacier-weak);
   border-radius: 6px; padding: 4px 7px;
 }
@@ -124,7 +102,7 @@ button:focus-visible {
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
 .kicker {
   display: block; margin: 0 0 10px;
-  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  font-family: var(--font-technical); font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 500;
   letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--glacier-deep);
 }
@@ -134,13 +112,13 @@ button:focus-visible {
 .price-table th, .price-table td { text-align: left; padding: 12px 18px; border-bottom: 1px solid var(--line); }
 .price-table th { background: var(--glacier-weak); color: var(--glacier-deep); font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; }
 .price-table tbody th { background: transparent; color: var(--ink); font-size: inherit; text-transform: none; letter-spacing: 0; font-weight: 500; }
-.price-table td:nth-child(2) { font-family: var(--font-mono); font-weight: 500; }
+.price-table td:nth-child(2) { font-family: var(--font-technical); font-variant-numeric: tabular-nums; font-weight: 500; }
 .price-table .flag-col { width: 1%; white-space: nowrap; text-align: right; }
 .price-table tr.popular th, .price-table tr.popular td { background: var(--glacier-weak); font-weight: 600; }
 .price-table tr:last-child th, .price-table tr:last-child td { border-bottom: 0; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.cta-band { margin-top: 48px; padding: 72px 24px; background: var(--night); color: #f1f5f9; text-align: center; }
-.cta-band h2 { margin: 0 0 20px; font-size: clamp(24px, 3vw, 34px); font-weight: 700; font-stretch: 125%; letter-spacing: -0.01em; }
+.cta-band { margin-top: 48px; padding: 72px 24px; background: var(--night); color: var(--color-on-dark); text-align: center; }
+.cta-band h2 { margin: 0 0 20px; font-size: clamp(24px, 3vw, 34px); font-weight: 700; letter-spacing: -0.01em; }
 .cta-band .hero-actions { justify-content: center; }
 .site-footer {
   display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;

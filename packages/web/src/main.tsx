@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "@ch/design/index.css";
 import { App } from "./App";
 import { setupEmbedResize } from "./embedResize";
 

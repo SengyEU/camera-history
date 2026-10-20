@@ -3,6 +3,7 @@
 Multi-tenant SaaS pro resorty a skiareály: periodické snímkování venkovních kamer + veřejná embedovatelná historie.
 
 - Monorepo: `packages/{core,db,worker,api,web}` (design doc: `docs/superpowers/specs/2026-09-18-camera-history-saas-design.md`)
+- UI design system: `docs/design-system.md` (`@ch/design` tokens, Montserrat, `npm run design:check`)
 - Stack: TypeScript, Node (Fastify), Postgres (drizzle), MinIO, React (Vite)
 - Legacy kód z původní single-camera verze: `legacy/`
 
@@ -21,6 +22,7 @@ npm run typecheck   # tsc ve všech balíčcích
 npm run test        # vitest (core/db/worker/api/web)
 npm run lint        # eslint
 npm run build       # dist pro core/db/api/worker/web
+npm run design:check # design systém: tokeny, fonty, barvy
 npm run e2e --workspace @ch/web   # Playwright widget smoke (API mockováno)
 ```
 
