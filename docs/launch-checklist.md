@@ -20,7 +20,7 @@ This checklist is intentionally executed at the very end, after product features
 
 - [ ] Verify `camera.sengycraft.cz` in Google Search Console
 - [ ] Submit `https://camera.sengycraft.cz/sitemap.xml`
-- [ ] Confirm only `/` is indexed; widget/group/admin/demo/deck excluded
+- [ ] Confirm only `/` is indexed; widget/group/admin/deck excluded; `/demo/` returns 410
 - [ ] Check Coverage/Pages and fix unexpected exclusions
 - [ ] Review Core Web Vitals and mobile usability
 - [ ] Request indexing for the landing page after launch

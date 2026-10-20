@@ -6,8 +6,6 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 const landing = read("../index.html");
 const web = read("../../web/index.html");
 const admin = read("../../admin/index.html");
-const demo = read("../demo/index.html");
-const skiDemo = read("../demo/skilouise/index.html");
 const deck = read("../deck/index.html");
 const robots = read("../public/robots.txt");
 const sitemap = read("../public/sitemap.xml");
@@ -57,14 +55,18 @@ describe("non-public pages are noindex", () => {
   for (const [name, html] of [
     ["widget shell", web],
     ["admin shell", admin],
-    ["demo", demo],
-    ["ski demo", skiDemo],
     ["deck", deck],
   ] as const) {
     it(`${name} is noindex`, () => {
       expect(html).toContain('<meta name="robots" content="noindex, nofollow" />');
     });
   }
+});
+
+describe("removed demo pages", () => {
+  it("does not ship the old demo routes", () => {
+    expect(existsSync(new URL("../demo", import.meta.url))).toBe(false);
+  });
 });
 
 describe("robots and sitemap", () => {
