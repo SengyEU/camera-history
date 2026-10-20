@@ -27,6 +27,7 @@ const emptyInput = (): CameraInput => ({
   theme: "light",
   themeColors: null,
   planMonths: null,
+  timeFormat: "12h",
   latitude: null,
   longitude: null,
   daylightOnly: false,
@@ -553,6 +554,18 @@ function CameraForm({
           <input value={input.timezone} onChange={(e) => set("timezone", e.target.value)} data-testid="form-timezone" />
           <span className="field-hint">IANA timezone, e.g. Europe/Zurich.</span>
         </label>
+        <label>
+          Time format
+          <select
+            value={input.timeFormat}
+            onChange={(e) => setInput((state) => ({ ...state, timeFormat: e.target.value as "12h" | "24h" }))}
+            data-testid="form-time-format"
+          >
+            <option value="12h">12-hour (AM/PM)</option>
+            <option value="24h">24-hour</option>
+          </select>
+          <span className="field-hint">How capture times appear in the widget.</span>
+        </label>
         <div className="form-section">
           <h4>Location &amp; schedule</h4>
           <div className="form-row">
@@ -587,6 +600,11 @@ function CameraForm({
             />
             Capture only during daylight
           </label>
+          <span className="field-hint" data-testid="form-daylight-state">
+            {input.daylightOnly
+              ? "Current: daylight-only capture."
+              : "Current: 24-hour capture. Night images stay hidden in the widget unless enabled below."}
+          </span>
           <span className="field-hint">
             Requires latitude and longitude. The camera's active window is ignored while enabled.
           </span>
@@ -824,7 +842,8 @@ function CameraCard({
           </span>
         </div>
         <p className="camera-meta">
-          {FEED_LABELS[cam.feedType]} · every {cam.intervalMinutes} min · {cam.timezone}
+          {FEED_LABELS[cam.feedType]} · every {cam.intervalMinutes} min · {cam.timezone} ·{" "}
+          {cam.timeFormat === "24h" ? "24h" : "12h"}
         </p>
         <dl className="camera-stats">
           <div>
@@ -1001,6 +1020,7 @@ export function App() {
     theme: cam.theme,
     themeColors: cam.themeColors ?? null,
     planMonths: cam.planMonths ?? null,
+    timeFormat: cam.timeFormat ?? "12h",
     latitude: cam.latitude ?? null,
     longitude: cam.longitude ?? null,
     daylightOnly: cam.daylightOnly ?? false,

@@ -371,8 +371,8 @@ describe("public routes", () => {
     const body = res.json();
     expect(body.group.slug).toBe("g-one");
     expect(body.cameras.map((c: { name: string }) => c.name)).toEqual(["Zulu", "Alpha"]);
-    expect(body.cameras[0]).toMatchObject({ retentionMonths: 3, showNight: true });
-    expect(body.cameras[1]).toMatchObject({ retentionMonths: 24 });
+    expect(body.cameras[0]).toMatchObject({ retentionMonths: 3, showNight: true, timeFormat: "12h" });
+    expect(body.cameras[1]).toMatchObject({ retentionMonths: 24, timeFormat: "12h" });
   });
 
   it("404s for unknown public group with a group-specific detail", async () => {

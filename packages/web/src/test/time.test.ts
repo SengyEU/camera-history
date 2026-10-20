@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { safeMinDate } from "../time";
+import { formatCameraCaptureLabel, formatCameraHour, localHourParts, safeMinDate } from "../time";
 
 describe("safeMinDate", () => {
   beforeEach(() => {
@@ -33,5 +33,20 @@ describe("safeMinDate", () => {
 
   it("returns undefined when no timezone is provided", () => {
     expect(safeMinDate(12, undefined)).toBeUndefined();
+  });
+});
+
+describe("hour formatting", () => {
+  it("defaults to 12-hour labels", () => {
+    expect(formatCameraHour("2026-10-18T18:12:00Z", "UTC")).toBe("6 PM");
+    expect(localHourParts("2026-10-18T18:12:00Z", "UTC")).toEqual({ hour: 6, meridiem: "PM" });
+  });
+
+  it("supports 24-hour labels", () => {
+    expect(formatCameraHour("2026-10-18T18:12:00Z", "UTC", "24h")).toBe("18:12");
+    expect(localHourParts("2026-10-18T18:12:00Z", "UTC", "24h")).toEqual({ hour: 18, meridiem: "" });
+    expect(formatCameraCaptureLabel("2026-10-18T18:12:00Z", "UTC", "24h")).toBe(
+      "October 18, 2026 · 18:12",
+    );
   });
 });

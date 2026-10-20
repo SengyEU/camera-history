@@ -169,6 +169,18 @@ describe("App widget", () => {
     expect(document.querySelector(".widget-header")).toBeNull();
   });
 
+  it("uses the camera's 24-hour time format", async () => {
+    vi.mocked(getCamera).mockResolvedValue(makeCamera({ timeFormat: "24h" }));
+    render(<App />);
+    const noon = await screen.findByTestId("frame-img-2");
+    expect(noon).toHaveTextContent("12");
+    expect(noon).not.toHaveTextContent("PM");
+    await userEvent.setup().click(noon);
+    expect(screen.getByTestId("frame-open").querySelector(".frame-osd")).toHaveTextContent(
+      "September 18, 2026 · 12:00",
+    );
+  });
+
   it("shows camera-timezone hour chips on the frames", async () => {
     render(<App />);
     const morning = await screen.findByTestId("frame-img-1");

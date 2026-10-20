@@ -12,6 +12,7 @@ import { requireAuth } from "../plugins/auth.js";
 
 const FEED_TYPES = ["static_url", "mjpeg", "hls", "rtsp", "custom"];
 const INTERVALS = [5, 15, 30, 60];
+const TIME_FORMATS = ["12h", "24h"] as const;
 const RATE_LIMIT = { max: 300, timeWindow: "1 minute" };
 
 const notFound = () => rfc7807(404, "not_found", "camera not found");
@@ -32,6 +33,14 @@ function publicImageUrl(baseUrl: string, cameraId: string, storageKey: string): 
   const date = parts[parts.length - 2];
   const file = parts[parts.length - 1];
   return `${baseUrl.replace(/\/+$/, "")}/api/v1/cameras/${cameraId}/${date}/${file}`;
+}
+
+function parseTimeFormat(value: unknown): "12h" | "24h" {
+  if (value === undefined || value === null) return "12h";
+  if (typeof value !== "string" || !TIME_FORMATS.includes(value as (typeof TIME_FORMATS)[number])) {
+    throw new HttpError(400, "bad_request", "timeFormat must be 12h or 24h");
+  }
+  return value as "12h" | "24h";
 }
 
 function parsePlanMonths(value: unknown): number | null {
@@ -108,6 +117,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${feedType}"`);
     }
     const planMonths = parsePlanMonths(body.planMonths);
+    const timeFormat = parseTimeFormat(body.timeFormat);
 
     const latitude = parseCoordinate(body.latitude, "latitude");
     const longitude = parseCoordinate(body.longitude, "longitude");
@@ -145,6 +155,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       theme,
       themeColors,
       planMonths,
+      timeFormat,
       latitude,
       longitude,
       daylightOnly,
@@ -183,6 +194,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
           "theme",
           "themeColors",
           "planMonths",
+          "timeFormat",
           "latitude",
           "longitude",
           "daylightOnly",
@@ -200,6 +212,9 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     }
     if (patch.planMonths !== undefined) {
       patch.planMonths = parsePlanMonths(patch.planMonths);
+    }
+    if (patch.timeFormat !== undefined) {
+      patch.timeFormat = parseTimeFormat(patch.timeFormat);
     }
     if (patch.themeColors !== undefined && patch.themeColors !== null) {
       const colors = normalizeThemeColors(patch.themeColors);

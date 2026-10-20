@@ -97,6 +97,26 @@ describe("fakeRepos", () => {
     expect((await repos.getPublicCamera(short.id))?.retentionMonths).toBe(24);
   });
 
+  it("defaults and roundtrips the camera time format", async () => {
+    const repos = createFakeRepos();
+    const tenant = await repos.createTenant(newTenant);
+    const camera = await repos.createCamera(tenant.id, {
+      name: "Clock",
+      feedType: "static_url",
+      feedUrl: "https://example.com/clock.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    expect(camera.timeFormat).toBe("12h");
+    expect((await repos.getPublicCamera(camera.id))?.timeFormat).toBe("12h");
+
+    const updated = await repos.updateCamera(camera.id, { timeFormat: "24h" });
+    expect(updated?.timeFormat).toBe("24h");
+    expect((await repos.getPublicCamera(camera.id))?.timeFormat).toBe("24h");
+  });
+
   it("creates camera with default status and updates it", async () => {
     const repos = createFakeRepos();
     const tenant = await repos.createTenant(newTenant);

@@ -41,6 +41,7 @@ function toCamera(row: CameraRow): Camera {
   return {
     ...row,
     planMonths: row.planMonths === null ? null : Number(row.planMonths),
+    timeFormat: row.timeFormat as "12h" | "24h",
   };
 }
 
@@ -94,6 +95,7 @@ export function createRepos(db: Db): Repos {
           theme: input.theme ?? "light",
           themeColors: input.themeColors ?? null,
           planMonths: input.planMonths === null || input.planMonths === undefined ? null : String(input.planMonths),
+          timeFormat: input.timeFormat ?? "12h",
           latitude: input.latitude ?? null,
           longitude: input.longitude ?? null,
           daylightOnly: input.daylightOnly ?? false,
@@ -136,6 +138,7 @@ export function createRepos(db: Db): Repos {
           theme: cameras.theme,
           themeColors: cameras.themeColors,
           timezone: cameras.timezone,
+          timeFormat: cameras.timeFormat,
           cameraPlan: cameras.planMonths,
           tenantPlan: tenants.planMonths,
           latitude: cameras.latitude,
@@ -153,6 +156,7 @@ export function createRepos(db: Db): Repos {
             theme: row.theme,
             themeColors: row.themeColors ?? null,
             timezone: row.timezone,
+            timeFormat: row.timeFormat as "12h" | "24h",
             retentionMonths: Number(row.cameraPlan ?? row.tenantPlan ?? 12),
             latitude: row.latitude,
             longitude: row.longitude,
@@ -333,6 +337,7 @@ export function createRepos(db: Db): Repos {
           ctheme: cameras.theme,
           cthemeColors: cameras.themeColors,
           ctimezone: cameras.timezone,
+          ctimeFormat: cameras.timeFormat,
           cenabled: cameras.enabled,
           cshowNight: cameras.showNight,
           cplanMonths: cameras.planMonths,
@@ -355,6 +360,7 @@ export function createRepos(db: Db): Repos {
           theme: r.ctheme!,
           themeColors: r.cthemeColors ?? null,
           timezone: r.ctimezone!,
+          timeFormat: r.ctimeFormat as "12h" | "24h",
           retentionMonths: Number(r.cplanMonths ?? r.tplanMonths ?? 12),
           showNight: r.cshowNight!,
         }));

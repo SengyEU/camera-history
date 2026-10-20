@@ -129,6 +129,57 @@ describe("admin cameras", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("creates and updates the camera time format", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Clock",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        timeFormat: "24h",
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().camera.timeFormat).toBe("24h");
+    const id = created.json().camera.id as string;
+    const pub = await app.inject({ url: `/api/v1/cameras/${id}` });
+    expect(pub.json().camera.timeFormat).toBe("24h");
+
+    const updated = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+      payload: { timeFormat: "12h" },
+    });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json().camera.timeFormat).toBe("12h");
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects an unknown camera time format", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Bad clock",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        timeFormat: "36h",
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("rejects an unknown per-camera plan", async () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);

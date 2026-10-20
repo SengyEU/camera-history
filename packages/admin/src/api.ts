@@ -26,6 +26,7 @@ export interface AdminCamera {
   theme: string;
   themeColors: ThemeColors | null;
   planMonths: number | null;
+  timeFormat: "12h" | "24h";
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
@@ -49,6 +50,7 @@ export interface CameraInput {
   theme: string;
   themeColors: ThemeColors | null;
   planMonths: number | null;
+  timeFormat: "12h" | "24h";
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;

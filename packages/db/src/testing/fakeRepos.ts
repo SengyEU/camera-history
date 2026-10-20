@@ -89,6 +89,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         theme: input.theme ?? "light",
         themeColors: input.themeColors ?? null,
         planMonths: input.planMonths ?? null,
+        timeFormat: input.timeFormat ?? "12h",
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,
         daylightOnly: input.daylightOnly ?? false,
@@ -130,6 +131,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         theme: cam.theme,
         themeColors: cam.themeColors ?? null,
         timezone: cam.timezone,
+        timeFormat: cam.timeFormat,
         retentionMonths: cam.planMonths ?? tenant?.planMonths ?? 12,
         latitude: cam.latitude,
         longitude: cam.longitude,
@@ -266,6 +268,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
           theme: c.theme,
           themeColors: c.themeColors ?? null,
           timezone: c.timezone,
+          timeFormat: c.timeFormat,
           retentionMonths: c.planMonths ?? tenant.planMonths,
           showNight: c.showNight,
         }));

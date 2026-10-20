@@ -479,6 +479,27 @@ describe("App camera CRUD", () => {
     expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
   });
 
+  it("saves the camera time format", async () => {
+    const { fn, calls } = listServer({ timeFormat: "12h" });
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    const format = screen.getByTestId("form-time-format") as HTMLSelectElement;
+    expect(format.value).toBe("12h");
+    await userEvent.selectOptions(format, "24h");
+    await userEvent.click(screen.getByTestId("form-submit"));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")).toBe(true),
+    );
+    const put = calls.find(
+      (c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT",
+    )!;
+    expect(JSON.parse(String(put.init?.body))).toMatchObject({ timeFormat: "24h" });
+  });
+
   it("shows a live widget preview beside the camera settings", async () => {
     const { fn } = listServer();
     vi.stubGlobal("fetch", fn);
@@ -566,6 +587,7 @@ describe("App camera CRUD", () => {
     expect(longitude).toHaveAttribute("type", "number");
     expect(daylight).toHaveAttribute("type", "checkbox");
     expect(daylight).not.toBeChecked();
+    expect(screen.getByTestId("form-daylight-state")).toHaveTextContent("24-hour capture");
     expect(screen.getByText("Used to filter day/night images")).toBeInTheDocument();
     expect(
       screen.getByText("Requires latitude and longitude. The camera's active window is ignored while enabled."),

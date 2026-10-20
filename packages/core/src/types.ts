@@ -3,6 +3,7 @@ import type { ThemeColors } from "./themes.js";
 export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
 export type UserRole = "owner" | "admin";
 export type CameraStatus = "operational" | "delayed" | "offline";
+export type TimeFormat = "12h" | "24h";
 export type BillingStatus = "none" | "active" | "past_due" | "unpaid" | "canceled";
 
 export interface Tenant {
@@ -47,6 +48,7 @@ export interface Camera {
   theme: string;
   themeColors: ThemeColors | null;
   planMonths: number | null;
+  timeFormat: TimeFormat;
   latitude: number | null;
   longitude: number | null;
   daylightOnly: boolean;
@@ -70,6 +72,7 @@ export interface PublicCamera {
   theme: string;
   themeColors: ThemeColors | null;
   timezone: string;
+  timeFormat: TimeFormat;
   retentionMonths: number;
   latitude: number | null;
   longitude: number | null;
@@ -102,6 +105,7 @@ export interface NewCamera {
   theme?: string;
   themeColors?: ThemeColors | null;
   planMonths?: number | null;
+  timeFormat?: TimeFormat;
   latitude?: number | null;
   longitude?: number | null;
   daylightOnly?: boolean;
@@ -121,6 +125,7 @@ export interface CameraPatch {
   theme?: string;
   themeColors?: ThemeColors | null;
   planMonths?: number | null;
+  timeFormat?: TimeFormat;
   latitude?: number | null;
   longitude?: number | null;
   daylightOnly?: boolean;
@@ -162,6 +167,7 @@ export interface PublicGroupCamera {
   theme: string;
   themeColors: ThemeColors | null;
   timezone: string;
+  timeFormat: TimeFormat;
   retentionMonths: number;
   showNight: boolean;
 }

@@ -1,6 +1,8 @@
+export type TimeFormat = "12h" | "24h";
+
 export interface HourParts {
   hour: number;
-  meridiem: "AM" | "PM";
+  meridiem: "AM" | "PM" | "";
 }
 
 export function localDateInZone(now: Date, timeZone: string): string {
@@ -35,7 +37,14 @@ export function safeMinDate(
   }
 }
 
-export function localHourParts(timestamp: string, timeZone: string): HourParts {
+export function localHourParts(
+  timestamp: string,
+  timeZone: string,
+  format: TimeFormat = "12h",
+): HourParts {
+  if (format === "24h") {
+    return { hour: localHourInZone(timestamp, timeZone), meridiem: "" };
+  }
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour: "numeric",
@@ -55,7 +64,19 @@ export function localHourInZone(timestamp: string, timeZone: string): number {
   return Number(parts.find((part) => part.type === "hour")?.value ?? "0") % 24;
 }
 
-export function formatCameraHour(timestamp: string, timeZone: string): string {
+export function formatCameraHour(
+  timestamp: string,
+  timeZone: string,
+  format: TimeFormat = "12h",
+): string {
+  if (format === "24h") {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date(timestamp));
+  }
   const { hour, meridiem } = localHourParts(timestamp, timeZone);
   return `${hour} ${meridiem}`;
 }
@@ -69,6 +90,10 @@ export function formatCameraDate(timestamp: string, timeZone: string): string {
   });
 }
 
-export function formatCameraCaptureLabel(timestamp: string, timeZone: string): string {
-  return `${formatCameraDate(timestamp, timeZone)} · ${formatCameraHour(timestamp, timeZone)}`;
+export function formatCameraCaptureLabel(
+  timestamp: string,
+  timeZone: string,
+  format: TimeFormat = "12h",
+): string {
+  return `${formatCameraDate(timestamp, timeZone)} · ${formatCameraHour(timestamp, timeZone, format)}`;
 }

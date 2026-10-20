@@ -15,7 +15,13 @@ import { SharePopup } from "./SharePopup";
 import { ContentTransition } from "./ContentTransition";
 import { buildShareUrl, parseEmbedContext, type EmbedContext } from "./share";
 import { requestEmbedContext } from "./embedResize";
-import { formatCameraHour, localDateInZone, localHourInZone, safeMinDate } from "./time";
+import {
+  formatCameraHour,
+  localDateInZone,
+  localHourInZone,
+  safeMinDate,
+  type TimeFormat,
+} from "./time";
 import "./App.css";
 
 const THEMES = ["light", "dark", "forest", "midnight"];
@@ -203,6 +209,7 @@ interface WidgetBodyProps {
   today: string;
   minDate?: string;
   timezone: string;
+  timeFormat: TimeFormat;
   theme: string;
   loading: boolean;
   hasLoadedOnce: boolean;
@@ -226,6 +233,7 @@ function WidgetBody({
   today,
   minDate,
   timezone,
+  timeFormat,
   theme,
   loading,
   hasLoadedOnce,
@@ -257,6 +265,7 @@ function WidgetBody({
           images={[]}
           loading
           timezone={timezone}
+          timeFormat={timeFormat}
           openId={null}
           onOpenChange={() => {}}
           onShare={() => {}}
@@ -279,6 +288,7 @@ function WidgetBody({
               images={visibleImages}
               loading={false}
               timezone={timezone}
+              timeFormat={timeFormat}
               openId={openId}
               onOpenChange={onOpenChange}
               onShare={onShare}
@@ -320,8 +330,8 @@ function WidgetBody({
       </div>
       {shareImage && (
         <SharePopup
-          title={viewerCaptureLabel(shareImage.timestamp, timezone)}
-          hourLabel={formatCameraHour(shareImage.timestamp, timezone)}
+          title={viewerCaptureLabel(shareImage.timestamp, timezone, timeFormat)}
+          hourLabel={formatCameraHour(shareImage.timestamp, timezone, timeFormat)}
           imageUrl={shareImage.url}
           url={shareUrl}
           onClose={onCloseShare}
@@ -369,6 +379,8 @@ export function App() {
     groupRoute && group ? (group.cameras.find((c) => c.id === selectedCameraId) ?? null) : null;
   const timezone =
     (groupRoute ? selectedCamera?.timezone : camera?.timezone) ?? VIEWER_TIMEZONE;
+  const timeFormat: TimeFormat =
+    (groupRoute ? selectedCamera?.timeFormat : camera?.timeFormat) ?? "12h";
   const today = localDateInZone(new Date(), timezone);
 
   const retentionCamera = groupRoute ? selectedCamera : camera;
@@ -634,6 +646,7 @@ export function App() {
         today={today}
         minDate={minDate}
         timezone={timezone}
+        timeFormat={timeFormat}
         theme={theme}
         loading={loading}
         hasLoadedOnce={hasLoadedOnce}
@@ -667,6 +680,7 @@ export function App() {
       today={today}
       minDate={minDate}
       timezone={timezone}
+      timeFormat={timeFormat}
       theme={theme}
       loading={loading}
       hasLoadedOnce={hasLoadedOnce}

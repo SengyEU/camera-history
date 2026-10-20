@@ -6,23 +6,29 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { ImageDto } from "./api";
-import { formatCameraCaptureLabel, localHourParts } from "./time";
+import { formatCameraCaptureLabel, formatCameraHour, localHourParts, type TimeFormat } from "./time";
 
 export function viewerHourParts(
   timestamp: string,
   timezone: string,
-): { hour: number; meridiem: "AM" | "PM" } {
-  return localHourParts(timestamp, timezone);
+  format: TimeFormat = "12h",
+): { hour: number; meridiem: "AM" | "PM" | "" } {
+  return localHourParts(timestamp, timezone, format);
 }
 
-export function viewerCaptureLabel(timestamp: string, timezone: string): string {
-  return formatCameraCaptureLabel(timestamp, timezone);
+export function viewerCaptureLabel(
+  timestamp: string,
+  timezone: string,
+  format: TimeFormat = "12h",
+): string {
+  return formatCameraCaptureLabel(timestamp, timezone, format);
 }
 
 interface FilmStripProps {
   images: ImageDto[];
   loading: boolean;
   timezone: string;
+  timeFormat: TimeFormat;
   openId: string | null;
   onOpenChange: (id: string | null) => void;
   onShare: (image: ImageDto) => void;
@@ -43,6 +49,7 @@ export function FilmStrip({
   images,
   loading,
   timezone,
+  timeFormat,
   openId,
   onOpenChange,
   onShare,
@@ -195,8 +202,9 @@ export function FilmStrip({
           const single = images.length === 1;
           const isOpen = single || (openImage !== undefined && image.id === openImage.id);
           const isClosing = !single && frozenId === image.id && !isOpen;
-          const hour = viewerHourParts(image.timestamp, timezone);
-          const label = isOpen ? viewerCaptureLabel(image.timestamp, timezone) : "";
+          const hour = viewerHourParts(image.timestamp, timezone, timeFormat);
+          const hourLabel = formatCameraHour(image.timestamp, timezone, timeFormat);
+          const label = isOpen ? viewerCaptureLabel(image.timestamp, timezone, timeFormat) : "";
           const sliceStep = images.length > 28 ? 14 : sliceWidth;
           return (
             <div
@@ -207,7 +215,7 @@ export function FilmStrip({
               role={single ? undefined : "button"}
               tabIndex={single ? undefined : 0}
               aria-label={
-                single ? undefined : isOpen ? "Collapse capture" : `Open capture ${hour.hour} ${hour.meridiem}`
+                single ? undefined : isOpen ? "Collapse capture" : `Open capture ${hourLabel}`
               }
               onMouseDown={single ? undefined : (event) => event.preventDefault()}
               style={
@@ -253,8 +261,15 @@ export function FilmStrip({
                   {isOpen && <span className="frame-osd">{label}</span>}
                   {isClosing && (
                     <span className="frame-hours">
-                      <span className="chip-h">{hour.hour}</span>{" "}
-                      <span className="chip-ap">{hour.meridiem}</span>
+                      <span className="chip-h">
+                        {timeFormat === "24h" ? String(hour.hour).padStart(2, "0") : hour.hour}
+                      </span>
+                      {hour.meridiem && (
+                        <>
+                          {" "}
+                          <span className="chip-ap">{hour.meridiem}</span>
+                        </>
+                      )}
                     </span>
                   )}
                   {isOpen && index > 0 && (
@@ -300,8 +315,15 @@ export function FilmStrip({
                 </>
               ) : (
                 <span className="frame-hours">
-                  <span className="chip-h">{hour.hour}</span>{" "}
-                  <span className="chip-ap">{hour.meridiem}</span>
+                  <span className="chip-h">
+                    {timeFormat === "24h" ? String(hour.hour).padStart(2, "0") : hour.hour}
+                  </span>
+                  {hour.meridiem && (
+                    <>
+                      {" "}
+                      <span className="chip-ap">{hour.meridiem}</span>
+                    </>
+                  )}
                 </span>
               )}
             </div>

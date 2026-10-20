@@ -1,0 +1,1 @@
+ALTER TABLE "cameras" ADD COLUMN "time_format" text DEFAULT '12h' NOT NULL;

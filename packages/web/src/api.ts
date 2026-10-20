@@ -1,3 +1,5 @@
+import type { TimeFormat } from "./time";
+
 export interface ThemeColors {
   bg: string;
   surface: string;
@@ -18,6 +20,7 @@ export interface PublicCamera {
   retentionMonths?: number;
   showNight: boolean;
   timezone: string;
+  timeFormat?: TimeFormat;
 }
 
 export interface ImageDto {
@@ -49,6 +52,7 @@ export interface GroupCamera {
   retentionMonths?: number;
   showNight: boolean;
   timezone: string;
+  timeFormat?: TimeFormat;
 }
 
 export interface PublicGroup {
