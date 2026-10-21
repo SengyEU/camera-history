@@ -10,3 +10,9 @@
 ## Verification
 
 `npm run typecheck && npm test && npm run lint && npm run build && npm run design:check`
+
+## Roadmap & GTM
+
+- Follow `docs/roadmap.md` for sequencing. Do not add paid ads or developer/startup launch sites without explicit approval.
+- Current GTM: 10–20 pilot design partners and direct outreach to camera operators; niche communities only.
+- Domain migration to `camera-history.com` is a pre-launch gate; follow `docs/domain-migration.md`.
