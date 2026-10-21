@@ -37,7 +37,7 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         customer: input.customer,
-        managed_payments: { enabled: false },
+        managed_payments: { enabled: true },
         line_items: input.items.map((item) => ({ price: item.priceId, quantity: item.quantity })),
         subscription_data: {
           metadata: {

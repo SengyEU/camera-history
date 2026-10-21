@@ -126,6 +126,9 @@ Billing stránka ukazuje odhad měsíční částky a rozpad podle plánů.
    Prvních **20** nových subscription dostane automaticky **30 dní zdarma**; při expiraci
    nezaplaceného Checkoutu se slot uvolní.
 
+Managed Payments / Stripe Tax je zapnuté; produkt má tax code `txcd_10103001` (SaaS, business use).
+Ceny jsou uvedené bez DPH a Stripe dopočítá daň podle adresy zákazníka (v sandboxu ověřeno 19 % pro DE).
+
 ### Hard stop
 
 `past_due` + 3 dny grace (`BILLING_GRACE_DAYS`) → worker deaktivuje kamery na `enabled=false`,

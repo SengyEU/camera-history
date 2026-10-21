@@ -114,7 +114,7 @@ export function BillingPage() {
 
       <div className="billing-summary" data-testid="billing-summary">
         <div>
-          <span>Estimated monthly</span>
+          <span>Estimated monthly (excl. tax)</span>
           <strong data-testid="monthly-total">€{data.monthlyTotal.toFixed(2)}</strong>
         </div>
         <div>

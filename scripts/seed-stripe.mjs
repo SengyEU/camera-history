@@ -47,18 +47,24 @@ async function findPortalConfig() {
   return data.find((c) => c.metadata.camera_history === "1") ?? null;
 }
 
-const product =
+let product =
   (await findProduct()) ??
   (await api(
     "/products",
     {
       name: "Camera History",
+      tax_code: "txcd_10103001",
       "metadata[camera_history]": "1",
     },
     "POST",
   ));
 
-console.log(`product: ${product.id} (${product.name})`);
+const TAX_CODE = "txcd_10103001";
+if (product.tax_code !== TAX_CODE) {
+  product = await api(`/products/${product.id}`, { tax_code: TAX_CODE }, "POST");
+}
+
+console.log(`product: ${product.id} (${product.name}), tax_code ${product.tax_code}`);
 
 const priceIds = {};
 for (const tier of TIERS) {
