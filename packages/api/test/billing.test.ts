@@ -15,6 +15,16 @@ async function registerAndLogin(app: ReturnType<typeof makeApp>["app"]) {
   return (login.headers["set-cookie"] as string[]).map((c) => c.split(";")[0]!).join("; ");
 }
 
+const ALL_PRICES = {
+  "0.5": "price_0_5",
+  "1": "price_1",
+  "3": "price_3",
+  "6": "price_6",
+  "12": "price_12",
+  "24": "price_24",
+  "36": "price_36",
+};
+
 describe("billing endpoints", () => {
   it("returns billing summary with stripe disabled", async () => {
     const { app } = makeApp();
@@ -27,7 +37,7 @@ describe("billing endpoints", () => {
 
   it("returns billing summary for a tenant", async () => {
     const { app, repos } = makeApp({
-      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: { "12": "price_12" } } },
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: ALL_PRICES } },
       stripe: defineFakeStripeGateway(),
     });
     const cookie = await registerAndLogin(app);
@@ -55,13 +65,20 @@ describe("billing endpoints", () => {
     expect(body.price).toBe(29);
     expect(body.cameraCount).toBe(1);
     expect(body.usageBytes).toBe(120);
+    expect(body.monthlyTotal).toBe(29);
+    expect(body.hasSubscription).toBe(false);
+    expect(body.pricesConfigured).toBe(true);
+    expect(body.tiers.find((t: { months: number }) => t.months === 12)).toMatchObject({
+      count: 1,
+      monthlyTotal: 29,
+    });
     expect(Array.isArray(body.tiers) && body.tiers.length).toBe(7);
     await (app as { close: () => Promise<void> }).close();
   });
 
   it("rejects invalid plan months on checkout", async () => {
     const { app } = makeApp({
-      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: { "12": "price_12" } } },
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: ALL_PRICES } },
       stripe: defineFakeStripeGateway(),
     });
     const cookie = await registerAndLogin(app);
@@ -90,7 +107,7 @@ describe("billing endpoints", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("creates checkout session for a new subscription", async () => {
+  it("creates a checkout with all metered plan prices", async () => {
     const created: Array<Record<string, unknown>> = [];
     const gateway = defineFakeStripeGateway({
       createCheckoutSession: async (input) => {
@@ -98,11 +115,21 @@ describe("billing endpoints", () => {
         return { url: "https://checkout.stripe.com/sess", customer: "cus_123", subscription: null };
       },
     });
-    const { app } = makeApp({
-      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: { "24": "price_24" } } },
+    const { app, repos } = makeApp({
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: ALL_PRICES } },
       stripe: gateway,
     });
     const cookie = await registerAndLogin(app);
+    const tenant = repos.db.tenants[0]!;
+    await repos.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl: "https://x/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
     const res = await app.inject({
       method: "POST",
       url: "/api/v1/admin/billing/checkout",
@@ -111,20 +138,36 @@ describe("billing endpoints", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().url).toBe("https://checkout.stripe.com/sess");
-    expect(created[0]).toMatchObject({ priceId: "price_24", planMonths: 24 });
+    expect((created[0]!.priceIds as string[])).toHaveLength(7);
+    expect(created[0]).toMatchObject({ planMonths: 24 });
+    expect((await repos.getTenantById(tenant.id))!.planMonths).toBe(24);
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("updates an existing subscription price", async () => {
-    const calls: Array<Record<string, unknown>> = [];
-    const gateway = defineFakeStripeGateway({
-      updateSubscription: async (input) => {
-        calls.push(input as unknown as Record<string, unknown>);
-      },
-    });
+  it("updates the default plan without changing Stripe items", async () => {
+    const gateway = defineFakeStripeGateway();
     const { app, repos } = makeApp({
-      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: { "12": "price_12", "3": "price_3" } } },
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: ALL_PRICES } },
       stripe: gateway,
+    });
+    const cookie = await registerAndLogin(app);
+    const tenant = repos.db.tenants[0]!;
+    await repos.setBillingState(tenant.id, { stripeSubscriptionId: "sub_existing", billingStatus: "active" });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/billing/default-plan",
+      headers: { cookie },
+      payload: { planMonths: 3 },
+    });
+    expect(res.statusCode).toBe(200);
+    expect((await repos.getTenantById(tenant.id))!.planMonths).toBe(3);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects checkout when a subscription already exists", async () => {
+    const { app, repos } = makeApp({
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: ALL_PRICES } },
+      stripe: defineFakeStripeGateway(),
     });
     const cookie = await registerAndLogin(app);
     const tenant = repos.db.tenants[0]!;
@@ -135,9 +178,8 @@ describe("billing endpoints", () => {
       headers: { cookie },
       payload: { planMonths: 3 },
     });
-    expect(res.statusCode).toBe(200);
-    expect(res.json().status).toBe("ok");
-    expect(calls[0]).toMatchObject({ subscriptionId: "sub_existing", priceId: "price_3" });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().title).toBe("already_subscribed");
     await (app as { close: () => Promise<void> }).close();
   });
 

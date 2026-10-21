@@ -192,6 +192,18 @@ export function createRepos(db: Db): Repos {
       const rows = await db.select({ id: cameras.id }).from(cameras).where(eq(cameras.tenantId, tenantId));
       return rows.length;
     },
+    async cameraPlanCounts(tenantId: string) {
+      const rows = await db
+        .select({
+          months: sql<string>`COALESCE(${cameras.planMonths}, ${tenants.planMonths})`,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(cameras)
+        .innerJoin(tenants, eq(cameras.tenantId, tenants.id))
+        .where(eq(cameras.tenantId, tenantId))
+        .groupBy(sql`COALESCE(${cameras.planMonths}, ${tenants.planMonths})`);
+      return new Map(rows.map((row) => [Number(row.months), Number(row.count)]));
+    },
     async usageStats(tenantId: string) {
       const [row] = await db
         .select({

@@ -22,7 +22,6 @@ export function defineFakeStripeGateway(over: Partial<StripeGateway> = {}): Stri
     createCheckoutSession:
       over.createCheckoutSession ??
       (async () => ({ url: "https://checkout.stripe.com/test", customer: "cus_123", subscription: "sub_123" })),
-    updateSubscription: over.updateSubscription ?? (async () => undefined),
     createPortalSession: over.createPortalSession ?? (async () => ({ url: "https://billing.stripe.com/test" })),
     verifyWebhook:
       over.verifyWebhook ??

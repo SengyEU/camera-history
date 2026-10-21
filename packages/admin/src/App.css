@@ -1129,3 +1129,42 @@ button.link:hover {
   max-width: none;
   font-weight: 500;
 }
+
+/* Billing summary */
+.billing-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+
+.billing-summary > div {
+  background: var(--snow);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.billing-summary span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.billing-summary strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.95rem;
+}
+
+.billing-breakdown,
+.billing-default-plan {
+  margin-top: 18px;
+}
+
+.billing-breakdown .panel-head,
+.billing-default-plan .panel-head {
+  margin-bottom: 8px;
+}

@@ -10,13 +10,12 @@ export interface StripeGateway {
   createCustomer(input: { tenantId: string }): Promise<{ id: string }>;
   createCheckoutSession(input: {
     customer: string;
-    priceId: string;
+    priceIds: string[];
     tenantId: string;
     planMonths: number;
     successUrl: string;
     cancelUrl: string;
   }): Promise<{ url: string; customer: string | null; subscription: string | null }>;
-  updateSubscription(input: { subscriptionId: string; priceId: string }): Promise<void>;
   createPortalSession(input: { customer: string; returnUrl: string }): Promise<{ url: string }>;
   verifyWebhook(input: { payload: string; signature: string }): Promise<StripeWebhookEvent>;
 }
@@ -37,7 +36,7 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         customer: input.customer,
-        line_items: [{ price: input.priceId, quantity: 1 }],
+        line_items: input.priceIds.map((price) => ({ price })),
         subscription_data: {
           metadata: { tenantId: input.tenantId, planMonths: String(input.planMonths) },
         },
@@ -51,14 +50,6 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
       const subscription =
         typeof session.subscription === "string" ? session.subscription : String((session.subscription as { id?: string } | null)?.id ?? "");
       return { url: session.url ?? "", customer, subscription };
-    },
-    async updateSubscription({ subscriptionId, priceId }) {
-      const items = await stripe.subscriptionItems.list({ subscription: subscriptionId, limit: 1 });
-      const item = items.data[0];
-      if (!item) throw new Error("no subscription item");
-      await stripe.subscriptions.update(subscriptionId, {
-        items: [{ id: item.id, price: priceId }],
-      });
     },
     async createPortalSession({ customer, returnUrl }) {
       const session = await stripe.billingPortal.sessions.create({ customer, return_url: returnUrl });

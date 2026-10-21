@@ -72,7 +72,7 @@ describe("auth", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("adds billing block with checkout url when stripe is enabled", async () => {
+  it("does not start billing at registration when stripe is enabled", async () => {
     const { app } = makeApp({
       cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: { "12": "price_12" } } },
       stripe: defineFakeStripeGateway(),
@@ -83,7 +83,7 @@ describe("auth", () => {
       payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
     });
     expect(res.statusCode).toBe(201);
-    expect(res.json().billing).toMatchObject({ required: true, checkoutUrl: "https://checkout.stripe.com/test" });
+    expect(res.json().billing).toBeUndefined();
     await (app as { close: () => Promise<void> }).close();
   });
 

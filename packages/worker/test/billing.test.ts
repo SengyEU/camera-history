@@ -11,13 +11,31 @@ const cfg: AppConfig = {
   worker: { tickMs: 60000, retryBackoffMs: 30000, concurrency: 2 },
   feed: { timeoutMs: 2000, maxBytes: 1_000_000 },
   plan: { defaultRetentionMonths: 12, maxRetentionMonths: 36 },
-  stripe: { enabled: true, secretKey: "sk_test", webhookSecret: "whsec", prices: { "12": "price_12" } },
+  stripe: {
+    enabled: true,
+    secretKey: "sk_test",
+    webhookSecret: "whsec",
+    prices: {
+      "0.5": "price_0_5",
+      "1": "price_1",
+      "3": "price_3",
+      "6": "price_6",
+      "12": "price_12",
+      "24": "price_24",
+      "36": "price_36",
+    },
+  },
   billing: { graceDays: 3 },
 };
 
 function createFakeMetering(): MeteringGateway {
   return {
-    listSubscriptionItem: vi.fn(async ({ subscriptionId }) => ({ id: `si_${subscriptionId}` })),
+    listSubscriptionItems: vi.fn(async () =>
+      Object.entries(cfg.stripe.prices).map(([months, priceId]) => ({
+        id: `si_${months}`,
+        priceId,
+      })),
+    ),
     reportUsage: vi.fn(async () => undefined),
   };
 }
@@ -84,7 +102,7 @@ describe("grace check", () => {
 });
 
 describe("usage report", () => {
-  it("reports camera count for active tenants", async () => {
+  it("reports per-plan camera counts for active tenants", async () => {
     const repos = createFakeRepos();
     const metering = createFakeMetering();
     const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
@@ -105,6 +123,7 @@ describe("usage report", () => {
       activeFrom: "00:00",
       activeTo: "23:59",
       timezone: "UTC",
+      planMonths: 3,
     });
     await repos.setBillingState(tenant.id, { billingStatus: "active", stripeSubscriptionId: "sub_9" });
 
@@ -115,12 +134,13 @@ describe("usage report", () => {
       now: new Date("2026-09-18T12:00:00Z"),
     });
 
-    expect(metering.listSubscriptionItem).toHaveBeenCalledWith({ subscriptionId: "sub_9" });
-    expect(metering.reportUsage).toHaveBeenCalledWith({
-      subscriptionItem: "si_sub_9",
-      quantity: 2,
-      timestamp: 1789732800,
-    });
+    expect(metering.listSubscriptionItems).toHaveBeenCalledWith({ subscriptionId: "sub_9" });
+    expect(metering.reportUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ subscriptionItem: "si_3", quantity: 1, timestamp: 1789732800 }),
+    );
+    expect(metering.reportUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ subscriptionItem: "si_12", quantity: 1, timestamp: 1789732800 }),
+    );
   });
 
   it("dampens reporting to once per hour per tenant", async () => {
@@ -133,10 +153,10 @@ describe("usage report", () => {
 
     await run(new Date("2026-09-18T12:00:00Z"));
     await run(new Date("2026-09-18T12:30:00Z"));
-    expect(metering.reportUsage).toHaveBeenCalledTimes(1);
+    expect(metering.reportUsage).toHaveBeenCalledTimes(7);
 
     await run(new Date("2026-09-18T13:00:00Z"));
-    expect(metering.reportUsage).toHaveBeenCalledTimes(2);
+    expect(metering.reportUsage).toHaveBeenCalledTimes(14);
   });
 
   it("does not report when metering is disabled", async () => {

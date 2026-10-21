@@ -67,6 +67,8 @@ export interface BillingTierDto {
   months: number;
   label: string;
   eurPerCamera: number;
+  count: number;
+  monthlyTotal: number;
   current: boolean;
 }
 
@@ -75,11 +77,14 @@ export interface BillingDto {
   price: number | null;
   billingStatus: BillingStatus;
   stripeCustomerId: string | null;
+  hasSubscription: boolean;
   graceUntil: string | null;
   cameraCount: number;
   usageBytes: number;
   storageBytes: number;
   billingEnabled: boolean;
+  pricesConfigured: boolean;
+  monthlyTotal: number;
   tiers: BillingTierDto[];
 }
 
@@ -183,6 +188,11 @@ export const api = {
   getBilling: () => json<BillingDto>("/api/v1/admin/billing"),
   billingCheckout: (planMonths: number) =>
     json<{ url?: string; status?: string }>("/api/v1/admin/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ planMonths }),
+    }),
+  billingDefaultPlan: (planMonths: number) =>
+    json<{ status: string }>("/api/v1/admin/billing/default-plan", {
       method: "POST",
       body: JSON.stringify({ planMonths }),
     }),

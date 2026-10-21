@@ -14,19 +14,22 @@ const billing = {
   price: 29,
   billingStatus: "past_due",
   stripeCustomerId: "cus_1",
+  hasSubscription: false,
   graceUntil: "2026-09-25T00:00:00.000Z",
   cameraCount: 3,
   usageBytes: 1234567,
   storageBytes: 14814804,
   billingEnabled: true,
+  pricesConfigured: true,
+  monthlyTotal: 107,
   tiers: [
-    { months: 0.5, label: "14 days", eurPerCamera: 5, current: false },
-    { months: 1, label: "1 month", eurPerCamera: 9, current: false },
-    { months: 3, label: "3 months", eurPerCamera: 15, current: false },
-    { months: 6, label: "6 months", eurPerCamera: 22, current: false },
-    { months: 12, label: "12 months", eurPerCamera: 29, current: true },
-    { months: 24, label: "24 months", eurPerCamera: 49, current: false },
-    { months: 36, label: "36 months", eurPerCamera: 69, current: false },
+    { months: 0.5, label: "14 days", eurPerCamera: 5, count: 0, monthlyTotal: 0, current: false },
+    { months: 1, label: "1 month", eurPerCamera: 9, count: 0, monthlyTotal: 0, current: false },
+    { months: 3, label: "3 months", eurPerCamera: 15, count: 0, monthlyTotal: 0, current: false },
+    { months: 6, label: "6 months", eurPerCamera: 22, count: 0, monthlyTotal: 0, current: false },
+    { months: 12, label: "12 months", eurPerCamera: 29, count: 3, monthlyTotal: 87, current: true },
+    { months: 24, label: "24 months", eurPerCamera: 49, count: 0, monthlyTotal: 0, current: false },
+    { months: 36, label: "36 months", eurPerCamera: 69, count: 0, monthlyTotal: 0, current: false },
   ],
 };
 
@@ -34,6 +37,7 @@ vi.mock("../api", () => ({
   api: {
     getBilling: vi.fn(),
     billingCheckout: vi.fn(),
+    billingDefaultPlan: vi.fn(),
     billingPortal: vi.fn(),
   },
 }));
@@ -44,6 +48,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue(billing);
   (api.billingCheckout as ReturnType<typeof vi.fn>).mockResolvedValue({ url: "https://checkout.stripe.com/x" });
+  (api.billingDefaultPlan as ReturnType<typeof vi.fn>).mockResolvedValue({ status: "ok" });
   (api.billingPortal as ReturnType<typeof vi.fn>).mockResolvedValue({ url: "https://billing.stripe.com/x" });
 });
 
@@ -55,6 +60,7 @@ describe("BillingPage", () => {
     expect(plan).toHaveTextContent("29");
     expect(screen.getByText("past due")).toBeInTheDocument();
     expect(screen.getByTestId("camera-count")).toHaveTextContent("3");
+    expect(screen.getByTestId("monthly-total")).toHaveTextContent("€107.00");
     expect(screen.queryByTestId("usage-bytes")).not.toBeInTheDocument();
     expect(screen.queryByTestId("storage-bytes")).not.toBeInTheDocument();
   });
@@ -76,6 +82,20 @@ describe("BillingPage", () => {
     await userEvent.click(screen.getByTestId("change-plan"));
     await waitFor(() => expect(api.billingCheckout).toHaveBeenCalledWith(24));
     expect(assign).toHaveBeenCalledWith("https://checkout.stripe.com/x");
+  });
+
+  it("updates the default plan for an existing subscription without checkout", async () => {
+    (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...billing,
+      hasSubscription: true,
+      billingStatus: "active",
+    });
+    render(<BillingPage />);
+    await screen.findByTestId("current-plan");
+    await userEvent.click(screen.getByTestId("plan-24"));
+    await userEvent.click(screen.getByTestId("change-plan"));
+    await waitFor(() => expect(api.billingDefaultPlan).toHaveBeenCalledWith(24));
+    expect(api.billingCheckout).not.toHaveBeenCalled();
   });
 
   it("opens portal session", async () => {

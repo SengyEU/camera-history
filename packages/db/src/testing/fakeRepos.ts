@@ -171,6 +171,15 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     async countCameras(tenantId: string) {
       return db.cameras.filter((c) => c.tenantId === tenantId).length;
     },
+    async cameraPlanCounts(tenantId: string) {
+      const tenant = db.tenants.find((t) => t.id === tenantId);
+      const counts = new Map<number, number>();
+      for (const camera of db.cameras.filter((c) => c.tenantId === tenantId)) {
+        const months = camera.planMonths ?? tenant?.planMonths ?? 12;
+        counts.set(months, (counts.get(months) ?? 0) + 1);
+      }
+      return counts;
+    },
     async usageStats(tenantId: string) {
       const cameraIds = new Set(db.cameras.filter((c) => c.tenantId === tenantId).map((c) => c.id));
       const owned = db.images.filter((i) => cameraIds.has(i.cameraId));

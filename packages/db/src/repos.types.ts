@@ -35,6 +35,7 @@ export interface Repos {
   getImageById(id: string): Promise<ImageRecord | null>;
   latestImageForCamera(cameraId: string): Promise<ImageRecord | null>;
   countCameras(tenantId: string): Promise<number>;
+  cameraPlanCounts(tenantId: string): Promise<Map<number, number>>;
   usageStats(tenantId: string): Promise<{ usageBytes: number; spanDays: number }>;
   cameraStats(tenantId: string): Promise<
     Map<

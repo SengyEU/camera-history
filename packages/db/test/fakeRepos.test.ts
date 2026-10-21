@@ -234,6 +234,28 @@ describe("fakeRepos", () => {
     expect((await repos.listGroups(tenant.id))[0]?.cameraIds).toEqual([night.id, plain.id]);
   });
 
+  it("counts effective camera plans by tier", async () => {
+    const repos = createFakeRepos();
+    const tenant = await repos.createTenant({ ...newTenant, planMonths: 12 });
+    const make = (planMonths: number | null) =>
+      repos.createCamera(tenant.id, {
+        name: `Cam ${planMonths}`,
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+        intervalMinutes: 15,
+        activeFrom: "00:00",
+        activeTo: "23:59",
+        timezone: "UTC",
+        planMonths,
+      });
+    await make(null);
+    await make(3);
+    await make(3);
+    const counts = await repos.cameraPlanCounts(tenant.id);
+    expect(counts.get(12)).toBe(1);
+    expect(counts.get(3)).toBe(2);
+  });
+
   it("counts cameras and reports usage stats for a tenant", async () => {
     const repos = createFakeRepos();
     const tenant = await repos.createTenant(newTenant);
