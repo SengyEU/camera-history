@@ -605,7 +605,7 @@ describe("App camera CRUD", () => {
     const showNight = screen.getByTestId("form-show-night") as HTMLInputElement;
     expect(showNight).toHaveAttribute("type", "checkbox");
     expect(showNight).not.toBeChecked();
-    expect(screen.getByLabelText("Show night images by default")).toBe(showNight);
+    expect(screen.getByLabelText("Show night images")).toBe(showNight);
     expect(
       screen.getByText("Night images are shown in the widget only when this is enabled."),
     ).toBeInTheDocument();

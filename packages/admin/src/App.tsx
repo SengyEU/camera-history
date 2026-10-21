@@ -615,7 +615,7 @@ function CameraForm({
               onChange={(e) => setInput((s) => ({ ...s, showNight: e.target.checked }))}
               data-testid="form-show-night"
             />
-            Show night images by default
+            Show night images
           </label>
           <span className="field-hint">Night images are shown in the widget only when this is enabled.</span>
         </div>
