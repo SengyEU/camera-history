@@ -24,8 +24,8 @@ const testConfig = {
   worker: { tickMs: 60000, retryBackoffMs: 30000, concurrency: 2 },
   feed: { timeoutMs: 2000, maxBytes: 1_000_000 },
   plan: { defaultRetentionMonths: 12, maxRetentionMonths: 36 },
-  stripe: { enabled: false, secretKey: "", webhookSecret: "", prices: {} },
-  billing: { graceDays: 3 },
+  stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
+  billing: { graceDays: 7 },
 } satisfies AppConfig;
 
 describe("keyFor", () => {

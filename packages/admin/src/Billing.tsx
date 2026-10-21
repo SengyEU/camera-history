@@ -109,12 +109,19 @@ export function BillingPage() {
         </p>
       )}
       {(data.billingStatus === "unpaid" || data.billingStatus === "canceled") && (
-        <p className="notice danger">Account is not active. Restore payment to enable cameras.</p>
+        <p className="notice danger">
+          Account is not active. Captures and widgets are paused; cameras and history remain visible.
+        </p>
+      )}
+      {data.hasSubscription && data.cameraCount === 0 && (
+        <p className="notice" data-testid="no-cameras-cancel-notice">
+          No cameras are left. The subscription will cancel at the end of the current billing period.
+        </p>
       )}
 
       <div className="billing-summary" data-testid="billing-summary">
         <div>
-          <span>Estimated monthly (excl. tax)</span>
+          <span>Estimated monthly (incl. tax)</span>
           <strong data-testid="monthly-total">€{data.monthlyTotal.toFixed(2)}</strong>
         </div>
         <div>

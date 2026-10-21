@@ -102,7 +102,7 @@ node scripts/zip-wp-plugin.mjs   # → packages/wp-plugin/dist/camera-history.zi
 php packages/wp-plugin/test/harness.php   # stub harness clienta + shortcodu (bez PHPUnit/WP)
 php -l packages/wp-plugin/camera-history/*.php packages/wp-plugin/camera-history/includes/*.php
 ```
-## M4 — Billing (Stripe, per-camera metered)
+## M4 — Billing (Stripe, per-camera licensed tiers)
 
 Každá kamera má retenční plán (`plan_months`); `null` znamená „dědí výchozí plán tenanta“.
 Výchozí plán se nastavuje v Billingu, per-kamera override v editoru kamery. Celková cena je
@@ -111,28 +111,29 @@ součet počtu kamer v každém tieru × cena za kameru.
 Stripe model: **jedna subscription na tenanta s licensed cenami po tierech**. Každá cena má
 quantity = počet kamer v daném efektivním tieru. Worker každou hodinu synchronizuje quantities
 (přidá/upraví/odebere subscription item); checkout obsahuje jen tiery, které tenant aktuálně používá.
-Billing stránka ukazuje odhad měsíční částky a rozpad podle plánů.
+Billing stránka ukazuje odhad měsíční částky včetně DPH a rozpad podle plánů.
 
 ### Zapnutí sandboxu
 
 1. `STRIPE_SECRET_KEY=sk_test_... node scripts/seed-stripe.mjs` — vytvoří produkt a 7 licensed cen.
-2. Do `.env` zkopíruj vypsané `STRIPE_PRICE_*` a nastav `STRIPE_ENABLED=true`.
+2. Do `.env` zkopíruj vypsané `STRIPE_PRICE_*`, `STRIPE_PORTAL_CONFIG_ID` a nastav `STRIPE_ENABLED=true`.
 3. Stripe → Developers → Webhooks → endpoint `https://camera.sengycraft.cz/api/v1/billing/webhook`
    s událostmi `checkout.session.completed`, `checkout.session.expired`,
    `customer.subscription.updated`, `customer.subscription.deleted`; nastav
    `STRIPE_WEBHOOK_SECRET`.
 4. Restartuj API/worker. Registrace už nespouští checkout; přidej kameru a v Billingu klikni
-   na **Start billing**. Platba se inicializuje pro všechny tiery; usage se reportuje hourly.
+   na **Start billing**. Checkout obsahuje jen tiery, které tenant používá; worker synchronizuje quantities hourly.
    Prvních **20** nových subscription dostane automaticky **30 dní zdarma**; při expiraci
    nezaplaceného Checkoutu se slot uvolní.
 
 Managed Payments / Stripe Tax je zapnuté; produkt má tax code `txcd_10103001` (SaaS, business use).
-Ceny jsou uvedené bez DPH a Stripe dopočítá daň podle adresy zákazníka (v sandboxu ověřeno 19 % pro DE).
+Ceny jsou uvedené **včetně DPH**; Stripe z nich daň vypočte a odvede (v sandboxu ověřeno 19 % pro DE).
 
 ### Hard stop
 
-`past_due` + 3 dny grace (`BILLING_GRACE_DAYS`) → worker deaktivuje kamery na `enabled=false`,
-tenant přejde do `unpaid`. Reaktivace automaticky po zaplacení (webhook `active`) — kamery se znovu zapnou.
+`past_due` + 7 dní grace (`BILLING_GRACE_DAYS`) → worker zruší subscription a tenant přejde do
+`canceled`. Widget a captures se zastaví, ale kamery a historie zůstanou v dashboardu. Pokud se
+platba během grace opraví, webhook `active` vrátí stav na `active` a vše pokračuje.
 
 ## M5 — Widget themes
 

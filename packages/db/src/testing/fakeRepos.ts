@@ -120,12 +120,16 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       db.images = db.images.filter((i) => i.cameraId !== id);
     },
     async listEnabledCameras() {
-      return db.cameras.filter((c) => c.enabled);
+      return db.cameras.filter((c) => {
+        const tenant = db.tenants.find((t) => t.id === c.tenantId);
+        return c.enabled && !["unpaid", "canceled"].includes(tenant?.billingStatus ?? "none");
+      });
     },
     async getPublicCamera(cameraId: string): Promise<PublicCamera | null> {
       const cam = db.cameras.find((c) => c.id === cameraId);
-      if (!cam) return null;
+      if (!cam || !cam.enabled) return null;
       const tenant = db.tenants.find((t) => t.id === cam.tenantId);
+      if (tenant && ["unpaid", "canceled"].includes(tenant.billingStatus)) return null;
       return {
         id: cam.id,
         name: cam.name,
@@ -268,6 +272,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     async getGroupBySlug(tenantSlug: string, groupSlug: string): Promise<PublicGroupWithCameras | null> {
       const tenant = db.tenants.find((t) => t.slug === tenantSlug);
       if (!tenant) return null;
+      if (["unpaid", "canceled"].includes(tenant.billingStatus)) return null;
       const group = db.cameraGroups.find((g) => g.tenantId === tenant.id && g.slug === groupSlug);
       if (!group) return null;
       const cams = db.cameraGroupMembers

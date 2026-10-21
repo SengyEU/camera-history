@@ -15,6 +15,7 @@ const cfg: AppConfig = {
     enabled: true,
     secretKey: "sk_test",
     webhookSecret: "whsec",
+    portalConfigId: "bpc_test",
     prices: {
       "0.5": "price_0_5",
       "1": "price_1",
@@ -25,20 +26,24 @@ const cfg: AppConfig = {
       "36": "price_36",
     },
   },
-  billing: { graceDays: 3 },
+  billing: { graceDays: 7 },
 };
 
 function createFakeSync(): SubscriptionSyncGateway {
   return {
     syncSubscription: vi.fn(async () => undefined),
+    scheduleAutoCancel: vi.fn(async () => undefined),
+    resumeAutoCancel: vi.fn(async () => undefined),
+    cancelSubscription: vi.fn(async () => undefined),
   };
 }
 
 describe("grace check", () => {
-  it("deactivates cameras and marks unpaid when grace expired", async () => {
+  it("cancels the subscription after grace and keeps cameras visible", async () => {
     const repos = createFakeRepos();
+    const sync = createFakeSync();
     const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
-    await repos.createCamera(tenant.id, {
+    const camera = await repos.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
       feedUrl: "https://x/cam.jpg",
@@ -56,12 +61,15 @@ describe("grace check", () => {
     await runBillingJobs({
       repos,
       cfg,
-      sync: createFakeSync(),
+      sync,
       now: new Date("2026-09-18T00:00:00Z"),
     });
 
-    expect((await repos.getTenantById(tenant.id))!.billingStatus).toBe("unpaid");
-    expect(repos.db.cameras[0]!.enabled).toBe(false);
+    const after = (await repos.getTenantById(tenant.id))!;
+    expect(after.billingStatus).toBe("canceled");
+    expect(after.stripeSubscriptionId).toBeNull();
+    expect(repos.db.cameras.find((c) => c.id === camera.id)!.enabled).toBe(true);
+    expect(sync.cancelSubscription).toHaveBeenCalledWith({ subscriptionId: "sub_1" });
   });
 
   it("keeps tenant past_due while grace is active", async () => {
@@ -96,6 +104,52 @@ describe("grace check", () => {
 });
 
 describe("usage report", () => {
+  it("schedules cancellation when the tenant has no cameras and does not empty the subscription", async () => {
+    const repos = createFakeRepos();
+    const sync = createFakeSync();
+    const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
+    await repos.setBillingState(tenant.id, { billingStatus: "active", stripeSubscriptionId: "sub_empty" });
+
+    await runBillingJobs({
+      repos,
+      cfg,
+      sync,
+      now: new Date("2026-09-18T12:00:00Z"),
+    });
+
+    expect(sync.scheduleAutoCancel).toHaveBeenCalledWith({ subscriptionId: "sub_empty" });
+    expect(sync.syncSubscription).not.toHaveBeenCalled();
+  });
+
+  it("resumes an auto-canceled subscription when a camera is added", async () => {
+    const repos = createFakeRepos();
+    const sync = createFakeSync();
+    const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
+    await repos.createCamera(tenant.id, {
+      name: "A",
+      feedType: "static_url",
+      feedUrl: "https://a/x.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    await repos.setBillingState(tenant.id, { billingStatus: "active", stripeSubscriptionId: "sub_resume" });
+
+    await runBillingJobs({
+      repos,
+      cfg,
+      sync,
+      now: new Date("2026-09-18T12:00:00Z"),
+    });
+
+    expect(sync.resumeAutoCancel).toHaveBeenCalledWith({ subscriptionId: "sub_resume" });
+    expect(sync.syncSubscription).toHaveBeenCalledWith({
+      subscriptionId: "sub_resume",
+      items: [{ priceId: "price_12", quantity: 1 }],
+    });
+  });
+
   it("syncs per-plan subscription quantities for active tenants", async () => {
     const repos = createFakeRepos();
     const sync = createFakeSync();
@@ -141,6 +195,15 @@ describe("usage report", () => {
     const repos = createFakeRepos();
     const sync = createFakeSync();
     const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
+    await repos.createCamera(tenant.id, {
+      name: "A",
+      feedType: "static_url",
+      feedUrl: "https://a/x.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
     await repos.setBillingState(tenant.id, { billingStatus: "active", stripeSubscriptionId: "sub_9" });
 
     const run = (now: Date) => runBillingJobs({ repos, cfg, sync, now });

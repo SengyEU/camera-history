@@ -69,6 +69,11 @@ describe("BillingPage", () => {
     expect(screen.queryByTestId("storage-bytes")).not.toBeInTheDocument();
   });
 
+  it("labels the estimate as tax-inclusive", async () => {
+    render(<BillingPage />);
+    expect(await screen.findByText("Estimated monthly (incl. tax)")).toBeInTheDocument();
+  });
+
   it("shows grace warning for past_due", async () => {
     render(<BillingPage />);
     expect(await screen.findByText(/activation by/i)).toBeInTheDocument();

@@ -71,6 +71,34 @@ describe("public routes", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("hides camera and group when billing is canceled or unpaid", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCamera(repos);
+    const tenant = (await repos.getTenantById(camera.tenantId))!;
+    const group = await repos.createGroup(tenant.id, { name: "Main", slug: "main" });
+    await repos.setGroupCameras(group.id, [camera.id]);
+
+    for (const status of ["canceled", "unpaid"] as const) {
+      await repos.setBillingState(tenant.id, { billingStatus: status });
+      const info = await app.inject({ url: `/api/v1/cameras/${camera.id}` });
+      expect(info.statusCode).toBe(404);
+      const images = await app.inject({ url: `/api/v1/cameras/${camera.id}/images?date=2026-09-18` });
+      expect(images.statusCode).toBe(404);
+      const latest = await app.inject({ url: `/api/v1/cameras/${camera.id}/latest` });
+      expect(latest.statusCode).toBe(404);
+      const publicGroup = await app.inject({ url: "/api/v1/groups/acme/main" });
+      expect(publicGroup.statusCode).toBe(404);
+    }
+
+    await repos.setBillingState(tenant.id, { billingStatus: "active" });
+    const active = await app.inject({ url: `/api/v1/cameras/${camera.id}` });
+    expect(active.statusCode).toBe(200);
+    const activeGroup = await app.inject({ url: "/api/v1/groups/acme/main" });
+    expect(activeGroup.statusCode).toBe(200);
+
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("returns 404 for missing camera", async () => {
     const { app, repos } = makeApp();
     const res = await app.inject({ url: `/api/v1/cameras/does-not-exist/images?date=2026-09-18` });

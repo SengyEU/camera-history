@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lt, notInArray, sql } from "drizzle-orm";
 import type {
   AdminCameraGroup,
   BillingPatch,
@@ -127,8 +127,17 @@ export function createRepos(db: Db): Repos {
       await db.delete(cameras).where(eq(cameras.id, id));
     },
     async listEnabledCameras() {
-      const rows = await db.select().from(cameras).where(eq(cameras.enabled, true));
-      return rows.map(toCamera);
+      const rows = await db
+        .select({ camera: cameras })
+        .from(cameras)
+        .innerJoin(tenants, eq(cameras.tenantId, tenants.id))
+        .where(
+          and(
+            eq(cameras.enabled, true),
+            notInArray(tenants.billingStatus, ["unpaid", "canceled"]),
+          ),
+        );
+      return rows.map((row) => toCamera(row.camera));
     },
     async getPublicCamera(cameraId: string): Promise<PublicCamera | null> {
       const rows = await db
@@ -147,7 +156,13 @@ export function createRepos(db: Db): Repos {
         })
         .from(cameras)
         .innerJoin(tenants, eq(cameras.tenantId, tenants.id))
-        .where(eq(cameras.id, cameraId));
+        .where(
+          and(
+            eq(cameras.id, cameraId),
+            eq(cameras.enabled, true),
+            notInArray(tenants.billingStatus, ["unpaid", "canceled"]),
+          ),
+        );
       const row = rows[0];
       return row
         ? {
@@ -368,7 +383,13 @@ export function createRepos(db: Db): Repos {
         .innerJoin(tenants, eq(tenants.id, cameraGroups.tenantId))
         .leftJoin(cameraGroupMembers, eq(cameraGroupMembers.cameraGroupId, cameraGroups.id))
         .leftJoin(cameras, eq(cameras.id, cameraGroupMembers.cameraId))
-        .where(and(eq(tenants.slug, tenantSlug), eq(cameraGroups.slug, groupSlug)));
+        .where(
+          and(
+            eq(tenants.slug, tenantSlug),
+            eq(cameraGroups.slug, groupSlug),
+            notInArray(tenants.billingStatus, ["unpaid", "canceled"]),
+          ),
+        );
       if (rows.length === 0) return null;
       const group = { id: rows[0]!.groupId, name: rows[0]!.gname, slug: rows[0]!.gslug };
       const cams = rows

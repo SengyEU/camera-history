@@ -54,10 +54,11 @@ const AppConfigSchema = z.object({
     enabled: boolean(false),
     secretKey: z.string().default(""),
     webhookSecret: z.string().default(""),
+    portalConfigId: z.string().default(""),
     prices: z.record(z.string(), z.string()).default({}),
   }),
   billing: z.object({
-    graceDays: numeric(3),
+    graceDays: numeric(7),
   }),
 });
 
@@ -105,6 +106,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
       enabled: env.STRIPE_ENABLED,
       secretKey: env.STRIPE_SECRET_KEY ?? "",
       webhookSecret: env.STRIPE_WEBHOOK_SECRET ?? "",
+      portalConfigId: env.STRIPE_PORTAL_CONFIG_ID ?? "",
       prices: pricesFromEnv(env),
     },
     billing: { graceDays: env.BILLING_GRACE_DAYS },

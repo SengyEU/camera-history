@@ -7,7 +7,7 @@ export interface StripeWebhookEvent {
 }
 
 export interface StripeGateway {
-  createCustomer(input: { tenantId: string }): Promise<{ id: string }>;
+  createCustomer(input: { tenantId: string; email?: string; name?: string }): Promise<{ id: string }>;
   createCheckoutSession(input: {
     customer: string;
     items: Array<{ priceId: string; quantity: number }>;
@@ -29,14 +29,21 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
   if (!cfg.stripe.enabled || !cfg.stripe.secretKey) return null;
   const stripe = new Stripe(cfg.stripe.secretKey);
   return {
-    async createCustomer({ tenantId }) {
-      const customer = await stripe.customers.create({ metadata: { tenantId } });
+    async createCustomer({ tenantId, email, name }) {
+      const customer = await stripe.customers.create({
+        ...(email ? { email } : {}),
+        ...(name ? { name } : {}),
+        metadata: { tenantId },
+      });
       return { id: customer.id };
     },
     async createCheckoutSession(input) {
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         customer: input.customer,
+        customer_update: { address: "auto", name: "auto" },
+        billing_address_collection: "required",
+        payment_method_collection: "always",
         managed_payments: { enabled: true },
         line_items: input.items.map((item) => ({ price: item.priceId, quantity: item.quantity })),
         subscription_data: {
@@ -46,6 +53,9 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
             trialClaimed: input.trialPeriodDays ? "1" : "0",
           },
           ...(input.trialPeriodDays ? { trial_period_days: input.trialPeriodDays } : {}),
+          ...(input.trialPeriodDays
+            ? { trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } } }
+            : {}),
         },
         client_reference_id: input.tenantId,
         metadata: {
@@ -63,7 +73,11 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
       return { url: session.url ?? "", customer, subscription };
     },
     async createPortalSession({ customer, returnUrl }) {
-      const session = await stripe.billingPortal.sessions.create({ customer, return_url: returnUrl });
+      const session = await stripe.billingPortal.sessions.create({
+        customer,
+        return_url: returnUrl,
+        ...(cfg.stripe.portalConfigId ? { configuration: cfg.stripe.portalConfigId } : {}),
+      });
       return { url: session.url };
     },
     async verifyWebhook({ payload, signature }) {

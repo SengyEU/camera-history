@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Idempotentní seed produktu, metered cen a Billing Portal konfigurace do Stripe.
+// Idempotentní seed produktu, tax-inclusive cen a Billing Portal konfigurace do Stripe.
 // Bez deps: volá Stripe REST API přes global fetch (Node >= 20).
 // Použití: STRIPE_SECRET_KEY=sk_test_... node scripts/seed-stripe.mjs
 
@@ -68,7 +68,7 @@ console.log(`product: ${product.id} (${product.name}), tax_code ${product.tax_co
 
 const priceIds = {};
 for (const tier of TIERS) {
-  const lookupKey = `ch_${String(tier.months).replace(".", "_")}m`;
+  const lookupKey = `ch_incl_${String(tier.months).replace(".", "_")}m`;
   let price = await findPrice(lookupKey);
   if (!price) {
     price = await api(
@@ -78,6 +78,7 @@ for (const tier of TIERS) {
         currency: "eur",
         unit_amount: String(tier.eur * 100),
         billing_scheme: "per_unit",
+        tax_behavior: "inclusive",
         lookup_key: lookupKey,
         "metadata[camera_history]": "1",
         "recurring[interval]": "month",
@@ -91,26 +92,31 @@ for (const tier of TIERS) {
   console.log(`price ${lookupKey}: ${price.id}`);
 }
 
-const portal =
-  (await findPortalConfig()) ??
-  (await api(
-    "/billing_portal/configurations",
-    {
-      "business_profile[headline]": "Správa předplatného Camera History",
-      "features[subscription_cancel][enabled]": "true",
-      "features[subscription_cancel][mode]": "at_period_end",
-      "features[payment_method_update][enabled]": "true",
-      "features[invoice_history][enabled]": "true",
-      "metadata[camera_history]": "1",
-    },
-    "POST",
-  ));
+const portalParams = {
+  "business_profile[headline]": "Správa předplatného Camera History",
+  "features[subscription_cancel][enabled]": "true",
+  "features[subscription_cancel][mode]": "at_period_end",
+  "features[payment_method_update][enabled]": "true",
+  "features[invoice_history][enabled]": "true",
+  "features[subscription_update][enabled]": "false",
+  "features[subscription_pause][enabled]": "false",
+  "features[customer_update][enabled]": "true",
+  "features[customer_update][allowed_updates][0]": "address",
+  "features[customer_update][allowed_updates][1]": "name",
+  "features[customer_update][allowed_updates][2]": "email",
+  "metadata[camera_history]": "1",
+};
+const existingPortal = await findPortalConfig();
+const portal = existingPortal
+  ? await api(`/billing_portal/configurations/${existingPortal.id}`, portalParams, "POST")
+  : await api("/billing_portal/configurations", portalParams, "POST");
 
 console.log(`portal configuration: ${portal.id}`);
 
 console.log("\nNastav do .env:");
 for (const [k, v] of Object.entries(priceIds)) console.log(`${k}=${v}`);
+console.log(`STRIPE_PORTAL_CONFIG_ID=${portal.id}`);
 console.log(`STRIPE_WEBHOOK_SECRET=whsec_... (z dashboardu, endpoint /api/v1/billing/webhook)`);
 console.log(
-  "Stripe dashboard → Developers → Webhooks → add endpoint → events: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted",
+  "Stripe dashboard → Developers → Webhooks → add endpoint → events: checkout.session.completed, checkout.session.expired, customer.subscription.updated, customer.subscription.deleted",
 );

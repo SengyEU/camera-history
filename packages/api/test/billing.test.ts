@@ -110,6 +110,40 @@ describe("billing endpoints", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("passes the owner email and tenant name to the Stripe customer", async () => {
+    const customers: Array<Record<string, unknown>> = [];
+    const gateway = defineFakeStripeGateway({
+      createCustomer: async (input) => {
+        customers.push(input as unknown as Record<string, unknown>);
+        return { id: "cus_123" };
+      },
+    });
+    const { app, repos } = makeApp({
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: ALL_PRICES } },
+      stripe: gateway,
+    });
+    const cookie = await registerAndLogin(app);
+    const tenant = repos.db.tenants[0]!;
+    await repos.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl: "https://x/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/billing/checkout",
+      headers: { cookie },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(200);
+    expect(customers[0]).toEqual({ tenantId: tenant.id, email: "a@acme.cz", name: "ACME" });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("creates a checkout with licensed plan quantities", async () => {
     const created: Array<Record<string, unknown>> = [];
     const gateway = defineFakeStripeGateway({
@@ -279,7 +313,7 @@ describe("billing webhook", () => {
         },
       },
     });
-    await repos.createCamera(tenant.id, {
+    const camera = await repos.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
       feedUrl: "https://x/cam.jpg",
@@ -288,6 +322,7 @@ describe("billing webhook", () => {
       activeTo: "23:59",
       timezone: "UTC",
     });
+    await repos.updateCamera(camera.id, { enabled: false });
     void token;
     const res = await app.inject({
       method: "POST",
@@ -303,7 +338,7 @@ describe("billing webhook", () => {
       billingStatus: "active",
       planMonths: 24,
     });
-    expect(repos.db.cameras[0]!.enabled).toBe(true);
+    expect(repos.db.cameras[0]!.enabled).toBe(false);
     await (app as { close: () => Promise<void> }).close();
   });
 
@@ -337,7 +372,7 @@ describe("billing webhook", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("sets past_due with grace then disables cameras on unpaid", async () => {
+  it("keeps a one-week grace period when Stripe marks the subscription unpaid", async () => {
     const events: Array<{ type: string; object: Record<string, unknown> }> = [];
     const gateway = defineFakeStripeGateway({
       verifyWebhook: async () => {
@@ -352,7 +387,7 @@ describe("billing webhook", () => {
     const token = await registerAndLogin(app);
     const tenant = repos.db.tenants[0]!;
     await repos.setBillingState(tenant.id, { stripeSubscriptionId: "sub_1", billingStatus: "active" });
-    await repos.createCamera(tenant.id, {
+    const camera = await repos.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
       feedUrl: "https://x/cam.jpg",
@@ -376,7 +411,8 @@ describe("billing webhook", () => {
     expect(past.statusCode).toBe(200);
     const pastDue = (await repos.getTenantById(tenant.id))!;
     expect(pastDue.billingStatus).toBe("past_due");
-    expect(pastDue.billingGraceUntil && pastDue.billingGraceUntil.getTime()).toBeGreaterThan(Date.now());
+    const grace = pastDue.billingGraceUntil;
+    expect(grace && grace.getTime()).toBeGreaterThan(Date.now());
 
     events.push({
       type: "customer.subscription.updated",
@@ -389,8 +425,10 @@ describe("billing webhook", () => {
       payload: "{}",
     });
     expect(unpaid.statusCode).toBe(200);
-    expect((await repos.getTenantById(tenant.id))!.billingStatus).toBe("unpaid");
-    expect(repos.db.cameras[0]!.enabled).toBe(false);
+    const after = (await repos.getTenantById(tenant.id))!;
+    expect(after.billingStatus).toBe("past_due");
+    expect(after.billingGraceUntil?.getTime()).toBe(grace?.getTime());
+    expect(repos.db.cameras.find((c) => c.id === camera.id)!.enabled).toBe(true);
     await (app as { close: () => Promise<void> }).close();
   });
 
@@ -437,13 +475,13 @@ describe("billing webhook", () => {
     });
     expect(res.statusCode).toBe(200);
     expect((await repos.getTenantById(tenant.id))!.billingStatus).toBe("active");
-    expect(repos.db.cameras[0]!.enabled).toBe(true);
+    expect(repos.db.cameras[0]!.enabled).toBe(false);
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("marks tenant canceled and disables cameras on deleted", async () => {
+  it("marks tenant canceled and clears the subscription on deleted", async () => {
     const { app, repos } = makeApp({
-      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, webhookSecret: "whsec_test" } },
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, webhookSecret: "whsec_test", prices: ALL_PRICES } },
       stripe: defineFakeStripeGateway({
         verifyWebhook: async () => {
           const tenant = repos.db.tenants[0]!;
@@ -457,7 +495,7 @@ describe("billing webhook", () => {
     const token = await registerAndLogin(app);
     const tenant = repos.db.tenants[0]!;
     await repos.setBillingState(tenant.id, { stripeSubscriptionId: "sub_3", billingStatus: "active" });
-    await repos.createCamera(tenant.id, {
+    const camera = await repos.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
       feedUrl: "https://x/cam.jpg",
@@ -474,8 +512,18 @@ describe("billing webhook", () => {
       payload: "{}",
     });
     expect(res.statusCode).toBe(200);
-    expect((await repos.getTenantById(tenant.id))!.billingStatus).toBe("canceled");
-    expect(repos.db.cameras[0]!.enabled).toBe(false);
+    const after = (await repos.getTenantById(tenant.id))!;
+    expect(after.billingStatus).toBe("canceled");
+    expect(after.stripeSubscriptionId).toBeNull();
+    expect(repos.db.cameras.find((c) => c.id === camera.id)!.enabled).toBe(true);
+
+    const checkout = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/billing/checkout",
+      headers: { cookie: token },
+      payload: {},
+    });
+    expect(checkout.statusCode).toBe(200);
     await (app as { close: () => Promise<void> }).close();
   });
 });

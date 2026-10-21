@@ -115,7 +115,11 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
 
       let customerId = tenant.stripeCustomerId;
       if (!customerId) {
-        const customer = await deps.stripe.createCustomer({ tenantId: tenant.id });
+        const customer = await deps.stripe.createCustomer({
+          tenantId: tenant.id,
+          email: req.user?.email,
+          name: tenant.name,
+        });
         customerId = customer.id;
         await deps.repos.setBillingState(tenant.id, { stripeCustomerId: customerId });
       }
@@ -212,7 +216,6 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
           billingGraceUntil: null,
           ...(Number.isFinite(planMonths) ? { planMonths } : {}),
         });
-        await deps.repos.setTenantCamerasEnabled(tenantId, true);
       }
 
       if (event.type === "checkout.session.expired" && tenantId && metadata.trialClaimed === "1") {
@@ -226,22 +229,29 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
         const status = String(object.status ?? "");
         if (status === "active" || status === "trialing") {
           await deps.repos.setBillingState(tenantId, { billingStatus: "active", billingGraceUntil: null });
-          await deps.repos.setTenantCamerasEnabled(tenantId, true);
-        } else if (status === "past_due") {
+        } else if (status === "past_due" || status === "unpaid") {
+          const current = await deps.repos.getTenantById(tenantId);
+          const existingGrace =
+            current?.billingStatus === "past_due" ? current.billingGraceUntil : null;
           await deps.repos.setBillingState(tenantId, {
             billingStatus: "past_due",
-            billingGraceUntil: graceUntil(deps.cfg.billing.graceDays, new Date()),
+            billingGraceUntil: existingGrace ?? graceUntil(deps.cfg.billing.graceDays, new Date()),
           });
-        } else if (status === "unpaid" || status === "canceled" || status === "incomplete_expired") {
-          const billingStatus = status === "canceled" ? "canceled" : "unpaid";
-          await deps.repos.setBillingState(tenantId, { billingStatus, billingGraceUntil: null });
-          await deps.repos.setTenantCamerasEnabled(tenantId, false);
+        } else if (status === "canceled" || status === "incomplete_expired") {
+          await deps.repos.setBillingState(tenantId, {
+            billingStatus: "canceled",
+            billingGraceUntil: null,
+            stripeSubscriptionId: null,
+          });
         }
       }
 
       if (event.type === "customer.subscription.deleted" && tenantId) {
-        await deps.repos.setBillingState(tenantId, { billingStatus: "canceled", billingGraceUntil: null });
-        await deps.repos.setTenantCamerasEnabled(tenantId, false);
+        await deps.repos.setBillingState(tenantId, {
+          billingStatus: "canceled",
+          billingGraceUntil: null,
+          stripeSubscriptionId: null,
+        });
       }
 
       return { received: true };
