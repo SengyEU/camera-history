@@ -64,6 +64,13 @@
       "when": 1792514932750,
       "tag": "0008_camera_time_format",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792591871798,
+      "tag": "0009_trial_claim",
+      "breakpoints": true
     }
   ]
 }

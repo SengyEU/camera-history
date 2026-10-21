@@ -15,6 +15,7 @@ export interface Tenant {
   stripeSubscriptionId: string | null;
   billingStatus: BillingStatus;
   billingGraceUntil: Date | null;
+  trialClaimedAt: Date | null;
 }
 
 export interface BillingPatch {
@@ -22,6 +23,7 @@ export interface BillingPatch {
   stripeSubscriptionId?: string | null;
   billingStatus?: BillingStatus;
   billingGraceUntil?: Date | null;
+  trialClaimedAt?: Date | null;
   planMonths?: number;
 }
 

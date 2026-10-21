@@ -46,7 +46,7 @@ Status: living document. Current product work stays in the implementation plan; 
 
 ## Phase 2 — Pilot partners + direct outreach
 
-- **10–20 design partners**: first camera operators using the product in a 30-day pilot or at a discounted first-year rate.
+- **10–20 design partners**: first camera operators using the product in a 30-day pilot or at a discounted first-year rate. The first **20 new subscriptions** receive one month free automatically.
   - Personal onboarding, feedback, case study and testimonial.
   - Convert to paid after the pilot; no indefinite free accounts.
 - Build a lead database of 200–500 static-camera operators: ski resorts, marinas, attractions, construction and weather/nature networks.

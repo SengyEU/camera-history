@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import type {
   AdminCameraGroup,
   BillingPatch,
@@ -257,11 +257,19 @@ export function createRepos(db: Db): Repos {
           stripeSubscriptionId: patch.stripeSubscriptionId,
           billingStatus: patch.billingStatus,
           billingGraceUntil: patch.billingGraceUntil,
+          trialClaimedAt: patch.trialClaimedAt,
           planMonths: patch.planMonths !== undefined ? String(patch.planMonths) : undefined,
         })
         .where(eq(tenants.id, tenantId))
         .returning();
       return row ? toTenant(row) : null;
+    },
+    async countTrialClaims() {
+      const rows = await db
+        .select({ id: tenants.id })
+        .from(tenants)
+        .where(isNotNull(tenants.trialClaimedAt));
+      return rows.length;
     },
     async listTenantsByBillingStatus(status: BillingStatus) {
       const rows = await db.select().from(tenants).where(eq(tenants.billingStatus, status));

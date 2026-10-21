@@ -76,6 +76,7 @@ This checklist is executed before public launch, after product features are comp
 ## Go-to-market
 
 - [ ] 10–20 design partners identified; pilot terms agreed
+- [ ] First 20 subscriptions have the 30-day free month configured and tracked
 - [ ] Lead database of 200–500 camera operators with country, type, site, contact and language
 - [ ] Personalised outreach templates + 3–5 follow-ups + opt-out
 - [ ] CRM and UTM/attribution tracking

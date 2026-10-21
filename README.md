@@ -117,10 +117,13 @@ Billing stránka ukazuje odhad měsíční částky a rozpad podle plánů.
 1. `STRIPE_SECRET_KEY=sk_test_... node scripts/seed-stripe.mjs` — vytvoří produkt a 7 metered cen.
 2. Do `.env` zkopíruj vypsané `STRIPE_PRICE_*` a nastav `STRIPE_ENABLED=true`.
 3. Stripe → Developers → Webhooks → endpoint `https://camera.sengycraft.cz/api/v1/billing/webhook`
-   s událostmi `checkout.session.completed`, `customer.subscription.updated`,
-   `customer.subscription.deleted`; nastav `STRIPE_WEBHOOK_SECRET`.
+   s událostmi `checkout.session.completed`, `checkout.session.expired`,
+   `customer.subscription.updated`, `customer.subscription.deleted`; nastav
+   `STRIPE_WEBHOOK_SECRET`.
 4. Restartuj API/worker. Registrace už nespouští checkout; přidej kameru a v Billingu klikni
    na **Start billing**. Platba se inicializuje pro všechny tiery; usage se reportuje hourly.
+   Prvních **20** nových subscription dostane automaticky **30 dní zdarma**; při expiraci
+   nezaplaceného Checkoutu se slot uvolní.
 
 ### Hard stop
 

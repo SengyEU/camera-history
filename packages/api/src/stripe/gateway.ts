@@ -13,6 +13,7 @@ export interface StripeGateway {
     priceIds: string[];
     tenantId: string;
     planMonths: number;
+    trialPeriodDays?: number;
     successUrl: string;
     cancelUrl: string;
   }): Promise<{ url: string; customer: string | null; subscription: string | null }>;
@@ -38,10 +39,19 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
         customer: input.customer,
         line_items: input.priceIds.map((price) => ({ price })),
         subscription_data: {
-          metadata: { tenantId: input.tenantId, planMonths: String(input.planMonths) },
+          metadata: {
+            tenantId: input.tenantId,
+            planMonths: String(input.planMonths),
+            trialClaimed: input.trialPeriodDays ? "1" : "0",
+          },
+          ...(input.trialPeriodDays ? { trial_period_days: input.trialPeriodDays } : {}),
         },
         client_reference_id: input.tenantId,
-        metadata: { tenantId: input.tenantId, planMonths: String(input.planMonths) },
+        metadata: {
+          tenantId: input.tenantId,
+          planMonths: String(input.planMonths),
+          trialClaimed: input.trialPeriodDays ? "1" : "0",
+        },
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,
       });

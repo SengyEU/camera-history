@@ -50,6 +50,7 @@ export interface Repos {
   >;
   setTenantCamerasEnabled(tenantId: string, enabled: boolean): Promise<void>;
   setBillingState(tenantId: string, patch: BillingPatch): Promise<Tenant | null>;
+  countTrialClaims(): Promise<number>;
   listTenantsByBillingStatus(status: BillingStatus): Promise<Tenant[]>;
   createGroup(tenantId: string, input: NewCameraGroup): Promise<CameraGroup>;
   listGroups(tenantId: string): Promise<AdminCameraGroup[]>;

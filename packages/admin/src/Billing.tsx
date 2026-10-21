@@ -87,6 +87,17 @@ export function BillingPage() {
       {data.billingEnabled && !data.pricesConfigured && (
         <p className="notice danger">All seven Stripe plan prices must be configured before billing can start.</p>
       )}
+      {data.billingEnabled && data.freeMonthAvailable && (
+        <p className="notice" data-testid="free-month-notice">
+          First month free for the first 20 customers — {data.freeMonthSlotsLeft} slot
+          {data.freeMonthSlotsLeft === 1 ? "" : "s"} left.
+        </p>
+      )}
+      {data.billingEnabled && data.freeMonthClaimed && (
+        <p className="notice" data-testid="free-month-claimed">
+          First month free — claimed.
+        </p>
+      )}
       {notice && (
         <p className="notice" data-testid="billing-notice">
           {notice}

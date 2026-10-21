@@ -21,6 +21,9 @@ const billing = {
   storageBytes: 14814804,
   billingEnabled: true,
   pricesConfigured: true,
+  freeMonthAvailable: true,
+  freeMonthClaimed: false,
+  freeMonthSlotsLeft: 17,
   monthlyTotal: 107,
   tiers: [
     { months: 0.5, label: "14 days", eurPerCamera: 5, count: 0, monthlyTotal: 0, current: false },
@@ -61,6 +64,7 @@ describe("BillingPage", () => {
     expect(screen.getByText("past due")).toBeInTheDocument();
     expect(screen.getByTestId("camera-count")).toHaveTextContent("3");
     expect(screen.getByTestId("monthly-total")).toHaveTextContent("€107.00");
+    expect(screen.getByTestId("free-month-notice")).toHaveTextContent("17 slots left");
     expect(screen.queryByTestId("usage-bytes")).not.toBeInTheDocument();
     expect(screen.queryByTestId("storage-bytes")).not.toBeInTheDocument();
   });

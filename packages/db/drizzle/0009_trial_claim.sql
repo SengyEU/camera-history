@@ -1,0 +1,1 @@
+ALTER TABLE "tenants" ADD COLUMN "trial_claimed_at" timestamp with time zone;

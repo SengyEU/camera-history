@@ -68,6 +68,9 @@ describe("billing endpoints", () => {
     expect(body.monthlyTotal).toBe(29);
     expect(body.hasSubscription).toBe(false);
     expect(body.pricesConfigured).toBe(true);
+    expect(body.freeMonthAvailable).toBe(true);
+    expect(body.freeMonthClaimed).toBe(false);
+    expect(body.freeMonthSlotsLeft).toBe(20);
     expect(body.tiers.find((t: { months: number }) => t.months === 12)).toMatchObject({
       count: 1,
       monthlyTotal: 29,
@@ -139,8 +142,44 @@ describe("billing endpoints", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().url).toBe("https://checkout.stripe.com/sess");
     expect((created[0]!.priceIds as string[])).toHaveLength(7);
-    expect(created[0]).toMatchObject({ planMonths: 24 });
+    expect(created[0]).toMatchObject({ planMonths: 24, trialPeriodDays: 30 });
     expect((await repos.getTenantById(tenant.id))!.planMonths).toBe(24);
+    expect((await repos.getTenantById(tenant.id))!.trialClaimedAt).toBeInstanceOf(Date);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("does not grant a second free month", async () => {
+    const created: Array<Record<string, unknown>> = [];
+    const gateway = defineFakeStripeGateway({
+      createCheckoutSession: async (input) => {
+        created.push(input as unknown as Record<string, unknown>);
+        return { url: "https://checkout.stripe.com/sess", customer: "cus_123", subscription: null };
+      },
+    });
+    const { app, repos } = makeApp({
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: ALL_PRICES } },
+      stripe: gateway,
+    });
+    const cookie = await registerAndLogin(app);
+    const tenant = repos.db.tenants[0]!;
+    await repos.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl: "https://x/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    await repos.setBillingState(tenant.id, { trialClaimedAt: new Date("2026-01-01T00:00:00Z") });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/billing/checkout",
+      headers: { cookie },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(200);
+    expect(created[0]?.trialPeriodDays).toBeUndefined();
     await (app as { close: () => Promise<void> }).close();
   });
 
@@ -265,6 +304,36 @@ describe("billing webhook", () => {
       planMonths: 24,
     });
     expect(repos.db.cameras[0]!.enabled).toBe(true);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("releases a trial claim when checkout expires", async () => {
+    const gateway = defineFakeStripeGateway();
+    const { app, repos } = makeApp({
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, webhookSecret: "whsec_test" } },
+      stripe: gateway,
+    });
+    await registerAndLogin(app);
+    const tenant = repos.db.tenants[0]!;
+    await repos.setBillingState(tenant.id, { trialClaimedAt: new Date("2026-01-01T00:00:00Z") });
+    gateway.verifyWebhook = async () => ({
+      type: "checkout.session.expired",
+      data: {
+        object: {
+          metadata: { tenantId: tenant.id, trialClaimed: "1" },
+          customer: "cus_new",
+          subscription: null,
+        },
+      },
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/billing/webhook",
+      headers: { "stripe-signature": sig, "content-type": "application/json" },
+      payload: "{}",
+    });
+    expect(res.statusCode).toBe(200);
+    expect((await repos.getTenantById(tenant.id))!.trialClaimedAt).toBeNull();
     await (app as { close: () => Promise<void> }).close();
   });
 

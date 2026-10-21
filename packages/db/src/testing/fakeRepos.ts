@@ -49,6 +49,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         stripeSubscriptionId: null,
         billingStatus: "none",
         billingGraceUntil: null,
+        trialClaimedAt: null,
       };
       db.tenants.push(tenant);
       return tenant;
@@ -219,6 +220,9 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       const updated: Tenant = { ...db.tenants[idx]!, ...patch, id: tenantId };
       db.tenants[idx] = updated;
       return updated;
+    },
+    async countTrialClaims() {
+      return db.tenants.filter((t) => t.trialClaimedAt !== null).length;
     },
     async listTenantsByBillingStatus(status: BillingStatus) {
       return db.tenants.filter((t) => t.billingStatus === status);

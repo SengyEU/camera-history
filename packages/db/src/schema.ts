@@ -40,6 +40,7 @@ export const tenants = pgTable("tenants", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   billingStatus: billingStatusEnum("billing_status").notNull().default("none"),
   billingGraceUntil: timestamp("billing_grace_until", { withTimezone: true }),
+  trialClaimedAt: timestamp("trial_claimed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

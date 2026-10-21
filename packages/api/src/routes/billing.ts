@@ -11,6 +11,8 @@ import { requireAuth } from "../plugins/auth.js";
 import { adminBase } from "../stripe/gateway.js";
 
 const RATE_LIMIT = { max: 300, timeWindow: "1 minute" };
+const FREE_TRIAL_SLOTS = 20;
+const FREE_TRIAL_DAYS = 30;
 
 function graceUntil(days: number, now: Date): Date {
   return new Date(now.getTime() + days * 86_400_000);
@@ -49,6 +51,8 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
     });
     const monthlyTotal = tiers.reduce((total, tier) => total + tier.monthlyTotal, 0);
     const pricesConfigured = configuredPrices(deps).length === BILLING_TIERS.length;
+    const trialClaims = await deps.repos.countTrialClaims();
+    const freeMonthAvailable = !tenant.trialClaimedAt && trialClaims < FREE_TRIAL_SLOTS;
 
     return {
       planMonths: tenant.planMonths,
@@ -62,6 +66,9 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
       storageBytes,
       billingEnabled: deps.cfg.stripe.enabled,
       pricesConfigured,
+      freeMonthAvailable,
+      freeMonthClaimed: Boolean(tenant.trialClaimedAt),
+      freeMonthSlotsLeft: Math.max(0, FREE_TRIAL_SLOTS - trialClaims),
       monthlyTotal,
       tiers,
     };
@@ -106,16 +113,30 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
         await deps.repos.setBillingState(tenant.id, { stripeCustomerId: customerId });
       }
 
+      let trialPeriodDays: number | undefined;
+      if (!tenant.trialClaimedAt && (await deps.repos.countTrialClaims()) < FREE_TRIAL_SLOTS) {
+        await deps.repos.setBillingState(tenant.id, { trialClaimedAt: new Date() });
+        trialPeriodDays = FREE_TRIAL_DAYS;
+      }
+
       const base = adminBase(deps.cfg);
-      const session = await deps.stripe.createCheckoutSession({
-        customer: customerId,
-        priceIds: prices.map((item) => item.priceId),
-        tenantId: tenant.id,
-        planMonths,
-        successUrl: `${base}/#/billing?paid=1`,
-        cancelUrl: `${base}/#/billing?pay=cancelled`,
-      });
-      return { url: session.url };
+      try {
+        const session = await deps.stripe.createCheckoutSession({
+          customer: customerId,
+          priceIds: prices.map((item) => item.priceId),
+          tenantId: tenant.id,
+          planMonths,
+          trialPeriodDays,
+          successUrl: `${base}/#/billing?paid=1`,
+          cancelUrl: `${base}/#/billing?pay=cancelled`,
+        });
+        return { url: session.url };
+      } catch (err) {
+        if (trialPeriodDays) {
+          await deps.repos.setBillingState(tenant.id, { trialClaimedAt: null });
+        }
+        throw err;
+      }
     },
   );
 
@@ -185,6 +206,13 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
           ...(Number.isFinite(planMonths) ? { planMonths } : {}),
         });
         await deps.repos.setTenantCamerasEnabled(tenantId, true);
+      }
+
+      if (event.type === "checkout.session.expired" && tenantId && metadata.trialClaimed === "1") {
+        const current = await deps.repos.getTenantById(tenantId);
+        if (current && !current.stripeSubscriptionId) {
+          await deps.repos.setBillingState(tenantId, { trialClaimedAt: null });
+        }
       }
 
       if (event.type === "customer.subscription.updated" && tenantId) {

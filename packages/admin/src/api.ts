@@ -84,6 +84,9 @@ export interface BillingDto {
   storageBytes: number;
   billingEnabled: boolean;
   pricesConfigured: boolean;
+  freeMonthAvailable: boolean;
+  freeMonthClaimed: boolean;
+  freeMonthSlotsLeft: number;
   monthlyTotal: number;
   tiers: BillingTierDto[];
 }
