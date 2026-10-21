@@ -108,13 +108,14 @@ Každá kamera má retenční plán (`plan_months`); `null` znamená „dědí v
 Výchozí plán se nastavuje v Billingu, per-kamera override v editoru kamery. Celková cena je
 součet počtu kamer v každém tieru × cena za kameru.
 
-Stripe model: **jedna subscription na tenanta se sedmi metered cenami** (jedna cena na tier).
-Worker každou hodinu reportuje počet kamer v každém efektivním tieru; Stripe fakturuje usage.
+Stripe model: **jedna subscription na tenanta s licensed cenami po tierech**. Každá cena má
+quantity = počet kamer v daném efektivním tieru. Worker každou hodinu synchronizuje quantities
+(přidá/upraví/odebere subscription item); checkout obsahuje jen tiery, které tenant aktuálně používá.
 Billing stránka ukazuje odhad měsíční částky a rozpad podle plánů.
 
 ### Zapnutí sandboxu
 
-1. `STRIPE_SECRET_KEY=sk_test_... node scripts/seed-stripe.mjs` — vytvoří produkt a 7 metered cen.
+1. `STRIPE_SECRET_KEY=sk_test_... node scripts/seed-stripe.mjs` — vytvoří produkt a 7 licensed cen.
 2. Do `.env` zkopíruj vypsané `STRIPE_PRICE_*` a nastav `STRIPE_ENABLED=true`.
 3. Stripe → Developers → Webhooks → endpoint `https://camera.sengycraft.cz/api/v1/billing/webhook`
    s událostmi `checkout.session.completed`, `checkout.session.expired`,

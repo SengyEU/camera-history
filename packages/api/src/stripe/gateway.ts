@@ -10,7 +10,7 @@ export interface StripeGateway {
   createCustomer(input: { tenantId: string }): Promise<{ id: string }>;
   createCheckoutSession(input: {
     customer: string;
-    priceIds: string[];
+    items: Array<{ priceId: string; quantity: number }>;
     tenantId: string;
     planMonths: number;
     trialPeriodDays?: number;
@@ -37,7 +37,8 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         customer: input.customer,
-        line_items: input.priceIds.map((price) => ({ price })),
+        managed_payments: { enabled: false },
+        line_items: input.items.map((item) => ({ price: item.priceId, quantity: item.quantity })),
         subscription_data: {
           metadata: {
             tenantId: input.tenantId,

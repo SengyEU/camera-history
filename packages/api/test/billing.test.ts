@@ -110,7 +110,7 @@ describe("billing endpoints", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("creates a checkout with all metered plan prices", async () => {
+  it("creates a checkout with licensed plan quantities", async () => {
     const created: Array<Record<string, unknown>> = [];
     const gateway = defineFakeStripeGateway({
       createCheckoutSession: async (input) => {
@@ -141,7 +141,7 @@ describe("billing endpoints", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().url).toBe("https://checkout.stripe.com/sess");
-    expect((created[0]!.priceIds as string[])).toHaveLength(7);
+    expect(created[0]!.items).toEqual([{ priceId: "price_24", quantity: 1 }]);
     expect(created[0]).toMatchObject({ planMonths: 24, trialPeriodDays: 30 });
     expect((await repos.getTenantById(tenant.id))!.planMonths).toBe(24);
     expect((await repos.getTenantById(tenant.id))!.trialClaimedAt).toBeInstanceOf(Date);

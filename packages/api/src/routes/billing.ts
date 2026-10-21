@@ -105,6 +105,13 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
       if (prices.length !== BILLING_TIERS.length) {
         throw new HttpError(409, "billing_not_configured", "all seven plan prices must be configured");
       }
+      const counts = await deps.repos.cameraPlanCounts(tenant.id);
+      const items = prices
+        .map((item) => ({
+          priceId: item.priceId,
+          quantity: counts.get(item.months) ?? 0,
+        }))
+        .filter((item) => item.quantity > 0);
 
       let customerId = tenant.stripeCustomerId;
       if (!customerId) {
@@ -123,7 +130,7 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
       try {
         const session = await deps.stripe.createCheckoutSession({
           customer: customerId,
-          priceIds: prices.map((item) => item.priceId),
+          items,
           tenantId: tenant.id,
           planMonths,
           trialPeriodDays,

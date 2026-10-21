@@ -75,8 +75,7 @@ for (const tier of TIERS) {
         lookup_key: lookupKey,
         "metadata[camera_history]": "1",
         "recurring[interval]": "month",
-        "recurring[usage_type]": "metered",
-        "recurring[aggregate_usage]": "last_value",
+        "recurring[usage_type]": "licensed",
       },
       "POST",
     );

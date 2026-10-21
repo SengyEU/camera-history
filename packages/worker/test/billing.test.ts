@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AppConfig } from "@ch/core";
 import { createFakeRepos } from "@ch/db";
-import { runBillingJobs, type MeteringGateway } from "../src/billing.js";
+import { runBillingJobs, type SubscriptionSyncGateway } from "../src/billing.js";
 
 const cfg: AppConfig = {
   databaseUrl: "",
@@ -28,15 +28,9 @@ const cfg: AppConfig = {
   billing: { graceDays: 3 },
 };
 
-function createFakeMetering(): MeteringGateway {
+function createFakeSync(): SubscriptionSyncGateway {
   return {
-    listSubscriptionItems: vi.fn(async () =>
-      Object.entries(cfg.stripe.prices).map(([months, priceId]) => ({
-        id: `si_${months}`,
-        priceId,
-      })),
-    ),
-    reportUsage: vi.fn(async () => undefined),
+    syncSubscription: vi.fn(async () => undefined),
   };
 }
 
@@ -62,7 +56,7 @@ describe("grace check", () => {
     await runBillingJobs({
       repos,
       cfg,
-      metering: createFakeMetering(),
+      sync: createFakeSync(),
       now: new Date("2026-09-18T00:00:00Z"),
     });
 
@@ -81,7 +75,7 @@ describe("grace check", () => {
     await runBillingJobs({
       repos,
       cfg,
-      metering: createFakeMetering(),
+      sync: createFakeSync(),
       now: new Date("2026-09-18T00:00:00Z"),
     });
 
@@ -94,7 +88,7 @@ describe("grace check", () => {
     await runBillingJobs({
       repos,
       cfg,
-      metering: createFakeMetering(),
+      sync: createFakeSync(),
       now: new Date("2026-09-18T00:00:00Z"),
     });
     expect(repos.db.tenants[0]!.billingStatus).toBe("none");
@@ -102,9 +96,9 @@ describe("grace check", () => {
 });
 
 describe("usage report", () => {
-  it("reports per-plan camera counts for active tenants", async () => {
+  it("syncs per-plan subscription quantities for active tenants", async () => {
     const repos = createFakeRepos();
-    const metering = createFakeMetering();
+    const sync = createFakeSync();
     const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
     await repos.createCamera(tenant.id, {
       name: "A",
@@ -130,43 +124,43 @@ describe("usage report", () => {
     await runBillingJobs({
       repos,
       cfg,
-      metering,
+      sync,
       now: new Date("2026-09-18T12:00:00Z"),
     });
 
-    expect(metering.listSubscriptionItems).toHaveBeenCalledWith({ subscriptionId: "sub_9" });
-    expect(metering.reportUsage).toHaveBeenCalledWith(
-      expect.objectContaining({ subscriptionItem: "si_3", quantity: 1, timestamp: 1789732800 }),
-    );
-    expect(metering.reportUsage).toHaveBeenCalledWith(
-      expect.objectContaining({ subscriptionItem: "si_12", quantity: 1, timestamp: 1789732800 }),
-    );
+    expect(sync.syncSubscription).toHaveBeenCalledWith({
+      subscriptionId: "sub_9",
+      items: [
+        { priceId: "price_3", quantity: 1 },
+        { priceId: "price_12", quantity: 1 },
+      ],
+    });
   });
 
   it("dampens reporting to once per hour per tenant", async () => {
     const repos = createFakeRepos();
-    const metering = createFakeMetering();
+    const sync = createFakeSync();
     const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
     await repos.setBillingState(tenant.id, { billingStatus: "active", stripeSubscriptionId: "sub_9" });
 
-    const run = (now: Date) => runBillingJobs({ repos, cfg, metering, now });
+    const run = (now: Date) => runBillingJobs({ repos, cfg, sync, now });
 
     await run(new Date("2026-09-18T12:00:00Z"));
     await run(new Date("2026-09-18T12:30:00Z"));
-    expect(metering.reportUsage).toHaveBeenCalledTimes(7);
+    expect(sync.syncSubscription).toHaveBeenCalledTimes(1);
 
     await run(new Date("2026-09-18T13:00:00Z"));
-    expect(metering.reportUsage).toHaveBeenCalledTimes(14);
+    expect(sync.syncSubscription).toHaveBeenCalledTimes(2);
   });
 
-  it("does not report when metering is disabled", async () => {
+  it("does not sync when billing sync is disabled", async () => {
     const repos = createFakeRepos();
     const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
     await repos.setBillingState(tenant.id, { billingStatus: "active", stripeSubscriptionId: "sub_9" });
     await runBillingJobs({
       repos,
       cfg: { ...cfg, stripe: { ...cfg.stripe, enabled: false } },
-      metering: null,
+      sync: null,
       now: new Date("2026-09-18T12:00:00Z"),
     });
     expect(repos.db.tenants[0]!.billingStatus).toBe("active");
