@@ -20,8 +20,6 @@
   * { box-sizing: border-box; }
   html { font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif; color: var(--ink); }
   body { margin: 0; background: #fff; font-size: 9.6pt; line-height: 1.42; }
-  .page { break-after: page; }
-  .page:last-child { break-after: auto; }
 
   .doc-title { margin: 0 0 9mm; font-size: 24pt; line-height: 1.1; letter-spacing: -0.03em; }
 
@@ -31,14 +29,14 @@
   .key span { display: block; color: var(--muted); font-size: 7.6pt; letter-spacing: 0.06em; text-transform: uppercase; }
   .key strong { display: block; margin-top: 1.6mm; font-size: 17pt; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
 
-  h2 { margin: 9mm 0 2.4mm; font-size: 12.5pt; letter-spacing: -0.01em; break-after: avoid-page; }
+  h2 { margin: 7mm 0 2.2mm; font-size: 12.5pt; letter-spacing: -0.01em; break-after: avoid-page; }
   h2 .n { color: var(--glacier); font-weight: 600; margin-right: 2mm; }
   p { margin: 0 0 2mm; max-width: 80ch; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; break-inside: avoid; }
   tr { break-inside: avoid; }
-  th { padding: 1.4mm 2mm 1.4mm 0; border-bottom: 1px solid var(--ink); font-size: 7.6pt; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; font-weight: 600; }
-  td { padding: 1.05mm 2mm 1.05mm 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { padding: 1.1mm 2mm 1.1mm 0; border-bottom: 1px solid var(--ink); font-size: 7.6pt; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; font-weight: 600; }
+  td { padding: 0.8mm 2mm 0.8mm 0; border-bottom: 1px solid var(--line); vertical-align: top; }
   .num { text-align: right; padding-right: 0; font-variant-numeric: tabular-nums; }
   tr.total td { border-top: 1px solid var(--ink); border-bottom: none; font-weight: 600; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 9mm; }
