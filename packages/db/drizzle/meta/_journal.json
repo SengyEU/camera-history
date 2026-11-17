@@ -71,6 +71,13 @@
       "when": 1792591871798,
       "tag": "0009_trial_claim",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794932566191,
+      "tag": "0010_powerful_mockingbird",
+      "breakpoints": true
     }
   ]
 }

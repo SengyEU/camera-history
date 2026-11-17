@@ -16,6 +16,8 @@ const billing = {
   stripeCustomerId: "cus_1",
   hasSubscription: false,
   graceUntil: "2026-09-25T00:00:00.000Z",
+  isPilot: false,
+  pilotUntil: null,
   cameraCount: 3,
   usageBytes: 1234567,
   storageBytes: 14814804,
@@ -77,6 +79,24 @@ describe("BillingPage", () => {
   it("shows grace warning for past_due", async () => {
     render(<BillingPage />);
     expect(await screen.findByText(/activation by/i)).toBeInTheDocument();
+  });
+
+  it("marks pilot accounts as free and blocks starting billing", async () => {
+    (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...billing,
+      billingStatus: "none",
+      hasSubscription: false,
+      graceUntil: null,
+      isPilot: true,
+      pilotUntil: "2027-03-01T00:00:00.000Z",
+      freeMonthAvailable: false,
+      freeMonthSlotsLeft: 20,
+    });
+    render(<BillingPage />);
+    expect(await screen.findByTestId("pilot-notice")).toHaveTextContent(/free of charge/i);
+    expect(screen.getByTestId("pilot-pill")).toHaveTextContent("pilot");
+    expect(screen.getByTestId("change-plan")).toBeDisabled();
+    expect(screen.queryByTestId("free-month-notice")).not.toBeInTheDocument();
   });
 
   it("redirects to checkout on plan change", async () => {

@@ -75,15 +75,29 @@ export function BillingPage() {
   if (!data) return <p className="loading">Loading…</p>;
 
   const usedTiers = data.tiers.filter((tier) => tier.count > 0);
-  const canStart = data.billingEnabled && data.pricesConfigured && data.cameraCount > 0;
+  const canStart =
+    data.billingEnabled && data.pricesConfigured && data.cameraCount > 0 && !data.isPilot;
 
   return (
     <section className="panel" data-testid="billing-page">
       <div className="panel-head">
         <h2>Billing</h2>
-        <span className={STATUS_PILL[data.billingStatus]}>{STATUS_LABELS[data.billingStatus]}</span>
+        {data.isPilot ? (
+          <span className="pill pill-operational" data-testid="pilot-pill">
+            pilot
+          </span>
+        ) : (
+          <span className={STATUS_PILL[data.billingStatus]}>{STATUS_LABELS[data.billingStatus]}</span>
+        )}
       </div>
       {!data.billingEnabled && <p className="notice">Billing is not enabled right now.</p>}
+      {data.isPilot && (
+        <p className="notice" data-testid="pilot-notice">
+          Pilot account — free of charge
+          {data.pilotUntil ? ` until ${new Date(data.pilotUntil).toLocaleDateString()}` : ""}. No
+          payment needed; we will contact you before billing starts.
+        </p>
+      )}
       {data.billingEnabled && !data.pricesConfigured && (
         <p className="notice danger">All seven Stripe plan prices must be configured before billing can start.</p>
       )}

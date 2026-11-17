@@ -486,4 +486,35 @@ describe("public routes", () => {
     expect(images.headers["content-type"]).toContain("application/problem+json");
     await (app as { close: () => Promise<void> }).close();
   });
+
+  it("lists only pilot tenants that opted in to being public", async () => {
+    const { app, repos } = makeApp();
+    const pilot = await repos.createTenant({ name: "Alpine", slug: "alpine" });
+    const hidden = await repos.createTenant({ name: "Hidden", slug: "hidden" });
+    const regular = await repos.createTenant({ name: "Regular", slug: "regular" });
+    pilot.isPilot = true;
+    pilot.pilotPublic = true;
+    hidden.isPilot = true;
+    hidden.pilotPublic = false;
+    regular.pilotPublic = true;
+
+    const camera = await repos.createCamera(pilot.id, {
+      name: "Summit", feedType: "static_url", feedUrl: "https://e.com/a.jpg",
+      intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+    });
+    for (const tenant of [hidden, regular]) {
+      await repos.createCamera(tenant.id, {
+        name: "Other", feedType: "static_url", feedUrl: "https://e.com/b.jpg",
+        intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
+      });
+    }
+
+    const res = await app.inject({ method: "GET", url: "/api/v1/public/pilots" });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["cache-control"]).toContain("max-age=300");
+    expect(res.json()).toEqual({
+      pilots: [{ name: "Alpine", slug: "alpine", cameras: [{ id: camera.id, name: "Summit" }] }],
+    });
+    await (app as { close: () => Promise<void> }).close();
+  });
 });

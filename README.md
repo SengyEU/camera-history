@@ -129,6 +129,25 @@ Billing stránka ukazuje odhad měsíční částky včetně DPH a rozpad podle 
 Managed Payments / Stripe Tax je zapnuté; produkt má tax code `txcd_10103001` (SaaS, business use).
 Ceny jsou uvedené **včetně DPH**; Stripe z nich daň vypočte a odvede (v sandboxu ověřeno 19 % pro DE).
 
+### Pilotní účty
+
+Pilotní design partneři jsou zdarma a nesmí spotřebovat free-month sloty. Označuje se to v DB
+(bez admin endpointu, aby si tenant nemohl sám vypnout platby):
+
+```sql
+UPDATE tenants
+SET is_pilot = true, pilot_public = true, pilot_until = '2027-04-01'
+WHERE slug = 'nazev-tenanta';
+```
+
+- `is_pilot` — checkout vrátí `409 pilot_account`, billing stránka ukáže pilot stav.
+- `pilot_public` — zařadí tenanta do `GET /api/v1/public/pilots` a tím na landing do sekce
+  „Who is using Camera History“. Nastav jen po písemném svolení zákazníka.
+- `pilot_until` — konec pilotu; po něm přepni `is_pilot = false`, nastav `trial_claimed_at = now()`
+  (aby nedostal další free měsíc) a nech ho projít checkoutem.
+
+Landing sekce se zobrazí, jen když API vrátí aspoň jednoho veřejného pilota.
+
 ### Hard stop
 
 `past_due` + 7 dní grace (`BILLING_GRACE_DAYS`) → worker zruší subscription a tenant přejde do

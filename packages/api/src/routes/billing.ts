@@ -52,7 +52,8 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
     const monthlyTotal = tiers.reduce((total, tier) => total + tier.monthlyTotal, 0);
     const pricesConfigured = configuredPrices(deps).length === BILLING_TIERS.length;
     const trialClaims = await deps.repos.countTrialClaims();
-    const freeMonthAvailable = !tenant.trialClaimedAt && trialClaims < FREE_TRIAL_SLOTS;
+    const freeMonthAvailable =
+      !tenant.isPilot && !tenant.trialClaimedAt && trialClaims < FREE_TRIAL_SLOTS;
 
     return {
       planMonths: tenant.planMonths,
@@ -61,6 +62,8 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
       stripeCustomerId: tenant.stripeCustomerId,
       hasSubscription: Boolean(tenant.stripeSubscriptionId),
       graceUntil: tenant.billingGraceUntil,
+      isPilot: tenant.isPilot,
+      pilotUntil: tenant.pilotUntil,
       cameraCount,
       usageBytes,
       storageBytes,
@@ -82,6 +85,13 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
       const body = (req.body ?? {}) as { planMonths?: unknown };
       const tenant = await deps.repos.getTenantById(req.user!.tenantId);
       if (!tenant) throw new HttpError(404, "not_found", "tenant not found");
+      if (tenant.isPilot) {
+        throw new HttpError(
+          409,
+          "pilot_account",
+          "pilot accounts are free; ask us to switch the account to paid billing",
+        );
+      }
       let planMonths = tenant.planMonths;
 
       if (body.planMonths !== undefined) {
@@ -125,7 +135,11 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
       }
 
       let trialPeriodDays: number | undefined;
-      if (!tenant.trialClaimedAt && (await deps.repos.countTrialClaims()) < FREE_TRIAL_SLOTS) {
+      if (
+        !tenant.isPilot &&
+        !tenant.trialClaimedAt &&
+        (await deps.repos.countTrialClaims()) < FREE_TRIAL_SLOTS
+      ) {
         await deps.repos.setBillingState(tenant.id, { trialClaimedAt: new Date() });
         trialPeriodDays = FREE_TRIAL_DAYS;
       }

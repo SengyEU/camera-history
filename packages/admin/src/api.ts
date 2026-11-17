@@ -79,6 +79,8 @@ export interface BillingDto {
   stripeCustomerId: string | null;
   hasSubscription: boolean;
   graceUntil: string | null;
+  isPilot: boolean;
+  pilotUntil: string | null;
   cameraCount: number;
   usageBytes: number;
   storageBytes: number;

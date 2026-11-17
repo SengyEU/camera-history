@@ -110,6 +110,50 @@ describe("billing endpoints", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("keeps pilot accounts free and out of the free-month slots", async () => {
+    const { app, repos } = makeApp({
+      cfg: { ...testConfig, stripe: { ...testConfig.stripe, enabled: true, prices: ALL_PRICES } },
+      stripe: defineFakeStripeGateway(),
+    });
+    const cookie = await registerAndLogin(app);
+    const tenant = repos.db.tenants[0]!;
+    tenant.isPilot = true;
+    tenant.pilotUntil = new Date("2027-03-01T00:00:00Z");
+    await repos.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl: "https://x/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+
+    const summary = await app.inject({
+      method: "GET",
+      url: "/api/v1/admin/billing",
+      headers: { cookie },
+    });
+    expect(summary.json()).toMatchObject({
+      isPilot: true,
+      pilotUntil: "2027-03-01T00:00:00.000Z",
+      freeMonthAvailable: false,
+      freeMonthClaimed: false,
+      freeMonthSlotsLeft: 20,
+    });
+
+    const checkout = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/billing/checkout",
+      headers: { cookie },
+      payload: {},
+    });
+    expect(checkout.statusCode).toBe(409);
+    expect(checkout.json().title).toBe("pilot_account");
+    expect(repos.db.tenants[0]!.trialClaimedAt).toBeNull();
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("passes the owner email and tenant name to the Stripe customer", async () => {
     const customers: Array<Record<string, unknown>> = [];
     const gateway = defineFakeStripeGateway({

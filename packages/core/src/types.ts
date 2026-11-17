@@ -16,6 +16,15 @@ export interface Tenant {
   billingStatus: BillingStatus;
   billingGraceUntil: Date | null;
   trialClaimedAt: Date | null;
+  isPilot: boolean;
+  pilotPublic: boolean;
+  pilotUntil: Date | null;
+}
+
+export interface PublicPilot {
+  name: string;
+  slug: string;
+  cameras: Array<{ id: string; name: string }>;
 }
 
 export interface BillingPatch {

@@ -43,4 +43,10 @@ describe("landing page", () => {
     expect(html).toContain("LIVE — ALPINE SUMMIT");
     expect(html).toContain("MOST POPULAR");
   });
+
+  it("keeps the customer wall hidden until the API returns pilots", () => {
+    expect(html).toContain('data-pilots hidden');
+    expect(html).toContain('data-pilot-list');
+    expect(html).toContain("Who is using Camera History");
+  });
 });
