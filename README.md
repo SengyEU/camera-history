@@ -131,22 +131,22 @@ Ceny jsou uvedené **včetně DPH**; Stripe z nich daň vypočte a odvede (v san
 
 ### Pilotní účty
 
-Pilotní design partneři jsou zdarma a nesmí spotřebovat free-month sloty. Označuje se to v DB
+Pilotní design partneři jsou zdarma a nesmí spotřebovat free-month sloty. Platby se vypínají v DB
 (bez admin endpointu, aby si tenant nemohl sám vypnout platby):
 
 ```sql
 UPDATE tenants
-SET is_pilot = true, pilot_public = true, pilot_until = '2027-04-01'
+SET is_pilot = true, pilot_until = '2027-04-01'
 WHERE slug = 'nazev-tenanta';
 ```
 
 - `is_pilot` — checkout vrátí `409 pilot_account`, billing stránka ukáže pilot stav.
-- `pilot_public` — zařadí tenanta do `GET /api/v1/public/pilots` a tím na landing do sekce
-  „Who is using Camera History“. Nastav jen po písemném svolení zákazníka.
 - `pilot_until` — konec pilotu; po něm přepni `is_pilot = false`, nastav `trial_claimed_at = now()`
   (aby nedostal další free měsíc) a nech ho projít checkoutem.
 
-Landing sekce se zobrazí, jen když API vrátí aspoň jednoho veřejného pilota.
+Sekce „Who is using Camera History“ na landingu je ručně psaný obsah, ne data z DB.
+Přidává se v `packages/site/src/pilots.ts` (jméno, popisek, odkaz, screenshot) a screenshoty
+patří do `packages/site/public/pilots/`. Dokud je pole prázdné, sekce se vůbec nezobrazí.
 
 ### Hard stop
 

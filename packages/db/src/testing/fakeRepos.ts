@@ -51,7 +51,6 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         billingGraceUntil: null,
         trialClaimedAt: null,
         isPilot: false,
-        pilotPublic: false,
         pilotUntil: null,
       };
       db.tenants.push(tenant);
@@ -230,18 +229,6 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     },
     async countTrialClaims() {
       return db.tenants.filter((t) => t.trialClaimedAt !== null).length;
-    },
-    async listPublicPilots() {
-      return db.tenants
-        .filter((t) => t.isPilot && t.pilotPublic)
-        .map((t) => ({
-          name: t.name,
-          slug: t.slug,
-          cameras: db.cameras
-            .filter((c) => c.tenantId === t.id)
-            .map((c) => ({ id: c.id, name: c.name })),
-        }))
-        .filter((pilot) => pilot.cameras.length > 0);
     },
     async listTenantsByBillingStatus(status: BillingStatus) {
       return db.tenants.filter((t) => t.billingStatus === status);

@@ -14,7 +14,6 @@ import type {
   NewUser,
   PublicCamera,
   PublicGroupWithCameras,
-  PublicPilot,
   Tenant,
   User,
 } from "@ch/core";
@@ -286,26 +285,6 @@ export function createRepos(db: Db): Repos {
         .from(tenants)
         .where(isNotNull(tenants.trialClaimedAt));
       return rows.length;
-    },
-    async listPublicPilots() {
-      const rows = await db
-        .select({
-          name: tenants.name,
-          slug: tenants.slug,
-          cameraId: cameras.id,
-          cameraName: cameras.name,
-        })
-        .from(tenants)
-        .innerJoin(cameras, eq(cameras.tenantId, tenants.id))
-        .where(and(eq(tenants.isPilot, true), eq(tenants.pilotPublic, true)))
-        .orderBy(tenants.name, cameras.name);
-      const pilots = new Map<string, PublicPilot>();
-      for (const row of rows) {
-        const pilot = pilots.get(row.slug) ?? { name: row.name, slug: row.slug, cameras: [] };
-        pilot.cameras.push({ id: row.cameraId, name: row.cameraName });
-        pilots.set(row.slug, pilot);
-      }
-      return [...pilots.values()];
     },
     async listTenantsByBillingStatus(status: BillingStatus) {
       const rows = await db.select().from(tenants).where(eq(tenants.billingStatus, status));

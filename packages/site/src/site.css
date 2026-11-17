@@ -661,45 +661,53 @@ button:focus-visible {
 
 .pilot-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 32px);
   margin: clamp(32px, 5vw, 52px) 0 0;
   padding: 0;
-  border-top: 1px solid var(--color-line);
   list-style: none;
 }
 
-.pilot-list li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-  padding: var(--space-4) 0;
+.pilot-card {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.pilot-shot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
   border-bottom: 1px solid var(--color-line);
 }
 
+.pilot-body {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
 .pilot-name {
-  font-size: clamp(17px, 2.1vw, 23px);
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--text-xl);
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.3;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.pilot-meta {
+.pilot-caption {
+  margin: var(--space-2) 0 0;
   color: var(--color-muted);
-  font-size: var(--text-sm);
-}
-
-.pilot-aside {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-3);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
 }
 
 .pilot-link {
+  display: inline-block;
+  margin-top: var(--space-3);
   font-size: var(--text-sm);
   font-weight: 600;
-  white-space: nowrap;
 }
 
 .pricing {
@@ -1202,6 +1210,14 @@ button:focus-visible {
   .price-table .flag-col .ts-chip {
     font-size: var(--text-2xs);
     padding: 2px 5px;
+  }
+
+  .pilot-list {
+    grid-template-columns: 1fr;
+  }
+
+  .pilot-body {
+    padding: var(--space-4);
   }
 
   .footer-inner {

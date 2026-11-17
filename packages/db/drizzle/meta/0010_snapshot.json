@@ -1,5 +1,5 @@
 {
-  "id": "42610b9c-7abf-44ac-84a8-a2ca91420cf2",
+  "id": "83efb444-3956-4191-bf61-b23a191b4172",
   "prevId": "9f29a7b6-d866-4bb4-88a9-02bef3595a61",
   "version": "7",
   "dialect": "postgresql",
@@ -558,13 +558,6 @@
         },
         "is_pilot": {
           "name": "is_pilot",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "pilot_public": {
-          "name": "pilot_public",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,

@@ -42,7 +42,6 @@ export const tenants = pgTable("tenants", {
   billingGraceUntil: timestamp("billing_grace_until", { withTimezone: true }),
   trialClaimedAt: timestamp("trial_claimed_at", { withTimezone: true }),
   isPilot: boolean("is_pilot").notNull().default(false),
-  pilotPublic: boolean("pilot_public").notNull().default(false),
   pilotUntil: timestamp("pilot_until", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
