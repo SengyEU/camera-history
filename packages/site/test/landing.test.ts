@@ -11,8 +11,8 @@ describe("landing page", () => {
   });
 
   it("embeds the live group widget and links to it", () => {
-    expect(html).toContain('src="/group/alpine-summit/summit"');
-    expect(html).toContain('href="/group/alpine-summit/summit"');
+    expect(html).toMatch(/src="\/group\/alpine-summit\/summit[^"]*"/);
+    expect(html).toMatch(/href="\/group\/alpine-summit\/summit[^"]*"/);
   });
 
   it("uses the Sengycraft contact email in CTAs", () => {

@@ -7,6 +7,7 @@ const landing = read("../index.html");
 const web = read("../../web/index.html");
 const admin = read("../../admin/index.html");
 const deck = read("../deck/index.html");
+const brand = read("../brand/index.html");
 const robots = read("../public/robots.txt");
 const sitemap = read("../public/sitemap.xml");
 
@@ -21,13 +22,13 @@ describe("landing SEO", () => {
     expect(landing).toContain('<meta property="og:site_name" content="Camera History" />');
     expect(landing).toContain('<meta property="og:url" content="https://camera.sengycraft.cz/" />');
     expect(landing).toContain(
-      '<meta property="og:image" content="https://camera.sengycraft.cz/og-image.png" />',
+      '<meta property="og:image" content="https://camera.sengycraft.cz/og-image-a2-final.png" />',
     );
     expect(landing).toContain('<meta property="og:image:width" content="1200" />');
     expect(landing).toContain('<meta property="og:image:height" content="630" />');
     expect(landing).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(landing).toContain(
-      '<meta name="twitter:image" content="https://camera.sengycraft.cz/og-image.png" />',
+      '<meta name="twitter:image" content="https://camera.sengycraft.cz/og-image-a2-final.png" />',
     );
   });
 
@@ -43,7 +44,7 @@ describe("landing SEO", () => {
   });
 
   it("ships an OG image at 1200x630", () => {
-    const path = new URL("../public/og-image.png", import.meta.url);
+    const path = new URL("../public/og-image-a2-final.png", import.meta.url);
     expect(existsSync(path)).toBe(true);
     const png = readFileSync(path);
     expect(png.readUInt32BE(16)).toBe(1200);
@@ -56,6 +57,7 @@ describe("non-public pages are noindex", () => {
     ["widget shell", web],
     ["admin shell", admin],
     ["deck", deck],
+    ["brand preview", brand],
   ] as const) {
     it(`${name} is noindex`, () => {
       expect(html).toContain('<meta name="robots" content="noindex, nofollow" />');

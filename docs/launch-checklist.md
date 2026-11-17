@@ -21,13 +21,32 @@ This checklist is executed before public launch, after product features are comp
 - [ ] Privacy policy / GDPR information
 - [ ] Cookie policy and consent management (non-essential cookies only)
 - [ ] Data processing agreement (DPA) and subprocessor list
+- [ ] Documented role model: operator = controller; Camera History = processor for camera content and controller for account/billing
+- [ ] Data map/ROPA and lawful-basis notes
+- [ ] DPIA template available to operators
+- [ ] Widget/group privacy notice link
+- [ ] Operator terms and acceptable-use policy
+- [ ] Data export/erasure/DSAR process tested
+- [ ] Retention-deletion job verified for images, objects, CDN and backups
+- [ ] Camera/tenant deletion verified to remove object-storage files
+- [ ] Log retention and IP minimisation configured
+- [ ] EU hosting/transfer notes and vendor DPAs
 - [ ] Operator/company details, contact and VAT/tax information
 - [ ] Refund, cancellation and cooling-off terms
-- [ ] Acceptable use and retention/deletion policy
-- [ ] Data export and erasure process
 - [ ] Email marketing consent and unsubscribe/suppression process
 - [ ] Accessibility statement (EAA/WCAG/ADA as applicable)
 - [ ] Local legal review before entering each market
+
+## Content safety (NSFW v1: report-only)
+
+- [ ] Acceptable-use categories documented
+- [ ] Public report action on camera/group embeds
+- [ ] Moderation queue with hide/quarantine
+- [ ] Manual review, restore and audit log
+- [ ] Operator notification
+- [ ] Takedown SLA and appeal path
+- [ ] CSAM/illegal-content escalation and evidence-preservation runbook
+- [ ] No full automated scanning in v1; sampled scanning decision documented for later
 
 ## Backups & disaster recovery
 
@@ -38,6 +57,7 @@ This checklist is executed before public launch, after product features are comp
 - [ ] Monthly restore test and quarterly DR drill scheduled
 - [ ] Alerting on failed backups and missed RPO
 - [ ] GDPR erasure/retention policy covers backups
+- [ ] Retention deletion covers object storage, Postgres, CDN and backup expiry
 - [ ] Public backup & security policy page
 - [ ] Final backup before launch
 
@@ -57,11 +77,17 @@ This checklist is executed before public launch, after product features are comp
 - [ ] Lighthouse/PSI audit (mobile + desktop)
 - [ ] LCP/INP/CLS within thresholds
 - [ ] Image optimisation, caching/CDN, compression
+- [ ] Cache headers for images, day JSON, metadata, groups and admin APIs
+- [ ] Image TTL 1 h, current-day JSON 60 s, historical JSON 24 h, 404/admin no-store
+- [ ] Cloudflare cache rules and purge test
+- [ ] Cache purge verified on camera/tenant deletion, NSFW block and GDPR erasure
 - [ ] Font subsetting, preload and JS/CSS budgets
 - [ ] Accessibility audit
 - [ ] Security headers (CSP, HSTS, referrer policy)
 - [ ] Uptime monitoring and error tracking
 - [ ] Rate limits and abuse protections
+- [ ] Capacity/load test at 20, 100, 500 and 1,000 cameras (60 min interval)
+- [ ] Disk, DB growth and backup-window alerts configured
 
 ## Payments & tax
 
@@ -75,7 +101,7 @@ This checklist is executed before public launch, after product features are comp
 
 ## Go-to-market
 
-- [ ] 10–20 design partners identified; pilot terms agreed
+- [ ] 10–20 design partners identified; pilot terms accepted online
 - [ ] First 20 subscriptions have the 30-day free month configured and tracked
 - [ ] Lead database of 200–500 camera operators with country, type, site, contact and language
 - [ ] Personalised outreach templates + 3–5 follow-ups + opt-out
@@ -91,4 +117,8 @@ This checklist is executed before public launch, after product features are comp
 - [ ] Support channels and response times
 - [ ] Status page / incident contact
 - [ ] Rollback plan
+- [ ] First 20 pilot host has offsite backups, monitoring and resource limits; no SLA
+- [ ] Production server procurement deferred until load tests and storage forecast
+- [ ] Production topology decision recorded: dedicated app host, managed DB, object storage and CDN
+- [ ] No destructive disk cleanup without separate approval; Camera History volumes preserved
 - [ ] Launch announcement and sales materials ready

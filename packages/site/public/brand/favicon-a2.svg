@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>Camera History — A2 favicon</title>
+  <rect width="256" height="256" rx="56" fill="#0e7490"/>
+  <g transform="translate(28 28) scale(0.78)">
+    <rect x="48" y="48" width="32" height="160" rx="16" fill="#ffffff"/>
+    <rect x="176" y="48" width="32" height="160" rx="16" fill="#ffffff"/>
+    <path d="M64 140 L128 108 L192 140" fill="none" stroke="#ffffff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

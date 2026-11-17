@@ -13,6 +13,8 @@
 
 ## Roadmap & GTM
 
-- Follow `docs/roadmap.md` for sequencing. Do not add paid ads or developer/startup launch sites without explicit approval.
+- Task tracking and sequencing live in the private Trello board `Camera History — 90 % do 31. 1. 2027`; ask the user for access. The board is the single source of truth for task status.
+- Do not use `docs/roadmap.md` for sequencing; it is archived historical context.
+- Do not add paid ads or developer/startup launch sites without explicit approval.
 - Current GTM: 10–20 pilot design partners and direct outreach to camera operators; niche communities only.
 - Domain migration to `camera-history.com` is a pre-launch gate; follow `docs/domain-migration.md`.

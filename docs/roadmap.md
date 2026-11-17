@@ -1,6 +1,8 @@
 # Camera History — Product & Market Roadmap
 
-Status: living document. Current product work stays in the implementation plan; this file captures the longer-term programme.
+> **Archived 17 Nov 2026.** Do not use this file for sequencing or task status. The private Trello board `Camera History — 90 % do 31. 1. 2027` is the single source of truth. This file remains only as historical context.
+
+Status: archived. Current product work and task tracking live in Trello.
 
 ## Guiding principles
 
@@ -11,6 +13,8 @@ Status: living document. Current product work stays in the implementation plan; 
 - "All countries" is not a single switch; expand market by market after the first paying customers.
 - Legal compliance and payment coverage require local counsel and local providers.
 - Every new UI follows `docs/design-system.md`.
+- Pilot rule: the first 20 customers may run on the existing shared host only with backups, monitoring, resource limits and **no SLA**; production hardware is bought after capacity validation.
+- Privacy rule: camera operators are controllers of camera content; Camera History is the processor for camera content and a controller for its own account/billing data. Legal review is mandatory.
 
 ## Phase 0 — Product finish (done)
 
@@ -31,6 +35,7 @@ Status: living document. Current product work stays in the implementation plan; 
   - GDPR retention and erasure must also cover backups; publish a backup & security policy as a sales asset.
 - Uptime/error monitoring, status page, support channels and incident process.
 - Search Console verification, sitemap submission and indexation monitoring on the final domain.
+- Privacy and content-safety workstream tracked in `docs/privacy-content-safety.md`.
 
 ## Phase 1.5 — Domain migration to camera-history.com
 
@@ -43,6 +48,22 @@ Status: living document. Current product work stays in the implementation plan; 
 - Update `PUBLIC_BASE_URL`, `embed.js` origin, site canonical/OG/JSON-LD, sitemap/robots, README/scripts, WordPress plugin defaults, Stripe webhook and return URLs, Search Console Change of Address, e-mail DNS/signatures and legal documents.
 - Host-only auth cookies mean users re-login once on the new domain; the JWT secret stays the same.
 - Detailed runbook: `docs/domain-migration.md`.
+
+## Phase 1.6 — Privacy, content safety & retention (pilot gate)
+
+**Gate before the first paying customer; legal review is required.**
+
+- **GDPR operating model:** operator = controller of camera content; Camera History = processor for camera content and controller for account/billing data. Document joint-controller triggers and do not promise that a DPA removes all platform obligations.
+- Data map/ROPA, lawful-basis notes, DPIA template for operators, privacy notice, widget notice link, operator terms and acceptable-use policy.
+- DPA, subprocessor list, EU hosting/transfer notes and vendor DPAs (Cloudflare, Stripe, hosting, e-mail, future moderation provider, backups).
+- DSAR workflow: access/export, rectification, erasure, restriction, objection; identity checks and response SLA.
+- **Retention enforcement:** delete images older than the camera plan; current API must not merely hide old images. Erasure must cover Postgres rows, object storage, CDN cache and backup expiry.
+- Camera/tenant deletion must delete object-storage files, not only database rows.
+- Log retention and IP minimisation; breach-response runbook; security incident contacts.
+- **NSFW / inappropriate content v1 (report-only):** report button, moderation queue, immediate hide/quarantine, manual review, operator notification, audit log, appeal/restore, takedown SLA and CSAM/illegal-content escalation.
+- No full automated scanning in v1. Add sampled or full scanning only after volume/cost validation.
+- Optional privacy-preserving blur for faces/plates; no facial recognition.
+- Detailed plan: `docs/privacy-content-safety.md`.
 
 ## Phase 2 — Pilot partners + direct outreach
 
@@ -64,6 +85,16 @@ Status: living document. Current product work stays in the implementation plan; 
 - Self-service plan changes and activation/deactivation.
 - Conversion funnel and unit economics (price vs. storage/CDN cost).
 
+## Phase 3.5 — Caching, capacity & hosting baseline
+
+- Add explicit cache headers and Cloudflare rules for image files, day JSON, camera/group metadata and admin APIs.
+- Image cache v1: 1 hour TTL, purge on camera/tenant deletion and NSFW block; no signed URLs for the first 20.
+- JSON cache: current day 60 s, historical day 24 h, metadata 5 min, groups 1 min; 404/410 and admin responses `no-store`.
+- Verify cache revocation and purge as part of erasure and NSFW takedown.
+- Capacity model, SLOs, load tests and production-host decision in `docs/infrastructure.md`.
+- First 20 pilot customers: existing host is acceptable only after disk, backup and monitoring checks; no SLA.
+- Do not buy production hardware until the 100/500/1,000-camera load tests and storage forecast are complete.
+
 ## Phase 4 — Niche visibility + content
 
 - Case studies from design partners, relevant niche communities and targeted pages (webcam archive, resort webcam, embeddable history).
@@ -78,10 +109,14 @@ Status: living document. Current product work stays in the implementation plan; 
 - Multi-currency, Stripe Tax, local payment methods and market-specific compliance.
 - Local counsel review before entering each market.
 
-## Phase 6 — Scale & operations
+## Phase 6 — Scale, production topology & operations
 
 - Support/SLA, status page and incident process.
 - DR drills, storage/CDN capacity and unit economics.
+- **Production topology:** separate API, worker, database, object storage and CDN; use managed Postgres, S3-compatible object storage and a queue/distributed lock before running multiple workers.
+- **Distribution path:** single dedicated host (pilot) → app host + object storage + managed DB → multiple API instances behind a load balancer + worker pool → read replica/HA → multi-region only when demand justifies it.
+- **Server purchase gate:** target 8–16 vCPU / 64 GB RAM / 2× NVMe for the app tier, with object storage separate; Hetzner AX42/AX52/AX102 class is the baseline shortlist, exact model after load tests and quotes.
+- Current shared 4 vCPU / 24 GB / 194 GB host is for the first 20 only; it is not an HA or production SLA platform.
 - Legal entities, accounting, payouts and localised support.
 - Partner/reseller programme only if demand proves it.
 
@@ -91,6 +126,9 @@ Status: living document. Current product work stays in the implementation plan; 
 - Funnel: targeted accounts → replies → demos → pilots → activated cameras → paid cameras → MRR.
 - Retention/churn, cameras per tenant, storage cost per camera.
 - Backup health: last successful backup, RPO/RTO, restore test result.
+- Capacity: capture lag, CPU/RAM, DB rows, storage growth per camera, object egress and cache hit ratio.
+- Privacy: DSAR/erasure SLA, retention-deletion failures, moderation queue age and takedown SLA.
+- Cost per camera/month (storage, CDN, compute) and pilot host disk headroom.
 
 ## Deliberately excluded
 

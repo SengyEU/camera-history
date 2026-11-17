@@ -20,7 +20,7 @@
       content="Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
     />
     <meta property="og:url" content="https://camera.sengycraft.cz/" />
-    <meta property="og:image" content="https://camera.sengycraft.cz/og-image.png" />
+    <meta property="og:image" content="https://camera.sengycraft.cz/og-image-a2-final.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -34,7 +34,7 @@
       name="twitter:description"
       content="Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
     />
-    <meta name="twitter:image" content="https://camera.sengycraft.cz/og-image.png" />
+    <meta name="twitter:image" content="https://camera.sengycraft.cz/og-image-a2-final.png" />
     <meta
       name="twitter:image:alt"
       content="Camera History — Your webcam only shows now. We add the history."
@@ -58,7 +58,7 @@
             "description": "Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures.",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web",
-            "image": "https://camera.sengycraft.cz/og-image.png",
+            "image": "https://camera.sengycraft.cz/og-image-a2-final.png",
             "offers": {
               "@type": "AggregateOffer",
               "priceCurrency": "EUR",
@@ -78,195 +78,289 @@
         ]
       }
     </script>
-    <link rel="icon" href="/favicon.ico?v=20261019" sizes="any" />
-    <link rel="icon" href="/favicon.svg?v=20261019" type="image/svg+xml" />
-    <link rel="icon" href="/favicon-192.png?v=20261019" type="image/png" sizes="192x192" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20261019" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="stylesheet" href="/src/site.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
     <header class="site-header">
-      <a class="brand" href="/">Camera&nbsp;History</a>
-      <nav class="site-nav">
-        <a href="#features">Features</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#demo">Live demo</a>
-        <a class="nav-cta" href="mailto:hello@sengycraft.cz">Get in touch</a>
-      </nav>
+      <div class="shell header-inner">
+        <a class="brand" href="/" aria-label="Camera History home">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="/brand/logotypes/symbol-dark.svg" alt="" width="24" height="24" />
+          </span>
+          <span class="brand-word">Camera <span>History</span></span>
+        </a>
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#demo">Live demo</a>
+          <a class="nav-cta" href="mailto:hello@sengycraft.cz">
+            Talk to us
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </nav>
+        <details class="mobile-nav">
+          <summary aria-label="Open navigation">
+            <span>Menu</span>
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="m3 6 5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </summary>
+          <nav aria-label="Mobile navigation">
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#demo">Live demo</a>
+            <a href="mailto:hello@sengycraft.cz">Talk to us</a>
+          </nav>
+        </details>
+      </div>
     </header>
 
     <main id="main">
-    <section id="demo" class="hero">
-      <svg
-        class="ridge"
-        viewBox="0 0 1440 520"
-        preserveAspectRatio="xMidYMax slice"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <polyline
-          class="ridge-line"
-          points="0,180 140,120 260,150 420,70 560,130 720,40 880,140 1040,90 1200,150 1320,110 1440,160"
-          fill="none"
-          stroke-width="1.5"
-        />
-        <polyline
-          class="ridge-line"
-          points="0,260 160,190 320,230 500,140 660,220 840,120 1020,210 1200,170 1440,240"
-          fill="none"
-          stroke-width="2"
-        />
-        <polyline
-          class="ridge-line"
-          points="0,360 180,280 360,330 560,230 760,320 960,210 1160,310 1320,260 1440,300"
-          fill="none"
-          stroke-width="2.5"
-        />
-      </svg>
-      <div class="hero-inner">
-        <div class="hero-copy">
-          <span class="ts-chip">LIVE — ALPINE SUMMIT</span>
-          <h1>
-            Your webcam only shows now.
-            <span class="accent">We add the history.</span>
-          </h1>
-          <p class="lede">
-            Camera History turns any public webcam into a browsable archive. Embed a widget that lets
-            visitors scroll back through days of captures — no code, one iframe.
-          </p>
+      <section id="demo" class="hero">
+        <svg class="ridge" viewBox="0 0 1440 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+          <polyline class="ridge-line" points="0,180 140,120 260,150 420,70 560,130 720,40 880,140 1040,90 1200,150 1320,110 1440,160" fill="none" stroke-width="1.5" />
+          <polyline class="ridge-line" points="0,260 160,190 320,230 500,140 660,220 840,120 1020,210 1200,170 1440,240" fill="none" stroke-width="2" />
+          <polyline class="ridge-line" points="0,360 180,280 360,330 560,230 760,320 960,210 1160,310 1320,260 1440,300" fill="none" stroke-width="2.5" />
+        </svg>
+
+        <div class="shell hero-inner">
+          <div class="hero-copy">
+            <h1>
+              <span>Your webcam only shows now.</span>
+              <span class="accent">We add the history.</span>
+            </h1>
+            <p class="lede">
+              Turn any public webcam into a browsable archive visitors can explore by day.
+              Keep the live view, add the history, embed it with one iframe.
+            </p>
+            <div class="hero-actions">
+              <a class="btn primary" href="/group/alpine-summit/summit?date=2026-11-13&amp;hour=12">
+                Open the live archive
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M4 12 12 4M6 4h6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </a>
+              <a class="btn ghost" href="mailto:hello@sengycraft.cz">Talk to us</a>
+            </div>
+            <dl class="hero-proof" aria-label="Product facts">
+              <div><dt>Install</dt><dd>One iframe</dd></div>
+              <div><dt>History</dt><dd>14 days–36 months</dd></div>
+              <div><dt>Feeds</dt><dd>JPEG, MJPEG, HLS, RTSP</dd></div>
+            </dl>
+          </div>
+
+          <aside class="hero-cam" aria-label="Live product demo">
+            <div class="demo-shell">
+              <div class="demo-bar">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span class="ts-chip">LIVE — ALPINE SUMMIT</span>
+                <span class="demo-path">Alpine Summit / Summit</span>
+              </div>
+              <div class="cam-frame">
+                <iframe
+                  id="camera-history-group-alpine-summit-summit"
+                  src="/group/alpine-summit/summit?date=2026-11-13&amp;hour=12"
+                  title="Camera History live archive demo"
+                  style="border: 0; width: 100%"
+                ></iframe>
+              </div>
+              <div class="demo-foot">
+                <span>Three cameras, one archive.</span>
+                <a href="/group/alpine-summit/summit?date=2026-11-13&amp;hour=12" target="_blank" rel="noopener">
+                  Open full archive
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M4 12 12 4M6 4h6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section problem">
+        <div class="shell split">
+          <div class="section-head">
+            <h2>A webcam shows one moment. Visitors who missed it are gone.</h2>
+          </div>
+          <ul class="manifesto-list">
+            <li><p>Yesterday's powder day is nowhere to be seen.</p></li>
+            <li><p>The sunset, the storm, the first snow — overwritten.</p></li>
+            <li><p>Your live feed earns a glance, not a visit to your site.</p></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section solution">
+        <div class="shell">
+          <div class="section-head section-head-wide">
+            <h2>One widget. Every moment you captured.</h2>
+            <p>Keep the live view people already know, then give them a reason to stay and explore.</p>
+          </div>
+          <ol class="steps">
+            <li>
+              <span class="step-num">01</span>
+              <div><strong>We capture your camera</strong><p>At the interval you choose, around the clock.</p></div>
+            </li>
+            <li>
+              <span class="step-num">02</span>
+              <div><strong>Captures are stored safely</strong><p>In your archive for up to 36 months.</p></div>
+            </li>
+            <li>
+              <span class="step-num">03</span>
+              <div><strong>You embed one iframe</strong><p>Visitors browse the history by day, not just the live frame.</p></div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="features" class="section features">
+        <div class="shell">
+          <div class="section-head section-head-wide">
+            <h2>Everything a public camera needs</h2>
+            <p>Purpose-built for operators who want their camera to work harder than a single live frame.</p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature">
+              <h3>Any feed type</h3>
+              <p>Static JPEG, MJPEG, HLS, RTSP or a custom WebSocket — point us at your camera.</p>
+            </article>
+            <article class="feature">
+              <h3>Themes that fit</h3>
+              <p>Light, Dark, Forest and Midnight so the widget blends into your site.</p>
+            </article>
+            <article class="feature">
+              <h3>History you control</h3>
+              <p>Keep captures for 14 days up to 36 months — you choose the retention.</p>
+            </article>
+            <article class="feature">
+              <h3>Every angle together</h3>
+              <p>Group your cameras and let visitors switch between them in one widget.</p>
+            </article>
+            <article class="feature">
+              <h3>Share every moment</h3>
+              <p>Every capture has a permanent link, ready for social posts and press.</p>
+            </article>
+            <article class="feature">
+              <h3>Works on your site</h3>
+              <p>One iframe anywhere, plus a WordPress plugin for the easiest path.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" class="section pricing">
+        <div class="shell pricing-split">
+          <div class="section-head">
+            <h2>Simple pricing, per camera</h2>
+            <p class="muted">EUR, per camera, VAT included. Longer retention costs less per month.</p>
+            <div class="price-aside">
+              <p>Start with one camera. Add or remove angles as your audience grows.</p>
+            </div>
+          </div>
+          <div class="rate-card">
+            <table class="price-table" aria-label="Camera History retention pricing">
+              <caption class="visually-hidden">Camera History retention pricing</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Retention</th>
+                  <th scope="col">Price per camera</th>
+                  <th scope="col" class="flag-col"><span class="visually-hidden">Highlight</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">14 days</th><td>€5</td><td class="flag-col" aria-hidden="true"></td></tr>
+                <tr><th scope="row">1 month</th><td>€9</td><td class="flag-col" aria-hidden="true"></td></tr>
+                <tr><th scope="row">3 months</th><td>€15</td><td class="flag-col" aria-hidden="true"></td></tr>
+                <tr><th scope="row">6 months</th><td>€22</td><td class="flag-col" aria-hidden="true"></td></tr>
+                <tr class="popular"><th scope="row">12 months</th><td>€29</td><td class="flag-col"><span class="ts-chip">MOST POPULAR</span></td></tr>
+                <tr><th scope="row">24 months</th><td>€49</td><td class="flag-col" aria-hidden="true"></td></tr>
+                <tr><th scope="row">36 months</th><td>€69</td><td class="flag-col" aria-hidden="true"></td></tr>
+              </tbody>
+            </table>
+            <p class="rate-note">Every plan includes the live view, the history widget, sharing links and the WordPress plugin.</p>
+            <div class="price-actions">
+              <a class="btn primary" href="mailto:hello@sengycraft.cz">Start with one camera</a>
+              <span>Tell us your camera type and how far back you want to go.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section audiences">
+        <div class="shell">
+          <div class="section-head section-head-wide">
+            <h2>Built for anyone with a camera and an audience</h2>
+          </div>
+          <ul class="audience-list">
+            <li>Ski resorts &amp; mountain destinations</li>
+            <li>Beaches, marinas &amp; kite spots</li>
+            <li>Tourist attractions &amp; landmarks</li>
+            <li>Construction sites &amp; progress cams</li>
+            <li>Weather &amp; nature streams</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section why">
+        <div class="shell split">
+          <div class="section-head">
+            <h2>Why Camera History</h2>
+            <p>No new infrastructure to run. No video pipeline to maintain. Just a better archive for the camera you already have.</p>
+            <div class="proof-grid" aria-label="Product facts">
+              <div><strong>1</strong><span>iframe to embed</span></div>
+              <div><strong>4</strong><span>widget themes</span></div>
+              <div><strong>36</strong><span>months of history</span></div>
+              <div><strong>0</strong><span>servers on your side</span></div>
+            </div>
+          </div>
+          <ul class="why-list">
+            <li><div><strong>Self-service dashboard</strong><p>Add cameras and grab your embed snippet in minutes.</p></div></li>
+            <li><div><strong>Built for operators</strong><p>No servers, no ffmpeg, no maintenance on your side.</p></div></li>
+            <li><div><strong>Real product, live today</strong><p>The archive above runs the same code you would embed.</p></div></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="cta-band">
+        <svg class="cta-ridge" viewBox="0 0 1440 260" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <polyline points="0,190 180,150 340,178 520,104 700,164 880,92 1060,158 1220,124 1440,170" fill="none" stroke-width="1.5" />
+          <polyline points="0,232 160,202 320,224 500,172 680,216 860,154 1040,208 1220,182 1440,218" fill="none" stroke-width="2" />
+        </svg>
+        <div class="shell cta-inner">
+          <div>
+            <h2>Show your visitors more than right now</h2>
+            <p>Give every capture a second life. The live archive runs the same code your visitors would browse.</p>
+          </div>
           <div class="hero-actions">
-            <a class="btn primary" href="#demo">See the live demo</a>
-            <a class="btn ghost" href="mailto:hello@sengycraft.cz">Get in touch</a>
+            <a class="btn primary" href="/group/alpine-summit/summit?date=2026-11-13&amp;hour=12">See the live archive</a>
+            <a class="btn ghost" href="mailto:hello@sengycraft.cz">Talk to us</a>
           </div>
         </div>
-        <div class="hero-cam">
-          <div class="cam-frame">
-            <span class="ts-chip">LIVE</span>
-            <iframe
-              id="camera-history-group-alpine-summit-summit"
-              src="/group/alpine-summit/summit"
-              title="Camera History live demo"
-              style="border: 0; width: 100%; height: 720px"
-              loading="lazy"
-            ></iframe>
-          </div>
-          <p class="cam-link">
-            <a href="/group/alpine-summit/summit" target="_blank" rel="noopener">Open the demo in a new tab</a>
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section class="section problem">
-      <h2>A webcam shows one moment. Visitors who missed it are gone.</h2>
-      <ul class="cols">
-        <li>Yesterday's powder day is nowhere to be seen.</li>
-        <li>The sunset, the storm, the first snow — overwritten.</li>
-        <li>Your live feed earns a glance, not a visit to your site.</li>
-      </ul>
-    </section>
-
-    <section class="section solution">
-      <h2>One widget. Every moment you captured.</h2>
-      <ol class="steps">
-        <li><span class="step-num">01</span> <strong>We capture your camera</strong> every few minutes, around the clock.</li>
-        <li><span class="step-num">02</span> <strong>Captures are stored safely</strong> in your archive for up to 36 months.</li>
-        <li><span class="step-num">03</span> <strong>You embed one iframe</strong> and visitors browse the history by day.</li>
-      </ol>
-    </section>
-
-    <section id="features" class="section features">
-      <h2>Everything a resort webcam needs</h2>
-      <div class="cards">
-        <article class="card">
-          <span class="kicker">FEED TYPES</span>
-          <h3>Any feed type</h3>
-          <p>Static JPEG, MJPEG, HLS, RTSP or a custom WebSocket — point us at your camera.</p>
-        </article>
-        <article class="card">
-          <span class="kicker">THEMES</span>
-          <h3>Themes</h3>
-          <p>Light, Dark, Forest and Midnight so the widget blends into your site.</p>
-        </article>
-        <article class="card">
-          <span class="kicker">RETENTION</span>
-          <h3>Long retention</h3>
-          <p>Keep history for 14 days up to 36 months — you choose.</p>
-        </article>
-        <article class="card">
-          <span class="kicker">GROUPS</span>
-          <h3>Camera groups</h3>
-          <p>Group your angles and let visitors switch between them in one widget.</p>
-        </article>
-        <article class="card">
-          <span class="kicker">SHARE</span>
-          <h3>Share every moment</h3>
-          <p>Every capture has a permanent link — perfect for social posts.</p>
-        </article>
-        <article class="card">
-          <span class="kicker">EMBED</span>
-          <h3>Works anywhere</h3>
-          <p>One iframe on any website, plus a WordPress plugin for the easy path.</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="pricing" class="section pricing">
-      <h2>Simple pricing, per camera</h2>
-      <p class="muted">EUR, per camera, VAT included. Longer retention costs less per month.</p>
-      <table class="price-table">
-        <thead>
-          <tr>
-            <th scope="col">Retention</th>
-            <th scope="col">Price per camera</th>
-            <th scope="col" class="flag-col"><span class="visually-hidden">Highlight</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><th scope="row">14 days</th><td>€5</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr><th scope="row">1 month</th><td>€9</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr><th scope="row">3 months</th><td>€15</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr><th scope="row">6 months</th><td>€22</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr class="popular"><th scope="row">12 months</th><td>€29</td><td class="flag-col"><span class="ts-chip">MOST POPULAR</span></td></tr>
-          <tr><th scope="row">24 months</th><td>€49</td><td class="flag-col" aria-hidden="true"></td></tr>
-          <tr><th scope="row">36 months</th><td>€69</td><td class="flag-col" aria-hidden="true"></td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section class="section audiences">
-      <h2>Built for anyone with a camera and an audience</h2>
-      <ul class="cols">
-        <li>Ski resorts &amp; mountain destinations</li>
-        <li>Beaches, marinas &amp; kite spots</li>
-        <li>Tourist attractions &amp; landmarks</li>
-        <li>Construction sites &amp; progress cams</li>
-        <li>Weather &amp; nature streams</li>
-      </ul>
-    </section>
-
-    <section class="section why">
-      <h2>Why Camera History</h2>
-      <ul class="cols">
-        <li><strong>Self-service dashboard</strong> — add cameras and grab your embed snippet in minutes.</li>
-        <li><strong>Built for operators</strong> — no servers, no ffmpeg, no maintenance on your side.</li>
-        <li><strong>Real product, live today</strong> — the demo above runs the same code you would embed.</li>
-      </ul>
-    </section>
-
-    <section class="cta-band">
-      <h2>Show your visitors more than right now</h2>
-      <div class="hero-actions">
-        <a class="btn primary" href="/group/alpine-summit/summit">See the live demo</a>
-        <a class="btn ghost" href="mailto:hello@sengycraft.cz">Get in touch</a>
-      </div>
-    </section>
+      </section>
     </main>
 
     <footer class="site-footer">
-      <span>© Sengycraft</span>
-      <a href="mailto:hello@sengycraft.cz">hello@sengycraft.cz</a>
+      <div class="shell footer-inner">
+        <span class="brand footer-brand"><img src="/brand/logotypes/symbol-light.svg" alt="" width="22" height="22" />Camera <span>History</span></span>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#demo">Live demo</a>
+          <a href="mailto:hello@sengycraft.cz">hello@sengycraft.cz</a>
+        </nav>
+        <span>© Sengycraft</span>
+      </div>
     </footer>
-      <script src="/embed.js" defer></script>
+    <script type="module" src="/src/main.ts"></script>
+    <script src="/embed.js" defer></script>
   </body>
 </html>

@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_legacy_api_php", "label": "api.php", "file_type": "code", "source_file": "legacy/api.php", "source_location": "L1"}], "edges": [], "raw_calls": [], "php_type_table": {"path": "$graphify-root$/legacy/api.php", "table": {"conenction": "PDO"}}}

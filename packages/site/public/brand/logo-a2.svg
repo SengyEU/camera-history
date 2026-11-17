@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" color="#0e7490">
+  <title>Camera History — Low Ridge H</title>
+  <rect x="48" y="48" width="32" height="160" rx="16" fill="currentColor"/>
+  <rect x="176" y="48" width="32" height="160" rx="16" fill="currentColor"/>
+  <path d="M64 140 L128 108 L192 140" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
