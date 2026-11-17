@@ -53,9 +53,11 @@ function renderPilot(pilot: PilotStory): HTMLLIElement {
     const link = document.createElement("a");
     link.className = "pilot-link";
     link.href = pilot.href;
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = "Visit site →";
+    if (pilot.href.startsWith("http")) {
+      link.target = "_blank";
+      link.rel = "noopener";
+    }
+    link.textContent = pilot.linkLabel ?? "Visit site →";
     body.append(link);
   }
 
