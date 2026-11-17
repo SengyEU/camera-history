@@ -7,7 +7,6 @@ const landing = read("../index.html");
 const web = read("../../web/index.html");
 const admin = read("../../admin/index.html");
 const deck = read("../deck/index.html");
-const brand = read("../brand/index.html");
 const robots = read("../public/robots.txt");
 const sitemap = read("../public/sitemap.xml");
 
@@ -57,7 +56,6 @@ describe("non-public pages are noindex", () => {
     ["widget shell", web],
     ["admin shell", admin],
     ["deck", deck],
-    ["brand preview", brand],
   ] as const) {
     it(`${name} is noindex`, () => {
       expect(html).toContain('<meta name="robots" content="noindex, nofollow" />');

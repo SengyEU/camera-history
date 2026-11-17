@@ -5,7 +5,7 @@ const root = process.cwd();
 const errors = [];
 const scanned = [];
 
-const scanRoots = ["packages/site/src", "packages/site/brand", "packages/admin/src", "packages/web/src"];
+const scanRoots = ["packages/site/src", "packages/admin/src", "packages/web/src"];
 for (const dir of scanRoots) {
   if (!existsSync(join(root, dir))) continue;
   const walk = (current) => {
@@ -74,7 +74,6 @@ for (const file of scanned) {
 const entryImports = {
   "packages/site/src/site.css": "@ch/design/index.css",
   "packages/site/src/deck.css": "@ch/design/index.css",
-  "packages/site/brand/brand.css": "@ch/design/index.css",
   "packages/admin/src/main.tsx": "@ch/design/index.css",
   "packages/web/src/main.tsx": "@ch/design/index.css",
 };

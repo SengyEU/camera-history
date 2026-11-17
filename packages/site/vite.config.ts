@@ -9,7 +9,6 @@ export default defineConfig({
       input: {
         landing: fileURLToPath(new URL("./index.html", import.meta.url)),
         deck: fileURLToPath(new URL("./deck/index.html", import.meta.url)),
-        brand: fileURLToPath(new URL("./brand/index.html", import.meta.url)),
       },
     },
   },
