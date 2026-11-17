@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8" />
+<title>Analýza rizik vývoje - Camera History</title>
+<style>
+  @font-face {
+    font-family: "Montserrat";
+    src: url("../node_modules/@fontsource-variable/montserrat/files/montserrat-latin-ext-wght-normal.woff2") format("woff2");
+    font-weight: 100 900;
+    font-display: block;
+  }
+  @page { size: A4; margin: 15mm 18mm 16mm; }
+  :root {
+    --ink: #101828;
+    --muted: #5b6b7c;
+    --line: #e3e9ef;
+    --glacier: #0e7490;
+  }
+  * { box-sizing: border-box; }
+  html { font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif; color: var(--ink); }
+  body { margin: 0; background: #fff; font-size: 9.6pt; line-height: 1.42; }
+
+  .doc-title { margin: 0 0 4mm; font-size: 24pt; line-height: 1.1; letter-spacing: -0.03em; }
+  .intro { margin: 0 0 3mm; max-width: 88ch; font-size: 10pt; color: var(--muted); }
+  .method { margin: 0 0 6mm; max-width: 88ch; font-size: 8.6pt; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; break-inside: avoid; }
+  tr { break-inside: avoid; }
+  th { padding: 1.1mm 2mm 1.1mm 0; border-bottom: 1px solid var(--ink); font-size: 7.4pt; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; font-weight: 600; }
+  td { padding: 1.7mm 2mm 1.7mm 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+  .summary .prio { width: 16mm; color: var(--glacier); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .summary .name { font-weight: 600; }
+  .summary .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .summary .p { width: 30mm; }
+  .summary .i { width: 17mm; }
+  .summary .s { width: 17mm; padding-right: 0; }
+
+  .note { margin: 2.5mm 0 0; color: var(--muted); font-size: 8.2pt; max-width: 88ch; }
+
+  .risk { margin-top: 7mm; padding-top: 3.5mm; border-top: 1px solid var(--ink); break-inside: avoid; }
+  .risk-head { display: flex; align-items: baseline; gap: 3mm; }
+  .risk-head .id { color: var(--glacier); font-weight: 600; font-size: 9pt; letter-spacing: 0.04em; }
+  .risk-head h3 { margin: 0; font-size: 12.5pt; letter-spacing: -0.01em; font-weight: 600; }
+  .risk-meta { margin-left: auto; color: var(--muted); font-size: 8pt; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .risk p { margin: 2mm 0 0; font-size: 9.2pt; max-width: 100ch; }
+  .signal { margin: 1.2mm 0 0; font-size: 8.4pt; color: var(--muted); }
+  .signal b { color: var(--ink); font-weight: 600; }
+  .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7mm; margin-top: 2.8mm; }
+  .risk-grid h4 { margin: 0 0 1mm; font-size: 7.4pt; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .risk-grid ul { margin: 0; padding-left: 4mm; font-size: 8.7pt; line-height: 1.38; }
+  .risk-grid li { margin-bottom: 0.7mm; }
+
+  .footer { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid var(--line); color: var(--muted); font-size: 8pt; }
+</style>
+</head>
+<body>
+
+<h1 class="doc-title">Analýza rizik vývoje - Camera History</h1>
+<p class="intro">Pět rizik, která mohou ohrozit vývoj a spuštění Camera History do 31. 1. 2027. Jsou to rizika vývoje, ne provozu: nejde o výpadky hostingu ani o fluktuaci zákazníků, ale o věci, které vznikají při stavbě produktu a mohou posunout launch gate.</p>
+<p class="method">Pravděpodobnost je odhad, že riziko nastane do konce ledna 2027. Dopad 1–5 měří vliv na termín, piloty a důvěryhodnost produktu. Skóre = pravděpodobnost × dopad; při shodě rozhoduje vyšší dopad. Pořadí se přehodnocuje každý pátek.</p>
+
+<table class="summary">
+  <thead>
+    <tr><th>Priorita</th><th>Riziko</th><th class="num p">Pravděpodobnost</th><th class="num i">Dopad</th><th class="num s">Skóre</th></tr>
+  </thead>
+  <tbody>
+    <tr><td class="prio">1</td><td class="name">Kapacita a termín</td><td class="num">75 %</td><td class="num">5</td><td class="num">3,75</td></tr>
+    <tr><td class="prio">2</td><td class="name">Integrace kamer</td><td class="num">60 %</td><td class="num">4</td><td class="num">2,40</td></tr>
+    <tr><td class="prio">3</td><td class="name">Externí a právní gate</td><td class="num">70 %</td><td class="num">3</td><td class="num">2,10</td></tr>
+    <tr><td class="prio">4</td><td class="name">Bezpečnost a soukromí</td><td class="num">30 %</td><td class="num">5</td><td class="num">1,50</td></tr>
+    <tr><td class="prio">5</td><td class="name">Kvalita a regrese</td><td class="num">50 %</td><td class="num">3</td><td class="num">1,50</td></tr>
+  </tbody>
+</table>
+<p class="note">Bezpečnost má nejvyšší jednotlivý dopad, i když je méně pravděpodobná. Proto se testuje před launchem, ne až po něm.</p>
+
+<section class="risk">
+  <div class="risk-head">
+    <span class="id">R1</span>
+    <h3>Kapacita a termín</h3>
+    <span class="risk-meta">P 75 % · dopad 5 · skóre 3,75</span>
+  </div>
+  <p>Produkt staví jeden člověk. Design do 25. 11., finální design do 9. 12., launch gate 31. 1. 2027. Design, frontend, backend, admin, piloti i dokumentace jdou přes stejnou kapacitu, takže každý skluz se násobí.</p>
+  <p class="signal"><b>Signál:</b> dva týdny po sobě se nedokončí týdenní plán, nebo design přesáhne 25. 11.</p>
+  <div class="risk-grid">
+    <div>
+      <h4>Předcházení</h4>
+      <ul>
+        <li>Kapacitní rozpočet: 4 h denně na produkt, 1 h na komunikaci.</li>
+        <li>WIP limit 3 karty v Trellu; co není v 25. 11., počká.</li>
+        <li>Scope freeze 9. 12. a 20% rezerva před 31. 1.</li>
+        <li>Must / should / could seznam připravený předem, ne až ve skluzu.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Řešení při výskytu</h4>
+      <ul>
+        <li>Seškrtat na launch-critical: archiv, přehrávání, billing, admin, landing.</li>
+        <li>Posunout gate o 2–4 týdny a říct to pilotům dřív, než si toho všimnou.</li>
+        <li>Nice-to-have přesunout do února, ne do ledna.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="risk">
+  <div class="risk-head">
+    <span class="id">R2</span>
+    <h3>Integrace kamer</h3>
+    <span class="risk-meta">P 60 % · dopad 4 · skóre 2,40</span>
+  </div>
+  <p>Každá kamera má jiného výrobce, firmware, kodek a autentizaci. RTSP, H.265, NAT, slabý upload. Riziko je, že „u mě to funguje“ neplatí u pilota s jiným modelem.</p>
+  <p class="signal"><b>Signál:</b> první pilot hlásí, že kameru nejde připojit; roste počet tiketů na připojení.</p>
+  <div class="risk-grid">
+    <div>
+      <h4>Předcházení</h4>
+      <ul>
+        <li>Matice 3–5 reálných modelů od pilotů ještě před Vánoci.</li>
+        <li>Jeden ingest protokol a jednotné health checky; žádné per-model hacky.</li>
+        <li>Diagnostika připojení v adminu: stav, kodek, poslední frame.</li>
+        <li>Jasný seznam podporovaných kamer a snapshot fallback.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Řešení při výskytu</h4>
+      <ul>
+        <li>Remote diagnostika a dočasné snížení kvality nebo rozlišení.</li>
+        <li>Výměna kamery u pilota nebo manuální onboarding.</li>
+        <li>Kredit nebo refund za nefunkční kameru; matici rozšířit až po ověření.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="risk">
+  <div class="risk-head">
+    <span class="id">R3</span>
+    <h3>Externí a právní gate</h3>
+    <span class="risk-meta">P 70 % · dopad 3 · skóre 2,10</span>
+  </div>
+  <p>Doména camera-history.com není koupená. Stripe live čeká na firmu, IČO, adresu a legal. Bez toho nejde spustit platby pod vlastní značkou, i když je produkt hotový.</p>
+  <p class="signal"><b>Signál:</b> doména bez DNS do 9. 12.; Stripe účet bez ověření do 16. 12.</p>
+  <div class="risk-grid">
+    <div>
+      <h4>Předcházení</h4>
+      <ul>
+        <li>Koupit doménu hned: 300 Kč, rozhodnutí je vratné.</li>
+        <li>Firemní a právní kroky rozjet paralelně s vývojem, ne po něm.</li>
+        <li>Stripe test mode end-to-end a live checklist připravený předem.</li>
+        <li>DNS, nginx a e-maily připravené, aby se po koupi jen zapnuly.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Řešení při výskytu</h4>
+      <ul>
+        <li>Dočasná doména s redirectem; po ověření přepnout.</li>
+        <li>Ruční fakturace pro první platící zákazníky.</li>
+        <li>Phased launch: produkt ano, platby ručně; automatizace později.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="risk">
+  <div class="risk-head">
+    <span class="id">R4</span>
+    <h3>Bezpečnost a soukromí</h3>
+    <span class="risk-meta">P 30 % · dopad 5 · skóre 1,50</span>
+  </div>
+  <p>Záznamy z kamer jsou citlivá data. Chyba v autentizaci, podepsaných URL, izolaci tenantů nebo veřejném bucketu znamená únik. Stejně tak chybějící retence a GDPR dokumentace.</p>
+  <p class="signal"><b>Signál:</b> nález v testu izolace, otevřený bucket, podezřelý přístup v logu.</p>
+  <div class="risk-grid">
+    <div>
+      <h4>Předcházení</h4>
+      <ul>
+        <li>Auth na každé routě, krátkodobé podepsané URL, testy izolace tenantů.</li>
+        <li>Šifrování at rest, žádný veřejný bucket, rate limit a audit log.</li>
+        <li>Retence, DPA a zásady pro kamery; penetrační test před launchem.</li>
+        <li>Kill switch na tenanta a incident runbook.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Řešení při výskytu</h4>
+      <ul>
+        <li>Revokovat tokeny a odkazy, rotovat klíče, zavřít bucket.</li>
+        <li>Obnovit ze zálohy, zjistit rozsah, informovat zasažené.</li>
+        <li>Právní posouzení a veřejná komunikace podle runbooku.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="risk">
+  <div class="risk-head">
+    <span class="id">R5</span>
+    <h3>Kvalita a regrese</h3>
+    <span class="risk-meta">P 50 % · dopad 3 · skóre 1,50</span>
+  </div>
+  <p>Rychlé tempo, migrace při startu a produkce navázaná na repo. Regrese může shodit billing nebo přehrávání zrovna, když přichází první platící zákazník.</p>
+  <p class="signal"><b>Signál:</b> červené CI, migrace bez review, ruční hotfix v produkci.</p>
+  <div class="risk-grid">
+    <div>
+      <h4>Předcházení</h4>
+      <ul>
+        <li>CI gate: typecheck, test, lint, build, design:check.</li>
+        <li>Review migrací a záloha před každým deployem.</li>
+        <li>Staging, feature flagy a smoke test po deployi.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Řešení při výskytu</h4>
+      <ul>
+        <li>Rollback na předchozí image a obnova DB ze zálohy.</li>
+        <li>Hotfix s regresním testem; post-mortem do 48 h.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<p class="footer">První tři kroky: koupit doménu, udělat matici kamer, zamknout rozsah k 9. 12. · Camera History · 17. 11. 2026</p>
+
+</body>
+</html>
