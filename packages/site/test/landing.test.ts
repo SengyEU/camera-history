@@ -20,22 +20,26 @@ describe("landing page", () => {
     expect(html).toContain("hello@sengycraft.cz");
   });
 
-  it("pins the exact pricing tiers as row pairs", () => {
-    const normalized = html
-      .replace(/\s+/g, " ")
-      .replaceAll("</td><td>", "</td> <td>")
-      .replaceAll("</th><td>", "</th> <td>");
-    for (const [label, price] of [
-      ["14 days", "€5"],
-      ["1 month", "€9"],
-      ["3 months", "€15"],
-      ["6 months", "€22"],
-      ["12 months", "€29"],
-      ["24 months", "€49"],
-      ["36 months", "€69"],
+  it("pins the five packages and 12-month retention", () => {
+    for (const [name, cameras, price] of [
+      ["Solo", "1 camera", "€7.99"],
+      ["Starter", "3 cameras", "€13.99"],
+      ["Plus", "5 cameras", "€19.99"],
+      ["Pro", "10 cameras", "€29.99"],
+      ["Network", "25 cameras", "€49.99"],
     ]) {
-      expect(normalized).toContain(`<th scope="row">${label}</th> <td>${price}</td>`);
+      expect(html).toContain(`<h3>${name}</h3>`);
+      expect(html).toContain(`<span class="package-cameras">${cameras}</span>`);
+      expect(html).toContain(`<strong>${price}</strong>`);
     }
+    expect(html).toContain("12 months of history");
+    expect(html).not.toContain("36 months");
+  });
+
+  it("answers common questions and links to the admin", () => {
+    expect(html).toContain('id="faq"');
+    expect(html).toContain("How long do you keep history?");
+    expect(html).toContain('href="/admin/"');
   });
 
   it("carries the resort-signage markers", () => {

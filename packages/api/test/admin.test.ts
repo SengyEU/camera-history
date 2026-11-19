@@ -71,7 +71,7 @@ describe("admin cameras", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("creates a camera with a per-camera plan and inherits when cleared", async () => {
+  it("does not expose a per-camera retention field", async () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);
     const created = await app.inject({
@@ -79,25 +79,14 @@ describe("admin cameras", () => {
       url: "/api/v1/admin/cameras",
       headers: { cookie },
       payload: {
-        name: "Short plan",
+        name: "Main",
         feedType: "static_url",
         feedUrl: "https://example.com/cam.jpg",
         intervalMinutes: 15,
-        planMonths: 3,
       },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().camera.planMonths).toBe(3);
-    const id = created.json().camera.id as string;
-
-    const cleared = await app.inject({
-      method: "PUT",
-      url: `/api/v1/admin/cameras/${id}`,
-      headers: { cookie },
-      payload: { planMonths: null },
-    });
-    expect(cleared.statusCode).toBe(200);
-    expect(cleared.json().camera.planMonths).toBeNull();
+    expect(created.json().camera).not.toHaveProperty("planMonths");
     await (app as { close: () => Promise<void> }).close();
   });
 
@@ -122,10 +111,10 @@ describe("admin cameras", () => {
       method: "PUT",
       url: `/api/v1/admin/cameras/${id}`,
       headers: { cookie },
-      payload: { theme: "light", themeColors: null, planMonths: 3 },
+      payload: { theme: "light", themeColors: null },
     });
     expect(updated.statusCode).toBe(200);
-    expect(updated.json().camera).toMatchObject({ theme: "light", planMonths: 3 });
+    expect(updated.json().camera).toMatchObject({ theme: "light" });
     await (app as { close: () => Promise<void> }).close();
   });
 
@@ -174,25 +163,6 @@ describe("admin cameras", () => {
         feedUrl: "https://example.com/cam.jpg",
         intervalMinutes: 15,
         timeFormat: "36h",
-      },
-    });
-    expect(res.statusCode).toBe(400);
-    await (app as { close: () => Promise<void> }).close();
-  });
-
-  it("rejects an unknown per-camera plan", async () => {
-    const { app } = makeApp();
-    const cookie = await registerAndLogin(app);
-    const res = await app.inject({
-      method: "POST",
-      url: "/api/v1/admin/cameras",
-      headers: { cookie },
-      payload: {
-        name: "Bad plan",
-        feedType: "static_url",
-        feedUrl: "https://example.com/cam.jpg",
-        intervalMinutes: 15,
-        planMonths: 7,
       },
     });
     expect(res.statusCode).toBe(400);
@@ -990,7 +960,7 @@ describe("admin groups", () => {
     const res = await app.inject({ method: "GET", url: "/api/v1/admin/tenant", headers: { cookie } });
     expect(res.statusCode).toBe(200);
     expect(res.json().tenant.slug).toBe("slug-src");
-    expect(res.json().tenant.planMonths).toBe(12);
+    expect(res.json().tenant.packageCode).toBe("starter");
   });
 
   it("returns 404 for group routes owned by another tenant", async () => {
@@ -1361,5 +1331,47 @@ describe("admin groups", () => {
 
     const list = await app.inject({ method: "GET", url: "/api/v1/admin/groups", headers: { cookie: a.cookie } });
     expect(list.json().groups.find((g: { id: string }) => g.id === gid).cameraIds).toEqual([own.id]);
+  });
+});
+
+describe("camera deletion", () => {
+  it("deletes the DB row and removes archive objects", async () => {
+    const removed: string[] = [];
+    const storage = {
+      get: async (key: string) => Buffer.from(`bytes:${key}`),
+      put: async () => undefined,
+      remove: async (key: string) => {
+        removed.push(key);
+      },
+    };
+    const { app, repos } = makeApp({ storage });
+    const cookie = await registerAndLogin(app);
+    const tenant = repos.db.tenants[0]!;
+    const camera = await repos.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl: "https://example.com/cam.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+    await repos.insertImage({
+      cameraId: camera.id,
+      timestamp: new Date("2026-09-18T09:00:00Z"),
+      storageKey: "org/acme/camera/2026-09-18/090000.jpg",
+      sizeBytes: 100,
+    });
+
+    const res = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/admin/cameras/${camera.id}`,
+      headers: { cookie },
+    });
+    expect(res.statusCode).toBe(204);
+    expect(repos.db.cameras.find((c) => c.id === camera.id)).toBeUndefined();
+    expect(repos.db.images.filter((i) => i.cameraId === camera.id)).toHaveLength(0);
+    expect(removed).toEqual(["org/acme/camera/2026-09-18/090000.jpg"]);
+    await (app as { close: () => Promise<void> }).close();
   });
 });

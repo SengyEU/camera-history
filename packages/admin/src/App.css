@@ -470,6 +470,53 @@ button.link:hover {
   color: var(--glacier-deep);
 }
 
+.plan-card.is-blocked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.plan-card.is-blocked:hover {
+  border-color: var(--line);
+}
+
+.plan-cameras,
+.plan-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.plan-blocked {
+  color: var(--red);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.camera-usage {
+  margin: 14px 0 18px;
+}
+
+.camera-usage-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.usage-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+}
+
+.usage-fill {
+  display: block;
+  height: 100%;
+  background: var(--glacier);
+}
+
 .current-plan {
   font-size: 0.95rem;
 }
@@ -950,6 +997,33 @@ button.link:hover {
   }
 }
 
+@media (max-width: 720px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+  .topbar-brand {
+    order: 1;
+    flex: 1 1 auto;
+  }
+  .topbar > button {
+    order: 2;
+  }
+  .topbar-nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    gap: 20px;
+  }
+  .topbar-user {
+    order: 4;
+    width: 100%;
+    margin-left: 0;
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+  }
+}
+
 .camera-form {
   display: flex;
   flex-direction: column;
@@ -1087,47 +1161,6 @@ button.link:hover {
 .available-camera button {
   padding: 0.3rem 0.7rem;
   font-size: 0.78rem;
-}
-
-/* Prominent per-camera retention plan */
-.camera-plan-card {
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--glacier) 35%, var(--line));
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--glacier-weak), var(--surface));
-}
-
-.camera-plan-card .panel-head {
-  margin-bottom: 6px;
-}
-
-.camera-plan-card h3 {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.camera-plan-current {
-  display: block;
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--glacier-deep);
-  margin-bottom: 8px;
-}
-
-.camera-plan-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.camera-plan-field select {
-  width: 100%;
-  max-width: none;
-  font-weight: 500;
 }
 
 /* Billing summary */

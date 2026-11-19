@@ -46,10 +46,6 @@ const AppConfigSchema = z.object({
     timeoutMs: numeric(15000),
     maxBytes: numeric(5242880),
   }),
-  plan: z.object({
-    defaultRetentionMonths: numeric(12),
-    maxRetentionMonths: numeric(36),
-  }),
   stripe: z.object({
     enabled: boolean(false),
     secretKey: z.string().default(""),
@@ -62,13 +58,19 @@ const AppConfigSchema = z.object({
   }),
 });
 
-const PRICE_ENV_KEYS = ["0_5", "1", "3", "6", "12", "24", "36"] as const;
+const PACKAGE_PRICE_ENV_KEYS: Record<string, string> = {
+  solo: "STRIPE_PRICE_SOLO",
+  starter: "STRIPE_PRICE_STARTER",
+  plus: "STRIPE_PRICE_PLUS",
+  pro: "STRIPE_PRICE_PRO",
+  network: "STRIPE_PRICE_NETWORK",
+};
 
 function pricesFromEnv(env: NodeJS.ProcessEnv): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const k of PRICE_ENV_KEYS) {
-    const value = env[`STRIPE_PRICE_${k}`];
-    if (typeof value === "string" && value !== "") out[k.replace("_", ".")] = value;
+  for (const [code, key] of Object.entries(PACKAGE_PRICE_ENV_KEYS)) {
+    const value = env[key];
+    if (typeof value === "string" && value !== "") out[code] = value;
   }
   return out;
 }
@@ -98,10 +100,6 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
       concurrency: env.WORKER_CONCURRENCY,
     },
     feed: { timeoutMs: env.FEED_TIMEOUT_MS, maxBytes: env.FEED_MAX_BYTES },
-    plan: {
-      defaultRetentionMonths: env.PLAN_DEFAULT_RETENTION_MONTHS,
-      maxRetentionMonths: env.PLAN_MAX_RETENTION_MONTHS,
-    },
     stripe: {
       enabled: env.STRIPE_ENABLED,
       secretKey: env.STRIPE_SECRET_KEY ?? "",

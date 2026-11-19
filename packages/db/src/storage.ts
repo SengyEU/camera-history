@@ -4,6 +4,7 @@ import type { AppConfig } from "@ch/core";
 export interface ObjectStorage {
   put(key: string, data: Buffer): Promise<void>;
   get(key: string): Promise<Buffer>;
+  remove(key: string): Promise<void>;
 }
 
 export function keyFor(tenantSlug: string, cameraId: string, timestamp: Date): string {
@@ -50,6 +51,10 @@ export function createObjectStorage(cfg: AppConfig): ObjectStorage {
       const chunks: Buffer[] = [];
       for await (const chunk of stream) chunks.push(Buffer.from(chunk));
       return Buffer.concat(chunks);
+    },
+    async remove(key: string) {
+      await ensureBucket();
+      await client.removeObject(cfg.minio.bucket, key);
     },
   };
 }

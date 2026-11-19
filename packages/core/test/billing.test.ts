@@ -1,36 +1,62 @@
 import { describe, expect, it } from "vitest";
 import {
-  BILLING_TIERS,
-  eurPerCamera,
-  isValidPlanMonths,
-  monthsForPriceId,
-  priceIdForTier,
+  DEFAULT_PACKAGE,
+  PACKAGE_TIERS,
+  RETENTION_MONTHS,
+  cameraLimitForPackage,
+  isPackageCode,
+  packageForCameraCount,
+  packageForCode,
+  packageForPriceId,
+  priceIdForPackage,
 } from "../src/billing.js";
 
-describe("billing catalog", () => {
-  it("exposes the 7 approved tiers with eur and labels", () => {
-    expect(BILLING_TIERS.map((t) => t.months)).toEqual([0.5, 1, 3, 6, 12, 24, 36]);
-    expect(BILLING_TIERS[3]).toMatchObject({ label: "6 months", eurPerCamera: 22 });
+describe("package catalog", () => {
+  it("exposes the five approved packages with limits and prices", () => {
+    expect(PACKAGE_TIERS).toEqual([
+      { code: "solo", name: "Solo", maxCameras: 1, eurPerMonth: 7.99, priceEnv: "STRIPE_PRICE_SOLO" },
+      { code: "starter", name: "Starter", maxCameras: 3, eurPerMonth: 13.99, priceEnv: "STRIPE_PRICE_STARTER" },
+      { code: "plus", name: "Plus", maxCameras: 5, eurPerMonth: 19.99, priceEnv: "STRIPE_PRICE_PLUS" },
+      { code: "pro", name: "Pro", maxCameras: 10, eurPerMonth: 29.99, priceEnv: "STRIPE_PRICE_PRO" },
+      { code: "network", name: "Network", maxCameras: 25, eurPerMonth: 49.99, priceEnv: "STRIPE_PRICE_NETWORK" },
+    ]);
+    expect(DEFAULT_PACKAGE).toBe("starter");
+    expect(RETENTION_MONTHS).toBe(12);
   });
 
-  it("validates plan months against whitelist", () => {
-    expect(isValidPlanMonths(12)).toBe(true);
-    expect(isValidPlanMonths(0.5)).toBe(true);
-    expect(isValidPlanMonths(7)).toBe(false);
-    expect(isValidPlanMonths(0)).toBe(false);
+  it("validates package codes", () => {
+    expect(isPackageCode("solo")).toBe(true);
+    expect(isPackageCode("network")).toBe(true);
+    expect(isPackageCode("enterprise")).toBe(false);
+    expect(isPackageCode("")).toBe(false);
   });
 
-  it("looks up eur per camera", () => {
-    expect(eurPerCamera(14)).toBeNull();
-    expect(eurPerCamera(0.5)).toBe(5);
-    expect(eurPerCamera(36)).toBe(69);
+  it("looks up packages and camera limits", () => {
+    expect(packageForCode("plus")?.maxCameras).toBe(5);
+    expect(packageForCode("nope")).toBeNull();
+    expect(cameraLimitForPackage("starter")).toBe(3);
+    expect(cameraLimitForPackage("nope")).toBe(0);
   });
 
-  it("maps tier to price id and back", () => {
-    const prices = { "12": "price_12", "0.5": "price_half" };
-    expect(priceIdForTier(prices, 12)).toBe("price_12");
-    expect(priceIdForTier(prices, 24)).toBeNull();
-    expect(monthsForPriceId(prices, "price_half")).toBe(0.5);
-    expect(monthsForPriceId(prices, "nope")).toBeNull();
+  it("maps packages to price ids and back", () => {
+    const prices = { solo: "price_solo", starter: "price_starter", network: "price_network" };
+    expect(priceIdForPackage(prices, "starter")).toBe("price_starter");
+    expect(priceIdForPackage(prices, "pro")).toBeNull();
+    expect(packageForPriceId(prices, "price_network")).toBe("network");
+    expect(packageForPriceId(prices, "nope")).toBeNull();
+  });
+
+  it("picks the smallest fitting package for a camera count", () => {
+    expect(packageForCameraCount(0).code).toBe("starter");
+    expect(packageForCameraCount(1).code).toBe("solo");
+    expect(packageForCameraCount(2).code).toBe("starter");
+    expect(packageForCameraCount(3).code).toBe("starter");
+    expect(packageForCameraCount(4).code).toBe("plus");
+    expect(packageForCameraCount(5).code).toBe("plus");
+    expect(packageForCameraCount(6).code).toBe("pro");
+    expect(packageForCameraCount(10).code).toBe("pro");
+    expect(packageForCameraCount(11).code).toBe("network");
+    expect(packageForCameraCount(25).code).toBe("network");
+    expect(packageForCameraCount(26).code).toBe("network");
   });
 });

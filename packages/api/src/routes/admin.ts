@@ -1,9 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import {
   THEMES,
-  isValidPlanMonths,
+  cameraLimitForPackage,
   isValidTheme,
   normalizeThemeColors,
+  packageForCode,
   HttpError,
   rfc7807,
 } from "@ch/core";
@@ -41,14 +42,6 @@ function parseTimeFormat(value: unknown): "12h" | "24h" {
     throw new HttpError(400, "bad_request", "timeFormat must be 12h or 24h");
   }
   return value as "12h" | "24h";
-}
-
-function parsePlanMonths(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "number" || !isValidPlanMonths(value)) {
-    throw new HttpError(400, "bad_request", "planMonths must be one of the available plans");
-  }
-  return value;
 }
 
 function parseCoordinate(value: unknown, field: "latitude" | "longitude"): number | null {
@@ -116,7 +109,6 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!schemeMatches(feedType, feedUrl)) {
       throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${feedType}"`);
     }
-    const planMonths = parsePlanMonths(body.planMonths);
     const timeFormat = parseTimeFormat(body.timeFormat);
 
     const latitude = parseCoordinate(body.latitude, "latitude");
@@ -143,7 +135,11 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       showNight = body.showNight;
     }
 
-    const camera = await deps.repos.createCamera(req.user!.tenantId, {
+    const tenant = await deps.repos.getTenantById(req.user!.tenantId);
+    if (!tenant) throw new HttpError(404, "not_found", "tenant not found");
+    const tier = packageForCode(tenant.packageCode);
+    const limit = cameraLimitForPackage(tenant.packageCode);
+    const result = await deps.repos.createCameraWithLimit(req.user!.tenantId, {
       name,
       feedType: feedType as never,
       feedUrl,
@@ -154,14 +150,29 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       enabled: body.enabled === undefined ? true : Boolean(body.enabled),
       theme,
       themeColors,
-      planMonths,
       timeFormat,
       latitude,
       longitude,
       daylightOnly,
       showNight,
-    });
-    return reply.code(201).send({ camera });
+    }, limit);
+    if (!result.camera) {
+      req.log.warn(
+        {
+          tenantId: req.user!.tenantId,
+          packageCode: tenant.packageCode,
+          cameraCount: result.cameraCount,
+          limit,
+        },
+        "camera_limit_reached",
+      );
+      throw new HttpError(
+        409,
+        "camera_limit_reached",
+        `Package ${tier?.name ?? tenant.packageCode} allows ${limit} cameras. Upgrade to add more.`,
+      );
+    }
+    return reply.code(201).send({ camera: result.camera });
   });
 
   app.get("/api/v1/admin/cameras/:id", { preHandler: pre }, async (req, reply) => {
@@ -193,7 +204,6 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
           "enabled",
           "theme",
           "themeColors",
-          "planMonths",
           "timeFormat",
           "latitude",
           "longitude",
@@ -209,9 +219,6 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     }
     if (patch.theme !== undefined && !isValidTheme(String(patch.theme))) {
       throw new HttpError(400, "bad_request", `theme must be one of ${THEMES.join(", ")}`);
-    }
-    if (patch.planMonths !== undefined) {
-      patch.planMonths = parsePlanMonths(patch.planMonths);
     }
     if (patch.timeFormat !== undefined) {
       patch.timeFormat = parseTimeFormat(patch.timeFormat);
@@ -266,7 +273,15 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!camera || camera.tenantId !== req.user!.tenantId) {
       return reply.code(404).type("application/problem+json").send(notFound());
     }
+    const archived = await deps.repos.listImagesForCamera(id);
     await deps.repos.deleteCamera(id);
+    for (const image of archived) {
+      try {
+        await deps.storage.remove(image.storageKey);
+      } catch (error) {
+        req.log.warn({ err: error, cameraId: id, storageKey: image.storageKey }, "camera archive orphan");
+      }
+    }
     return reply.code(204).send();
   });
 
@@ -376,6 +391,14 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
   app.get("/api/v1/admin/tenant", { preHandler: pre }, async (req, reply) => {
     const t = await deps.repos.getTenantById(req.user!.tenantId);
     if (!t) return reply.code(404).type("application/problem+json").send(rfc7807(404, "not_found", "Tenant not found"));
-    return { tenant: { id: t.id, name: t.name, slug: t.slug, planMonths: t.planMonths } };
+    return {
+      tenant: {
+        id: t.id,
+        name: t.name,
+        slug: t.slug,
+        packageCode: t.packageCode,
+        cameraLimit: cameraLimitForPackage(t.packageCode),
+      },
+    };
   });
 }

@@ -5,7 +5,7 @@ describe("loadConfig", () => {
   it("fills defaults", () => {
     const cfg = loadConfig({});
     expect(cfg.worker.tickMs).toBe(60000);
-    expect(cfg.plan.defaultRetentionMonths).toBe(12);
+    expect("plan" in cfg).toBe(false);
   });
 
   it("loads DATABASE_URL", () => {
@@ -24,13 +24,16 @@ describe("loadConfig", () => {
     expect(loadConfig({}).minio.useSsl).toBe(false);
   });
 
-  it("loads stripe and billing config", () => {
+  it("loads stripe and billing config with package price keys", () => {
     const cfg = loadConfig({
       STRIPE_ENABLED: "true",
       STRIPE_SECRET_KEY: "sk_test_x",
       STRIPE_WEBHOOK_SECRET: "whsec_y",
-      STRIPE_PRICE_0_5: "price_half",
-      STRIPE_PRICE_12: "price_12",
+      STRIPE_PRICE_SOLO: "price_solo",
+      STRIPE_PRICE_STARTER: "price_starter",
+      STRIPE_PRICE_PLUS: "price_plus",
+      STRIPE_PRICE_PRO: "price_pro",
+      STRIPE_PRICE_NETWORK: "price_network",
       STRIPE_PORTAL_CONFIG_ID: "bpc_123",
       BILLING_GRACE_DAYS: "5",
     });
@@ -38,7 +41,13 @@ describe("loadConfig", () => {
       enabled: true,
       secretKey: "sk_test_x",
       webhookSecret: "whsec_y",
-      prices: { "0.5": "price_half", "12": "price_12" },
+      prices: {
+        solo: "price_solo",
+        starter: "price_starter",
+        plus: "price_plus",
+        pro: "price_pro",
+        network: "price_network",
+      },
     });
     expect(cfg.billing.graceDays).toBe(5);
     expect(cfg.stripe.portalConfigId).toBe("bpc_123");

@@ -1,16 +1,24 @@
 #!/usr/bin/env node
-// Idempotentní seed produktu, tax-inclusive cen a Billing Portal konfigurace do Stripe.
+// Idempotentní seed produktu, tax-inclusive cen balíčků a Billing Portal konfigurace do Stripe.
 // Bez deps: volá Stripe REST API přes global fetch (Node >= 20).
-// Použití: STRIPE_SECRET_KEY=sk_test_... node scripts/seed-stripe.mjs
+// Použití: node --env-file=.env scripts/seed-stripe.mjs
 
-const TIERS = [
-  { months: 0.5, label: "14 dní", eur: 5 },
-  { months: 1, label: "1 měsíc", eur: 9 },
-  { months: 3, label: "3 měsíce", eur: 15 },
-  { months: 6, label: "6 měsíců", eur: 22 },
-  { months: 12, label: "12 měsíců", eur: 29 },
-  { months: 24, label: "24 měsíců", eur: 49 },
-  { months: 36, label: "36 měsíců", eur: 69 },
+const PACKAGES = [
+  { code: "solo", name: "Solo", eur: 7.99 },
+  { code: "starter", name: "Starter", eur: 13.99 },
+  { code: "plus", name: "Plus", eur: 19.99 },
+  { code: "pro", name: "Pro", eur: 29.99 },
+  { code: "network", name: "Network", eur: 49.99 },
+];
+
+const OLD_LOOKUP_KEYS = [
+  "ch_incl_0_5m",
+  "ch_incl_1m",
+  "ch_incl_3m",
+  "ch_incl_6m",
+  "ch_incl_12m",
+  "ch_incl_24m",
+  "ch_incl_36m",
 ];
 
 const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -42,6 +50,16 @@ async function findPrice(lookupKey) {
   return data.find((p) => p.lookup_key === lookupKey) ?? null;
 }
 
+async function archiveOldPrices() {
+  for (const lookupKey of OLD_LOOKUP_KEYS) {
+    const { data } = await api("/prices", { "lookup_keys[]": lookupKey, active: "true", limit: "10" });
+    for (const price of data) {
+      await api(`/prices/${price.id}`, { active: "false" }, "POST");
+      console.log(`archived ${lookupKey}: ${price.id}`);
+    }
+  }
+}
+
 async function findPortalConfig() {
   const { data } = await api("/billing_portal/configurations", { limit: "100" });
   return data.find((c) => c.metadata.camera_history === "1") ?? null;
@@ -66,9 +84,12 @@ if (product.tax_code !== TAX_CODE) {
 
 console.log(`product: ${product.id} (${product.name}), tax_code ${product.tax_code}`);
 
+await archiveOldPrices();
+
 const priceIds = {};
-for (const tier of TIERS) {
-  const lookupKey = `ch_incl_${String(tier.months).replace(".", "_")}m`;
+for (const pkg of PACKAGES) {
+  const cents = Math.round(pkg.eur * 100);
+  const lookupKey = `ch_${pkg.code}_${cents}`;
   let price = await findPrice(lookupKey);
   if (!price) {
     price = await api(
@@ -76,20 +97,23 @@ for (const tier of TIERS) {
       {
         product: product.id,
         currency: "eur",
-        unit_amount: String(tier.eur * 100),
+        unit_amount: String(cents),
         billing_scheme: "per_unit",
         tax_behavior: "inclusive",
         lookup_key: lookupKey,
+        nickname: pkg.name,
         "metadata[camera_history]": "1",
+        "metadata[package_code]": pkg.code,
         "recurring[interval]": "month",
         "recurring[usage_type]": "licensed",
       },
       "POST",
     );
+    console.log(`price ${lookupKey}: ${price.id}`);
+  } else {
+    console.log(`price ${lookupKey}: ${price.id} (existing)`);
   }
-  const envKey = `STRIPE_PRICE_${String(tier.months).replace(".", "_")}`;
-  priceIds[envKey] = price.id;
-  console.log(`price ${lookupKey}: ${price.id}`);
+  priceIds[`STRIPE_PRICE_${pkg.code.toUpperCase()}`] = price.id;
 }
 
 const portalParams = {
@@ -114,9 +138,9 @@ const portal = existingPortal
 console.log(`portal configuration: ${portal.id}`);
 
 console.log("\nNastav do .env:");
-for (const [k, v] of Object.entries(priceIds)) console.log(`${k}=${v}`);
+for (const [key, value] of Object.entries(priceIds)) console.log(`${key}=${value}`);
 console.log(`STRIPE_PORTAL_CONFIG_ID=${portal.id}`);
 console.log(`STRIPE_WEBHOOK_SECRET=whsec_... (z dashboardu, endpoint /api/v1/billing/webhook)`);
 console.log(
-  "Stripe dashboard → Developers → Webhooks → add endpoint → events: checkout.session.completed, checkout.session.expired, customer.subscription.updated, customer.subscription.deleted",
+  "Stripe dashboard → Developers → Webhooks → add endpoint → events: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted",
 );

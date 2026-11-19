@@ -11,7 +11,6 @@ export const testConfig: AppConfig = {
   api: { port: 3000, publicBaseUrl: "http://localhost:8080" },
   worker: { tickMs: 60000, retryBackoffMs: 30000, concurrency: 2 },
   feed: { timeoutMs: 2000, maxBytes: 1_000_000 },
-  plan: { defaultRetentionMonths: 12, maxRetentionMonths: 36 },
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
   billing: { graceDays: 7 },
 };
@@ -22,6 +21,7 @@ export function defineFakeStripeGateway(over: Partial<StripeGateway> = {}): Stri
     createCheckoutSession:
       over.createCheckoutSession ??
       (async () => ({ url: "https://checkout.stripe.com/test", customer: "cus_123", subscription: "sub_123" })),
+    changePackage: over.changePackage ?? (async () => undefined),
     createPortalSession: over.createPortalSession ?? (async () => ({ url: "https://billing.stripe.com/test" })),
     verifyWebhook:
       over.verifyWebhook ??
@@ -43,6 +43,7 @@ export function makeApp(overrides: {
   const storage = overrides.storage ?? {
     get: async (key: string) => Buffer.from(`bytes:${key}`) as unknown as Buffer,
     put: async () => undefined,
+    remove: async () => undefined,
   };
   const cfg = overrides.cfg ?? testConfig;
   const app = buildApp({

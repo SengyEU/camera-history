@@ -25,7 +25,6 @@ export interface AdminCamera {
   enabled: boolean;
   theme: string;
   themeColors: ThemeColors | null;
-  planMonths: number | null;
   timeFormat: "12h" | "24h";
   latitude: number | null;
   longitude: number | null;
@@ -49,7 +48,6 @@ export interface CameraInput {
   timezone: string;
   theme: string;
   themeColors: ThemeColors | null;
-  planMonths: number | null;
   timeFormat: "12h" | "24h";
   latitude: number | null;
   longitude: number | null;
@@ -63,17 +61,20 @@ export interface PreviewDto {
 
 export type BillingStatus = "none" | "active" | "past_due" | "unpaid" | "canceled";
 
-export interface BillingTierDto {
-  months: number;
-  label: string;
-  eurPerCamera: number;
-  count: number;
-  monthlyTotal: number;
+export interface BillingPackageDto {
+  code: "solo" | "starter" | "plus" | "pro" | "network";
+  name: string;
+  maxCameras: number;
+  eurPerMonth: number;
   current: boolean;
+  available: boolean;
 }
 
 export interface BillingDto {
-  planMonths: number;
+  packageCode: BillingPackageDto["code"];
+  packageName: string;
+  cameraLimit: number;
+  cameraCount: number;
   price: number | null;
   billingStatus: BillingStatus;
   stripeCustomerId: string | null;
@@ -81,16 +82,10 @@ export interface BillingDto {
   graceUntil: string | null;
   isPilot: boolean;
   pilotUntil: string | null;
-  cameraCount: number;
-  usageBytes: number;
-  storageBytes: number;
   billingEnabled: boolean;
   pricesConfigured: boolean;
-  freeMonthAvailable: boolean;
-  freeMonthClaimed: boolean;
-  freeMonthSlotsLeft: number;
   monthlyTotal: number;
-  tiers: BillingTierDto[];
+  packages: BillingPackageDto[];
 }
 
 export interface AdminGroup {
@@ -191,15 +186,15 @@ export const api = {
   deleteCamera: (id: string) => json<undefined>(`/api/v1/admin/cameras/${id}`, { method: "DELETE" }),
   preview: (id: string) => json<PreviewDto>(`/api/v1/admin/cameras/${id}/preview`),
   getBilling: () => json<BillingDto>("/api/v1/admin/billing"),
-  billingCheckout: (planMonths: number) =>
+  billingCheckout: (packageCode: string) =>
     json<{ url?: string; status?: string }>("/api/v1/admin/billing/checkout", {
       method: "POST",
-      body: JSON.stringify({ planMonths }),
+      body: JSON.stringify({ packageCode }),
     }),
-  billingDefaultPlan: (planMonths: number) =>
-    json<{ status: string }>("/api/v1/admin/billing/default-plan", {
+  billingPackage: (packageCode: string) =>
+    json<{ status: string; packageCode: string }>("/api/v1/admin/billing/package", {
       method: "POST",
-      body: JSON.stringify({ planMonths }),
+      body: JSON.stringify({ packageCode }),
     }),
   billingPortal: () => json<{ url: string }>("/api/v1/admin/billing/portal", { method: "POST" }),
   listGroups: () => json<{ groups: AdminGroup[] }>("/api/v1/admin/groups").then((r) => r.groups),
@@ -211,7 +206,7 @@ export const api = {
   setGroupCameras: (id: string, cameraIds: string[]) =>
     json<undefined>(`/api/v1/admin/groups/${id}/cameras`, { method: "PUT", body: JSON.stringify({ cameraIds }) }),
   getTenant: () =>
-    json<{ tenant: { id: string; name: string; slug: string; planMonths: number } }>(
-      "/api/v1/admin/tenant",
-    ).then((r) => r.tenant),
+    json<{
+      tenant: { id: string; name: string; slug: string; packageCode: string; cameraLimit: number };
+    }>("/api/v1/admin/tenant").then((r) => r.tenant),
 };

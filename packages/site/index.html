@@ -62,9 +62,9 @@
             "offers": {
               "@type": "AggregateOffer",
               "priceCurrency": "EUR",
-              "lowPrice": 5,
-              "highPrice": 69,
-              "offerCount": 7,
+              "lowPrice": 7.99,
+              "highPrice": 49.99,
+              "offerCount": 5,
               "url": "https://camera.sengycraft.cz/#pricing"
             },
             "publisher": {
@@ -98,7 +98,9 @@
         <nav class="site-nav" aria-label="Primary navigation">
           <a href="#features">Features</a>
           <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
           <a href="#demo">Live demo</a>
+          <a class="nav-signin" href="/admin/">Sign in</a>
           <a class="nav-cta" href="mailto:hello@sengycraft.cz">
             Talk to us
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -116,7 +118,9 @@
           <nav aria-label="Mobile navigation">
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
+            <a href="#faq">FAQ</a>
             <a href="#demo">Live demo</a>
+            <a href="/admin/">Sign in</a>
             <a href="mailto:hello@sengycraft.cz">Talk to us</a>
           </nav>
         </details>
@@ -152,7 +156,7 @@
             </div>
             <dl class="hero-proof" aria-label="Product facts">
               <div><dt>Install</dt><dd>One iframe</dd></div>
-              <div><dt>History</dt><dd>14 days–36 months</dd></div>
+              <div><dt>History</dt><dd>12 months</dd></div>
               <div><dt>Feeds</dt><dd>JPEG, MJPEG, HLS, RTSP</dd></div>
             </dl>
           </div>
@@ -212,7 +216,7 @@
             </li>
             <li>
               <span class="step-num">02</span>
-              <div><strong>Captures are stored safely</strong><p>In your archive for up to 36 months.</p></div>
+              <div><strong>Captures are stored safely</strong><p>In your archive for 12 months.</p></div>
             </li>
             <li>
               <span class="step-num">03</span>
@@ -238,8 +242,8 @@
               <p>Light, Dark, Forest and Midnight so the widget blends into your site.</p>
             </article>
             <article class="feature">
-              <h3>History you control</h3>
-              <p>Keep captures for 14 days up to 36 months — you choose the retention.</p>
+              <h3>A full year of history</h3>
+              <p>Every package keeps 12 months of captures. No retention tiers to compare.</p>
             </article>
             <article class="feature">
               <h3>Every angle together</h3>
@@ -270,37 +274,91 @@
       <section id="pricing" class="section pricing">
         <div class="shell pricing-split">
           <div class="section-head">
-            <h2>Simple pricing, per camera</h2>
-            <p class="muted">EUR, per camera, VAT included. Longer retention costs less per month.</p>
+            <h2>Simple pricing, per package</h2>
+            <p class="muted">EUR, per month, VAT included. Every package includes 12 months of history.</p>
             <div class="price-aside">
-              <p>Start with one camera. Add or remove angles as your audience grows.</p>
+              <p>Start with one camera. Add or remove cameras as your audience grows.</p>
             </div>
           </div>
-          <div class="rate-card">
-            <table class="price-table" aria-label="Camera History retention pricing">
-              <caption class="visually-hidden">Camera History retention pricing</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Retention</th>
-                  <th scope="col">Price per camera</th>
-                  <th scope="col" class="flag-col"><span class="visually-hidden">Highlight</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><th scope="row">14 days</th><td>€5</td><td class="flag-col" aria-hidden="true"></td></tr>
-                <tr><th scope="row">1 month</th><td>€9</td><td class="flag-col" aria-hidden="true"></td></tr>
-                <tr><th scope="row">3 months</th><td>€15</td><td class="flag-col" aria-hidden="true"></td></tr>
-                <tr><th scope="row">6 months</th><td>€22</td><td class="flag-col" aria-hidden="true"></td></tr>
-                <tr class="popular"><th scope="row">12 months</th><td>€29</td><td class="flag-col"><span class="ts-chip">MOST POPULAR</span></td></tr>
-                <tr><th scope="row">24 months</th><td>€49</td><td class="flag-col" aria-hidden="true"></td></tr>
-                <tr><th scope="row">36 months</th><td>€69</td><td class="flag-col" aria-hidden="true"></td></tr>
-              </tbody>
-            </table>
-            <p class="rate-note">Every plan includes the live view, the history widget, sharing links and the WordPress plugin.</p>
+          <div class="package-wrap">
+            <div class="package-grid">
+              <article class="package-card">
+                <div class="package-head"><h3>Solo</h3><span class="package-cameras">1 camera</span></div>
+                <p class="package-price"><strong>€7.99</strong><span>/ month</span></p>
+                <p class="package-note">12 months of history.</p>
+              </article>
+              <article class="package-card popular">
+                <span class="ts-chip package-flag">MOST POPULAR</span>
+                <div class="package-head"><h3>Starter</h3><span class="package-cameras">3 cameras</span></div>
+                <p class="package-price"><strong>€13.99</strong><span>/ month</span></p>
+                <p class="package-note">12 months of history.</p>
+              </article>
+              <article class="package-card">
+                <div class="package-head"><h3>Plus</h3><span class="package-cameras">5 cameras</span></div>
+                <p class="package-price"><strong>€19.99</strong><span>/ month</span></p>
+                <p class="package-note">12 months of history.</p>
+              </article>
+              <article class="package-card">
+                <div class="package-head"><h3>Pro</h3><span class="package-cameras">10 cameras</span></div>
+                <p class="package-price"><strong>€29.99</strong><span>/ month</span></p>
+                <p class="package-note">12 months of history.</p>
+              </article>
+              <article class="package-card">
+                <div class="package-head"><h3>Network</h3><span class="package-cameras">25 cameras</span></div>
+                <p class="package-price"><strong>€49.99</strong><span>/ month</span></p>
+                <p class="package-note">12 months of history.</p>
+              </article>
+            </div>
+            <p class="rate-note">Live view, history widget, groups, sharing links and the WordPress plugin are included.</p>
             <div class="price-actions">
               <a class="btn primary" href="mailto:hello@sengycraft.cz">Start with one camera</a>
-              <span>Tell us your camera type and how far back you want to go.</span>
+              <span>Tell us how many cameras you run and where they point.</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" class="section faq">
+        <div class="shell faq-split">
+          <div class="section-head">
+            <h2>Questions before you point us at a camera.</h2>
+            <p>Still unsure? One short email is enough.</p>
+            <a class="text-link" href="mailto:hello@sengycraft.cz">
+              Ask us anything
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+          </div>
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary>How long do you keep history?</summary>
+              <p>12 months on every package. There are no shorter or longer retention tiers.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Which camera feeds work?</summary>
+              <p>Static JPEG, MJPEG, HLS, RTSP or a custom WebSocket. If the feed is public and reachable, we can usually archive it.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Can I keep my current live view?</summary>
+              <p>Yes. The widget adds history next to the live image; it does not replace your existing player.</p>
+            </details>
+            <details class="faq-item">
+              <summary>What if I need more cameras?</summary>
+              <p>Upgrade to the next package. Starter covers 3 cameras, Plus 5, Pro 10 and Network 25.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Can I downgrade?</summary>
+              <p>Yes, after deleting cameras so the account fits the smaller package. Deleting a camera also deletes its history.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Do you archive private cameras?</summary>
+              <p>No. Camera History is built for public webcams only. We do not connect to private or indoor cameras.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Can I cancel anytime?</summary>
+              <p>Yes. Plans are monthly per package; cancel and billing stops at the end of the current period.</p>
+            </details>
           </div>
         </div>
       </section>
@@ -328,7 +386,7 @@
             <div class="proof-grid" aria-label="Product facts">
               <div><strong>1</strong><span>iframe to embed</span></div>
               <div><strong>4</strong><span>widget themes</span></div>
-              <div><strong>36</strong><span>months of history</span></div>
+              <div><strong>12</strong><span>months of history</span></div>
               <div><strong>0</strong><span>servers on your side</span></div>
             </div>
           </div>
@@ -364,7 +422,9 @@
         <nav class="footer-nav" aria-label="Footer navigation">
           <a href="#features">Features</a>
           <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
           <a href="#demo">Live demo</a>
+          <a href="/admin/">Sign in</a>
           <a href="mailto:hello@sengycraft.cz">hello@sengycraft.cz</a>
         </nav>
         <span>© Sengycraft</span>

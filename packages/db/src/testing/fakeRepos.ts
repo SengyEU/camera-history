@@ -17,6 +17,7 @@ import type {
   Tenant,
   User,
 } from "@ch/core";
+import { DEFAULT_PACKAGE, RETENTION_MONTHS } from "@ch/core";
 import type { Repos } from "../repos.types.js";
 
 export interface FakeDb {
@@ -44,12 +45,11 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         id: randomUUID(),
         slug: input.slug,
         name: input.name,
-        planMonths: input.planMonths ?? 12,
+        packageCode: input.packageCode ?? DEFAULT_PACKAGE,
         stripeCustomerId: null,
         stripeSubscriptionId: null,
         billingStatus: "none",
         billingGraceUntil: null,
-        trialClaimedAt: null,
         isPilot: false,
         pilotUntil: null,
       };
@@ -91,7 +91,6 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         enabled: input.enabled ?? true,
         theme: input.theme ?? "light",
         themeColors: input.themeColors ?? null,
-        planMonths: input.planMonths ?? null,
         timeFormat: input.timeFormat ?? "12h",
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,
@@ -103,6 +102,11 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       };
       db.cameras.push(camera);
       return camera;
+    },
+    async createCameraWithLimit(tenantId, input, limit) {
+      const cameraCount = db.cameras.filter((c) => c.tenantId === tenantId).length;
+      if (cameraCount >= limit) return { camera: null, cameraCount };
+      return { camera: await this.createCamera(tenantId, input) };
     },
     async getCameraById(id: string) {
       return db.cameras.find((c) => c.id === id) ?? null;
@@ -139,7 +143,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         themeColors: cam.themeColors ?? null,
         timezone: cam.timezone,
         timeFormat: cam.timeFormat,
-        retentionMonths: cam.planMonths ?? tenant?.planMonths ?? 12,
+        retentionMonths: RETENTION_MONTHS,
         latitude: cam.latitude,
         longitude: cam.longitude,
         showNight: cam.showNight,
@@ -175,17 +179,24 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0] ?? null
       );
     },
+    async listImagesBefore(cutoff: Date, limit: number) {
+      return db.images
+        .filter((i) => i.timestamp.getTime() < cutoff.getTime())
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+        .slice(0, limit)
+        .map((i) => ({ id: i.id, storageKey: i.storageKey }));
+    },
+    async deleteImages(ids: string[]) {
+      const wanted = new Set(ids);
+      db.images = db.images.filter((i) => !wanted.has(i.id));
+    },
+    async listImagesForCamera(cameraId: string) {
+      return db.images
+        .filter((i) => i.cameraId === cameraId)
+        .map((i) => ({ id: i.id, storageKey: i.storageKey }));
+    },
     async countCameras(tenantId: string) {
       return db.cameras.filter((c) => c.tenantId === tenantId).length;
-    },
-    async cameraPlanCounts(tenantId: string) {
-      const tenant = db.tenants.find((t) => t.id === tenantId);
-      const counts = new Map<number, number>();
-      for (const camera of db.cameras.filter((c) => c.tenantId === tenantId)) {
-        const months = camera.planMonths ?? tenant?.planMonths ?? 12;
-        counts.set(months, (counts.get(months) ?? 0) + 1);
-      }
-      return counts;
     },
     async usageStats(tenantId: string) {
       const cameraIds = new Set(db.cameras.filter((c) => c.tenantId === tenantId).map((c) => c.id));
@@ -226,9 +237,6 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       const updated: Tenant = { ...db.tenants[idx]!, ...patch, id: tenantId };
       db.tenants[idx] = updated;
       return updated;
-    },
-    async countTrialClaims() {
-      return db.tenants.filter((t) => t.trialClaimedAt !== null).length;
     },
     async listTenantsByBillingStatus(status: BillingStatus) {
       return db.tenants.filter((t) => t.billingStatus === status);
@@ -289,7 +297,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
           themeColors: c.themeColors ?? null,
           timezone: c.timezone,
           timeFormat: c.timeFormat,
-          retentionMonths: c.planMonths ?? tenant.planMonths,
+          retentionMonths: RETENTION_MONTHS,
           showNight: c.showNight,
         }));
       return { group: { id: group.id, name: group.name, slug: group.slug }, cameras: cams };

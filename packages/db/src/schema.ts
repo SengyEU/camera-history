@@ -4,7 +4,6 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgTable,
   primaryKey,
   text,
@@ -33,14 +32,11 @@ export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").notNull(),
-  planMonths: numeric("plan_months", { precision: 4, scale: 1 })
-    .notNull()
-    .default("12"),
+  packageCode: text("package_code").notNull().default("starter"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   billingStatus: billingStatusEnum("billing_status").notNull().default("none"),
   billingGraceUntil: timestamp("billing_grace_until", { withTimezone: true }),
-  trialClaimedAt: timestamp("trial_claimed_at", { withTimezone: true }),
   isPilot: boolean("is_pilot").notNull().default(false),
   pilotUntil: timestamp("pilot_until", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -78,7 +74,6 @@ export const cameras = pgTable("cameras", {
   enabled: boolean("enabled").notNull().default(true),
   theme: text("theme").notNull().default("light"),
   themeColors: jsonb("theme_colors").$type<import("@ch/core").ThemeColors | null>(),
-  planMonths: numeric("plan_months", { precision: 4, scale: 1 }),
   timeFormat: text("time_format").notNull().default("12h"),
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
@@ -105,6 +100,7 @@ export const images = pgTable("images", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index("images_camera_timestamp_idx").on(t.cameraId, t.timestamp.desc()),
+  index("images_timestamp_idx").on(t.timestamp),
 ]);
 
 export const cameraGroups = pgTable(

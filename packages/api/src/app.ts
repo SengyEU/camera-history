@@ -21,7 +21,9 @@ export interface AppDeps {
 }
 
 export function buildApp(deps: AppDeps): FastifyInstance {
-  const app = Fastify({ logger: false });
+  const app = Fastify({
+    logger: process.env.NODE_ENV === "test" ? false : { level: process.env.LOG_LEVEL ?? "info" },
+  });
 
   app.register(cookie);
   app.register(jwt, { secret: deps.cfg.jwt.secret });

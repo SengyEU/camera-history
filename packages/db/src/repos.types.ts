@@ -24,6 +24,11 @@ export interface Repos {
   createUser(input: NewUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
   createCamera(tenantId: string, input: NewCamera): Promise<Camera>;
+  createCameraWithLimit(
+    tenantId: string,
+    input: NewCamera,
+    limit: number,
+  ): Promise<{ camera: Camera } | { camera: null; cameraCount: number }>;
   getCameraById(id: string): Promise<Camera | null>;
   listCameras(tenantId: string): Promise<Camera[]>;
   updateCamera(id: string, patch: CameraPatch): Promise<Camera | null>;
@@ -34,8 +39,10 @@ export interface Repos {
   imagesForCameraDay(cameraId: string, from: Date, to: Date): Promise<ImageRecord[]>;
   getImageById(id: string): Promise<ImageRecord | null>;
   latestImageForCamera(cameraId: string): Promise<ImageRecord | null>;
+  listImagesBefore(cutoff: Date, limit: number): Promise<Array<{ id: string; storageKey: string }>>;
+  deleteImages(ids: string[]): Promise<void>;
+  listImagesForCamera(cameraId: string): Promise<Array<{ id: string; storageKey: string }>>;
   countCameras(tenantId: string): Promise<number>;
-  cameraPlanCounts(tenantId: string): Promise<Map<number, number>>;
   usageStats(tenantId: string): Promise<{ usageBytes: number; spanDays: number }>;
   cameraStats(tenantId: string): Promise<
     Map<
@@ -50,7 +57,6 @@ export interface Repos {
   >;
   setTenantCamerasEnabled(tenantId: string, enabled: boolean): Promise<void>;
   setBillingState(tenantId: string, patch: BillingPatch): Promise<Tenant | null>;
-  countTrialClaims(): Promise<number>;
   listTenantsByBillingStatus(status: BillingStatus): Promise<Tenant[]>;
   createGroup(tenantId: string, input: NewCameraGroup): Promise<CameraGroup>;
   listGroups(tenantId: string): Promise<AdminCameraGroup[]>;

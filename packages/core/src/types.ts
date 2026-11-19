@@ -1,3 +1,4 @@
+import type { PackageCode } from "./billing.js";
 import type { ThemeColors } from "./themes.js";
 
 export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
@@ -10,12 +11,11 @@ export interface Tenant {
   id: string;
   slug: string;
   name: string;
-  planMonths: number;
+  packageCode: PackageCode;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   billingStatus: BillingStatus;
   billingGraceUntil: Date | null;
-  trialClaimedAt: Date | null;
   isPilot: boolean;
   pilotUntil: Date | null;
 }
@@ -25,8 +25,7 @@ export interface BillingPatch {
   stripeSubscriptionId?: string | null;
   billingStatus?: BillingStatus;
   billingGraceUntil?: Date | null;
-  trialClaimedAt?: Date | null;
-  planMonths?: number;
+  packageCode?: PackageCode;
 }
 
 export interface User {
@@ -51,7 +50,6 @@ export interface Camera {
   enabled: boolean;
   theme: string;
   themeColors: ThemeColors | null;
-  planMonths: number | null;
   timeFormat: TimeFormat;
   latitude: number | null;
   longitude: number | null;
@@ -86,7 +84,7 @@ export interface PublicCamera {
 export interface NewTenant {
   name: string;
   slug: string;
-  planMonths?: number;
+  packageCode?: PackageCode;
 }
 
 export interface NewUser {
@@ -108,7 +106,6 @@ export interface NewCamera {
   enabled?: boolean;
   theme?: string;
   themeColors?: ThemeColors | null;
-  planMonths?: number | null;
   timeFormat?: TimeFormat;
   latitude?: number | null;
   longitude?: number | null;
@@ -128,7 +125,6 @@ export interface CameraPatch {
   enabled?: boolean;
   theme?: string;
   themeColors?: ThemeColors | null;
-  planMonths?: number | null;
   timeFormat?: TimeFormat;
   latitude?: number | null;
   longitude?: number | null;

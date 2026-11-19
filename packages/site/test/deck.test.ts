@@ -21,19 +21,19 @@ describe("deck", () => {
     expect(html).toContain('src="/admin-groups.png?v=20261020"');
   });
 
-  it("pins the full pricing table as row pairs and the contact CTA", () => {
+  it("pins the five packages and 12-month retention", () => {
     const normalized = html.replace(/\s+/g, " ");
-    for (const [label, price] of [
-      ["14 days", "€5"],
-      ["1 month", "€9"],
-      ["3 months", "€15"],
-      ["6 months", "€22"],
-      ["12 months", "€29"],
-      ["24 months", "€49"],
-      ["36 months", "€69"],
+    for (const [name, cameras, price] of [
+      ["Solo", "1 camera", "€7.99"],
+      ["Starter", "3 cameras", "€13.99"],
+      ["Plus", "5 cameras", "€19.99"],
+      ["Pro", "10 cameras", "€29.99"],
+      ["Network", "25 cameras", "€49.99"],
     ]) {
-      expect(normalized).toContain(`<td>${label}</td><td>${price}</td>`);
+      expect(normalized).toContain(`<td>${name}</td><td>${cameras}</td><td>${price}</td>`);
     }
+    expect(html).toContain("12 months of history");
+    expect(html).not.toContain("36 months");
     expect(html).toContain("mailto:hello@sengycraft.cz");
   });
 

@@ -7,7 +7,7 @@ describe("fakeRepos", () => {
   it("creates tenant and camera", async () => {
     const repos = createFakeRepos();
     const tenant = await repos.createTenant(newTenant);
-    expect(tenant.planMonths).toBe(12);
+    expect(tenant.packageCode).toBe("starter");
 
     const camera = await repos.createCamera(tenant.id, {
       name: "Main",
@@ -47,9 +47,9 @@ describe("fakeRepos", () => {
     expect(rows).toHaveLength(1);
   });
 
-  it("returns public camera with plan retention", async () => {
+  it("returns public camera with 12-month retention", async () => {
     const repos = createFakeRepos();
-    const tenant = await repos.createTenant({ ...newTenant, planMonths: 24 });
+    const tenant = await repos.createTenant({ ...newTenant, packageCode: "pro" });
     const camera = await repos.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
@@ -60,41 +60,8 @@ describe("fakeRepos", () => {
       timezone: "UTC",
     });
     const pub = await repos.getPublicCamera(camera.id);
-    expect(pub?.retentionMonths).toBe(24);
+    expect(pub?.retentionMonths).toBe(12);
     expect(pub?.timezone).toBe("UTC");
-  });
-
-  it("inherits the tenant plan and supports a per-camera plan", async () => {
-    const repos = createFakeRepos();
-    const tenant = await repos.createTenant({ ...newTenant, planMonths: 24 });
-    const inherited = await repos.createCamera(tenant.id, {
-      name: "Inherited",
-      feedType: "static_url",
-      feedUrl: "https://example.com/inherit.jpg",
-      intervalMinutes: 15,
-      activeFrom: "00:00",
-      activeTo: "23:59",
-      timezone: "UTC",
-    });
-    expect(inherited.planMonths).toBeNull();
-    expect((await repos.getPublicCamera(inherited.id))?.retentionMonths).toBe(24);
-
-    const short = await repos.createCamera(tenant.id, {
-      name: "Short",
-      feedType: "static_url",
-      feedUrl: "https://example.com/short.jpg",
-      intervalMinutes: 15,
-      activeFrom: "00:00",
-      activeTo: "23:59",
-      timezone: "UTC",
-      planMonths: 3,
-    });
-    expect(short.planMonths).toBe(3);
-    expect((await repos.getPublicCamera(short.id))?.retentionMonths).toBe(3);
-
-    const cleared = await repos.updateCamera(short.id, { planMonths: null });
-    expect(cleared?.planMonths).toBeNull();
-    expect((await repos.getPublicCamera(short.id))?.retentionMonths).toBe(24);
   });
 
   it("defaults and roundtrips the camera time format", async () => {
@@ -234,26 +201,34 @@ describe("fakeRepos", () => {
     expect((await repos.listGroups(tenant.id))[0]?.cameraIds).toEqual([night.id, plain.id]);
   });
 
-  it("counts effective camera plans by tier", async () => {
+  it("enforces the camera limit including disabled cameras", async () => {
     const repos = createFakeRepos();
-    const tenant = await repos.createTenant({ ...newTenant, planMonths: 12 });
-    const make = (planMonths: number | null) =>
+    const tenant = await repos.createTenant({ ...newTenant, packageCode: "starter" });
+    const make = (name: string) =>
       repos.createCamera(tenant.id, {
-        name: `Cam ${planMonths}`,
+        name,
         feedType: "static_url",
-        feedUrl: "https://example.com/cam.jpg",
+        feedUrl: `https://example.com/${name}.jpg`,
         intervalMinutes: 15,
         activeFrom: "00:00",
         activeTo: "23:59",
         timezone: "UTC",
-        planMonths,
       });
-    await make(null);
-    await make(3);
-    await make(3);
-    const counts = await repos.cameraPlanCounts(tenant.id);
-    expect(counts.get(12)).toBe(1);
-    expect(counts.get(3)).toBe(2);
+    await make("One");
+    const second = await make("Two");
+    await make("Three");
+    await repos.updateCamera(second.id, { enabled: false });
+
+    const blocked = await repos.createCameraWithLimit(tenant.id, {
+      name: "Four",
+      feedType: "static_url",
+      feedUrl: "https://example.com/four.jpg",
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    }, 3);
+    expect(blocked).toEqual({ camera: null, cameraCount: 3 });
   });
 
   it("counts cameras and reports usage stats for a tenant", async () => {

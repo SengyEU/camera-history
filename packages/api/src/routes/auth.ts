@@ -24,7 +24,6 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
     const tenant = await deps.repos.createTenant({
       name: body.name,
       slug: body.slug,
-      planMonths: deps.cfg.plan.defaultRetentionMonths,
     });
     const user = await deps.repos.createUser({
       tenantId: tenant.id,

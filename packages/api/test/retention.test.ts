@@ -25,9 +25,9 @@ describe("retention", () => {
     expect(gated.end.toISOString()).toBe(cutoff.toISOString());
   });
 
-  it("respects tenant planMonths", async () => {
+  it("returns images within the fixed 12-month window", async () => {
     const { app, repos } = makeApp();
-    const tenant = await repos.createTenant({ name: "ACME", slug: "acme", planMonths: 6 });
+    const tenant = await repos.createTenant({ name: "ACME", slug: "acme" });
     const camera = await repos.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",

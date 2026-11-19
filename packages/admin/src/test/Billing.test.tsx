@@ -10,31 +10,26 @@ afterEach(() => {
 });
 
 const billing = {
-  planMonths: 12,
-  price: 29,
+  packageCode: "starter",
+  packageName: "Starter",
+  cameraLimit: 3,
+  cameraCount: 3,
+  price: 13.99,
   billingStatus: "past_due",
   stripeCustomerId: "cus_1",
   hasSubscription: false,
   graceUntil: "2026-09-25T00:00:00.000Z",
   isPilot: false,
   pilotUntil: null,
-  cameraCount: 3,
-  usageBytes: 1234567,
-  storageBytes: 14814804,
   billingEnabled: true,
   pricesConfigured: true,
-  freeMonthAvailable: true,
-  freeMonthClaimed: false,
-  freeMonthSlotsLeft: 17,
-  monthlyTotal: 107,
-  tiers: [
-    { months: 0.5, label: "14 days", eurPerCamera: 5, count: 0, monthlyTotal: 0, current: false },
-    { months: 1, label: "1 month", eurPerCamera: 9, count: 0, monthlyTotal: 0, current: false },
-    { months: 3, label: "3 months", eurPerCamera: 15, count: 0, monthlyTotal: 0, current: false },
-    { months: 6, label: "6 months", eurPerCamera: 22, count: 0, monthlyTotal: 0, current: false },
-    { months: 12, label: "12 months", eurPerCamera: 29, count: 3, monthlyTotal: 87, current: true },
-    { months: 24, label: "24 months", eurPerCamera: 49, count: 0, monthlyTotal: 0, current: false },
-    { months: 36, label: "36 months", eurPerCamera: 69, count: 0, monthlyTotal: 0, current: false },
+  monthlyTotal: 13.99,
+  packages: [
+    { code: "solo", name: "Solo", maxCameras: 1, eurPerMonth: 7.99, current: false, available: false },
+    { code: "starter", name: "Starter", maxCameras: 3, eurPerMonth: 13.99, current: true, available: true },
+    { code: "plus", name: "Plus", maxCameras: 5, eurPerMonth: 19.99, current: false, available: true },
+    { code: "pro", name: "Pro", maxCameras: 10, eurPerMonth: 29.99, current: false, available: true },
+    { code: "network", name: "Network", maxCameras: 25, eurPerMonth: 49.99, current: false, available: true },
   ],
 };
 
@@ -42,7 +37,7 @@ vi.mock("../api", () => ({
   api: {
     getBilling: vi.fn(),
     billingCheckout: vi.fn(),
-    billingDefaultPlan: vi.fn(),
+    billingPackage: vi.fn(),
     billingPortal: vi.fn(),
   },
 }));
@@ -53,22 +48,21 @@ beforeEach(() => {
   vi.clearAllMocks();
   (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue(billing);
   (api.billingCheckout as ReturnType<typeof vi.fn>).mockResolvedValue({ url: "https://checkout.stripe.com/x" });
-  (api.billingDefaultPlan as ReturnType<typeof vi.fn>).mockResolvedValue({ status: "ok" });
+  (api.billingPackage as ReturnType<typeof vi.fn>).mockResolvedValue({ status: "ok", packageCode: "plus" });
   (api.billingPortal as ReturnType<typeof vi.fn>).mockResolvedValue({ url: "https://billing.stripe.com/x" });
 });
 
 describe("BillingPage", () => {
-  it("renders plan, status and camera count", async () => {
+  it("renders package, status and camera usage", async () => {
     render(<BillingPage />);
     const plan = await screen.findByTestId("current-plan");
-    expect(plan).toHaveTextContent("12 months");
-    expect(plan).toHaveTextContent("29");
+    expect(plan).toHaveTextContent("Starter");
+    expect(plan).toHaveTextContent("13.99");
     expect(screen.getByText("past due")).toBeInTheDocument();
-    expect(screen.getByTestId("camera-count")).toHaveTextContent("3");
-    expect(screen.getByTestId("monthly-total")).toHaveTextContent("€107.00");
-    expect(screen.getByTestId("free-month-notice")).toHaveTextContent("17 slots left");
-    expect(screen.queryByTestId("usage-bytes")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("storage-bytes")).not.toBeInTheDocument();
+    expect(screen.getByTestId("camera-count")).toHaveTextContent("3 / 3");
+    expect(screen.getByTestId("monthly-total")).toHaveTextContent("€13.99");
+    expect(screen.getByTestId("camera-limit-notice")).toHaveTextContent("using all 3 cameras");
+    expect(screen.queryByTestId("free-month-notice")).not.toBeInTheDocument();
   });
 
   it("labels the estimate as tax-inclusive", async () => {
@@ -89,17 +83,14 @@ describe("BillingPage", () => {
       graceUntil: null,
       isPilot: true,
       pilotUntil: "2027-03-01T00:00:00.000Z",
-      freeMonthAvailable: false,
-      freeMonthSlotsLeft: 20,
     });
     render(<BillingPage />);
     expect(await screen.findByTestId("pilot-notice")).toHaveTextContent(/free of charge/i);
     expect(screen.getByTestId("pilot-pill")).toHaveTextContent("pilot");
-    expect(screen.getByTestId("change-plan")).toBeDisabled();
-    expect(screen.queryByTestId("free-month-notice")).not.toBeInTheDocument();
+    expect(screen.getByTestId("change-package")).toBeDisabled();
   });
 
-  it("redirects to checkout on plan change", async () => {
+  it("starts checkout with the selected package", async () => {
     const assign = vi.fn();
     Object.defineProperty(window, "location", {
       value: { ...window.location, assign },
@@ -107,13 +98,13 @@ describe("BillingPage", () => {
     });
     render(<BillingPage />);
     await screen.findByTestId("current-plan");
-    await userEvent.click(screen.getByTestId("plan-24"));
-    await userEvent.click(screen.getByTestId("change-plan"));
-    await waitFor(() => expect(api.billingCheckout).toHaveBeenCalledWith(24));
+    await userEvent.click(screen.getByTestId("package-plus"));
+    await userEvent.click(screen.getByTestId("change-package"));
+    await waitFor(() => expect(api.billingCheckout).toHaveBeenCalledWith("plus"));
     expect(assign).toHaveBeenCalledWith("https://checkout.stripe.com/x");
   });
 
-  it("updates the default plan for an existing subscription without checkout", async () => {
+  it("changes an existing subscription without checkout", async () => {
     (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue({
       ...billing,
       hasSubscription: true,
@@ -121,10 +112,17 @@ describe("BillingPage", () => {
     });
     render(<BillingPage />);
     await screen.findByTestId("current-plan");
-    await userEvent.click(screen.getByTestId("plan-24"));
-    await userEvent.click(screen.getByTestId("change-plan"));
-    await waitFor(() => expect(api.billingDefaultPlan).toHaveBeenCalledWith(24));
+    await userEvent.click(screen.getByTestId("package-plus"));
+    await userEvent.click(screen.getByTestId("change-package"));
+    await waitFor(() => expect(api.billingPackage).toHaveBeenCalledWith("plus"));
     expect(api.billingCheckout).not.toHaveBeenCalled();
+  });
+
+  it("blocks a downgrade that does not fit the cameras", async () => {
+    render(<BillingPage />);
+    const solo = await screen.findByTestId("package-solo");
+    expect(solo).toBeDisabled();
+    expect(screen.getByTestId("package-blocked-solo")).toHaveTextContent("Delete 2 camera(s) first");
   });
 
   it("opens portal session", async () => {

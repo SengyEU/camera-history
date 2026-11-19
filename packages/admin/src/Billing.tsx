@@ -19,7 +19,7 @@ const STATUS_PILL: Record<BillingStatus, string> = {
 
 export function BillingPage() {
   const [data, setData] = useState<BillingDto | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -28,7 +28,7 @@ export function BillingPage() {
       .getBilling()
       .then((next) => {
         setData(next);
-        setSelected((current) => current ?? next.planMonths);
+        setSelected((current) => current ?? next.packageCode);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed"));
   }, []);
@@ -40,19 +40,19 @@ export function BillingPage() {
     if (params.get("pay") === "cancelled") setNotice("Payment was canceled.");
   }, [load]);
 
-  const changePlan = async () => {
+  const savePackage = async () => {
     if (selected === null || !data) return;
     setError(null);
     try {
       if (data.hasSubscription) {
-        await api.billingDefaultPlan(selected);
-        setNotice("Default plan updated. Usage-based billing syncs on the next invoice.");
+        await api.billingPackage(selected);
+        setNotice("Package updated.");
         load();
       } else {
         const res = await api.billingCheckout(selected);
         if (res.url) window.location.assign(res.url);
         else {
-          setNotice("The plan change will apply on your next invoice.");
+          setNotice("Package saved. Start billing when you are ready.");
           load();
         }
       }
@@ -74,9 +74,10 @@ export function BillingPage() {
   if (error) return <p className="error">{error}</p>;
   if (!data) return <p className="loading">Loading…</p>;
 
-  const usedTiers = data.tiers.filter((tier) => tier.count > 0);
   const canStart =
     data.billingEnabled && data.pricesConfigured && data.cameraCount > 0 && !data.isPilot;
+  const atLimit = data.cameraCount >= data.cameraLimit;
+  const usagePercent = data.cameraLimit > 0 ? Math.min(100, (data.cameraCount / data.cameraLimit) * 100) : 0;
 
   return (
     <section className="panel" data-testid="billing-page">
@@ -99,18 +100,7 @@ export function BillingPage() {
         </p>
       )}
       {data.billingEnabled && !data.pricesConfigured && (
-        <p className="notice danger">All seven Stripe plan prices must be configured before billing can start.</p>
-      )}
-      {data.billingEnabled && data.freeMonthAvailable && (
-        <p className="notice" data-testid="free-month-notice">
-          First month free for the first 20 customers — {data.freeMonthSlotsLeft} slot
-          {data.freeMonthSlotsLeft === 1 ? "" : "s"} left.
-        </p>
-      )}
-      {data.billingEnabled && data.freeMonthClaimed && (
-        <p className="notice" data-testid="free-month-claimed">
-          First month free — claimed.
-        </p>
+        <p className="notice danger">All five Stripe package prices must be configured before billing can start.</p>
       )}
       {notice && (
         <p className="notice" data-testid="billing-notice">
@@ -140,82 +130,85 @@ export function BillingPage() {
         </div>
         <div>
           <span>Cameras</span>
-          <strong data-testid="camera-count">{data.cameraCount}</strong>
+          <strong data-testid="camera-count">
+            {data.cameraCount} / {data.cameraLimit}
+          </strong>
         </div>
         <div>
-          <span>Default plan</span>
+          <span>Current package</span>
           <strong data-testid="current-plan">
-            {data.tiers.find((tier) => tier.current)?.label ?? "—"} ·{" "}
-            <span className="plan-price">{data.price ?? "—"} €</span> / camera
+            {data.packageName}
+            {data.price !== null ? ` · €${data.price.toFixed(2)} / month` : ""}
           </strong>
         </div>
       </div>
 
-      <div className="billing-breakdown">
-        <div className="panel-head">
-          <h3>Per-camera plans</h3>
-          <span className="ts-chip">USAGE</span>
+      <div className="camera-usage" data-testid="camera-usage">
+        <div className="camera-usage-head">
+          <span>Camera limit</span>
+          <span>
+            {data.cameraCount} of {data.cameraLimit}
+          </span>
         </div>
-        {usedTiers.length === 0 ? (
-          <p className="empty">Add cameras to see the estimated monthly total.</p>
-        ) : (
-          <table className="price-table">
-            <thead>
-              <tr>
-                <th scope="col">Plan</th>
-                <th scope="col">Cameras</th>
-                <th scope="col">Per camera</th>
-                <th scope="col">Monthly</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usedTiers.map((tier) => (
-                <tr key={tier.months}>
-                  <th scope="row">{tier.label}</th>
-                  <td data-testid={`billing-count-${tier.months}`}>{tier.count}</td>
-                  <td>€{tier.eurPerCamera}</td>
-                  <td data-testid={`billing-total-${tier.months}`}>€{tier.monthlyTotal.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="usage-track">
+          <span className="usage-fill" style={{ width: `${usagePercent}%` }} />
+        </div>
+        {atLimit && (
+          <p className="notice" data-testid="camera-limit-notice">
+            You are using all {data.cameraLimit} cameras. Upgrade to add more.
+          </p>
         )}
       </div>
 
       <div className="billing-default-plan">
         <div className="panel-head">
-          <h3>Default plan</h3>
-          <span className="ts-chip">INHERIT</span>
+          <h3>Packages</h3>
+          <span className="ts-chip">12 MONTHS INCLUDED</span>
         </div>
-        <p className="field-hint">
-          Cameras set to “Inherit from account” use this plan. Individual cameras can override it in the
-          camera editor.
-        </p>
         <div className="plan-grid">
-          {data.tiers.map((tier) => (
-            <label key={tier.months} className="plan-card">
-              <input
-                type="radio"
-                name="plan"
-                data-testid={`plan-${tier.months}`}
-                checked={selected === tier.months}
-                onChange={() => setSelected(tier.months)}
-              />
-              <strong>{tier.label}</strong>
-              <span className="plan-price">{tier.eurPerCamera} € / camera / month</span>
-              {tier.current && <em>current</em>}
-            </label>
-          ))}
+          {data.packages.map((pkg) => {
+            const blocked = !pkg.available;
+            return (
+              <label key={pkg.code} className={`plan-card${blocked ? " is-blocked" : ""}`}>
+                <input
+                  type="radio"
+                  name="package"
+                  data-testid={`package-${pkg.code}`}
+                  checked={selected === pkg.code}
+                  disabled={blocked}
+                  onChange={() => setSelected(pkg.code)}
+                />
+                <strong>{pkg.name}</strong>
+                <span className="plan-price">€{pkg.eurPerMonth.toFixed(2)} / month</span>
+                <span className="plan-cameras">
+                  {pkg.maxCameras === 1 ? "1 camera" : `Up to ${pkg.maxCameras} cameras`}
+                </span>
+                <span className="plan-note">12 months of history</span>
+                {pkg.current && <em>current</em>}
+                {blocked && (
+                  <span className="plan-blocked" data-testid={`package-blocked-${pkg.code}`}>
+                    Delete {data.cameraCount - pkg.maxCameras} camera(s) first
+                  </span>
+                )}
+              </label>
+            );
+          })}
         </div>
       </div>
 
       <div className="form-actions">
         <button
-          onClick={changePlan}
-          data-testid="change-plan"
-          disabled={!data.billingEnabled || selected === null || (!data.hasSubscription && !canStart)}
+          onClick={savePackage}
+          data-testid="change-package"
+          disabled={
+            !data.billingEnabled ||
+            selected === null ||
+            !data.pricesConfigured ||
+            (!data.hasSubscription && !canStart) ||
+            (data.hasSubscription && selected === data.packageCode)
+          }
         >
-          {data.hasSubscription ? "Save default plan" : "Start billing"}
+          {data.hasSubscription ? "Save package" : "Start billing"}
         </button>
         <button className="secondary" onClick={openPortal} data-testid="open-portal">
           Payments / invoices

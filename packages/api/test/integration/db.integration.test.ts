@@ -101,7 +101,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     const night = await repos.createCamera(tenant.id, {
       name: "Night", feedType: "static_url", feedUrl: "https://e.com/n.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
-      showNight: true, planMonths: 3,
+      showNight: true,
     });
     expect(night.showNight).toBe(true);
 
@@ -137,7 +137,7 @@ describe.skipIf(!RUN)("PG integration", () => {
     const a = await repos.createCamera(tenant.id, {
       name: "Alpha", feedType: "static_url", feedUrl: "https://e.com/a.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59", timezone: "UTC",
-      showNight: true, planMonths: 3,
+      showNight: true,
     });
     const b = await repos.createCamera(tenant.id, {
       name: "Beta", feedType: "static_url", feedUrl: "https://e.com/b.jpg",

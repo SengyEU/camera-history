@@ -10,7 +10,7 @@
     font-weight: 100 900;
     font-display: block;
   }
-  @page { size: A4; margin: 15mm 18mm 16mm; }
+  @page { size: A4; margin: 14mm 17mm 13mm; }
   :root {
     --ink: #101828;
     --muted: #5b6b7c;
@@ -19,187 +19,207 @@
   }
   * { box-sizing: border-box; }
   html { font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif; color: var(--ink); }
-  body { margin: 0; background: #fff; font-size: 9.6pt; line-height: 1.42; }
+  body { margin: 0; background: #fff; font-size: 9.5pt; line-height: 1.4; }
 
   .keep { break-inside: avoid; }
-  .doc-title { margin: 0 0 9mm; font-size: 24pt; line-height: 1.1; letter-spacing: -0.03em; }
+  .doc-title { margin: 0 0 8mm; font-size: 23pt; line-height: 1.1; letter-spacing: -0.03em; }
 
-  .key { display: grid; grid-template-columns: repeat(3, 1fr); margin: 9mm 0 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  .key div { padding: 4.5mm 4mm 4.5mm 0; }
+  .key { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 7mm; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .key div { padding: 4mm 4mm 4mm 0; }
   .key div + div { padding-left: 4mm; border-left: 1px solid var(--line); }
-  .key span { display: block; color: var(--muted); font-size: 7.6pt; letter-spacing: 0.06em; text-transform: uppercase; }
-  .key strong { display: block; margin-top: 1.6mm; font-size: 17pt; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+  .key span { display: block; color: var(--muted); font-size: 7.4pt; letter-spacing: 0.06em; text-transform: uppercase; }
+  .key strong { display: block; margin-top: 1.4mm; font-size: 16pt; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
 
-  h2 { margin: 7mm 0 2.2mm; font-size: 12.5pt; letter-spacing: -0.01em; break-after: avoid-page; }
+  h2 { margin: 6mm 0 2.2mm; font-size: 12.5pt; letter-spacing: -0.01em; break-after: avoid-page; }
   h2 .n { color: var(--glacier); font-weight: 600; margin-right: 2mm; }
-  p { margin: 0 0 2mm; max-width: 80ch; }
+  p { margin: 0 0 2mm; max-width: 88ch; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 9pt; break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; font-size: 8.8pt; break-inside: avoid; }
   tr { break-inside: avoid; }
-  th { padding: 1.1mm 2mm 1.1mm 0; border-bottom: 1px solid var(--ink); font-size: 7.6pt; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; font-weight: 600; }
-  td { padding: 0.8mm 2mm 0.8mm 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-  .num { text-align: right; padding-right: 0; font-variant-numeric: tabular-nums; }
+  th { padding: 1mm 2mm 1mm 0; border-bottom: 1px solid var(--ink); font-size: 7.4pt; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; font-weight: 600; }
+  td { padding: 0.75mm 2mm 0.75mm 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .num { text-align: right; padding-right: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr.total td { border-top: 1px solid var(--ink); border-bottom: none; font-weight: 600; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 9mm; }
 
-  .note { margin-top: 2mm; color: var(--muted); font-size: 8.2pt; max-width: 84ch; }
+  .note { margin-top: 2mm; color: var(--muted); font-size: 8pt; max-width: 88ch; }
+  .table-gap { height: 4mm; }
 
-  .beat { margin: 1mm 0 0; font-size: 24pt; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
-  .beat-note { margin-top: 2mm; max-width: 74ch; }
-  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin: 5mm 0 0; padding-top: 3mm; border-top: 1px solid var(--line); }
-  .facts strong { display: block; font-size: 14pt; letter-spacing: -0.02em; }
-  .facts span { display: block; margin-top: 1mm; color: var(--muted); font-size: 8.2pt; }
-  .chart { margin-top: 5mm; padding-top: 3mm; border-top: 1px solid var(--line); break-inside: avoid; }
+  .beat { margin: 1mm 0 0; font-size: 23pt; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+  .beat-note { margin-top: 2mm; max-width: 82ch; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin: 4mm 0 0; padding-top: 3mm; border-top: 1px solid var(--line); }
+  .facts strong { display: block; font-size: 13pt; letter-spacing: -0.02em; }
+  .facts span { display: block; margin-top: 1mm; color: var(--muted); font-size: 8pt; }
+  .chart { margin-top: 4mm; padding-top: 3mm; border-top: 1px solid var(--line); break-inside: avoid; }
   .chart svg { width: 100%; height: auto; }
 
-  .big-table td { padding: 2.4mm 2mm 2.4mm 0; font-size: 10.5pt; }
-  .big-table th { font-size: 8pt; }
+  .big-table td { padding: 2.1mm 2mm 2.1mm 0; font-size: 10pt; }
+  .big-table th { font-size: 7.8pt; }
 </style>
 </head>
 <body>
 
-<section class="page">
-  <h1 class="doc-title">Finanční rozvaha - Camera History</h1>
+<h1 class="doc-title">Finanční rozvaha - Camera History</h1>
 
-  <div class="key">
-    <div><span>Počáteční investice</span><strong>25 300 Kč</strong></div>
-    <div><span>Měsíční náklady</span><strong>4 300 Kč</strong></div>
-    <div><span>Bod zvratu</span><strong>únor 2028</strong></div>
+<div class="key">
+  <div><span>Počáteční investice</span><strong>25 300 Kč</strong></div>
+  <div><span>Měsíční náklady</span><strong>4 300 Kč</strong></div>
+  <div><span>Bod zvratu</span><strong>leden 2028</strong></div>
+</div>
+
+<h2><span class="n">A</span>Vývojová fáze</h2>
+<table>
+  <tr><td>Vývoj</td><td class="num">100 h × 250 Kč/h</td><td class="num">25 000 Kč</td></tr>
+  <tr><td>Doména na rok</td><td class="num"></td><td class="num">300 Kč</td></tr>
+  <tr class="total"><td>Celková počáteční investice</td><td class="num"></td><td class="num">25 300 Kč</td></tr>
+</table>
+
+<h2><span class="n">B</span>Provozní náklady</h2>
+<div class="cols">
+  <div>
+    <table>
+      <thead><tr><th>Variabilní na 1 zákazníka (Starter balíček)</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Stripe 4,5 % z balíčku</td><td class="num">15,74 Kč</td></tr>
+        <tr><td>Úložiště 3 kamery</td><td class="num">1,50 Kč</td></tr>
+        <tr class="total"><td>Celkem</td><td class="num">17,24 Kč</td></tr>
+      </tbody>
+    </table>
   </div>
-
-  <h2><span class="n">A</span>Vývojová fáze</h2>
-  <table>
-    <tr><td>Vývoj</td><td class="num">100 h × 250 Kč/h</td><td class="num">25 000 Kč</td></tr>
-    <tr><td>Doména na rok</td><td class="num"></td><td class="num">300 Kč</td></tr>
-    <tr class="total"><td>Celková počáteční investice</td><td class="num"></td><td class="num">25 300 Kč</td></tr>
-  </table>
-</section>
-
-<section class="page">
-  <h2><span class="n">B</span>Provozní náklady</h2>
-  <div class="cols">
-    <div>
-      <table>
-        <thead><tr><th>Variabilní na 1 kameru</th><th></th></tr></thead>
-        <tbody>
-          <tr><td>Stripe 4,5 %</td><td class="num">13,50 Kč</td></tr>
-          <tr><td>Úložiště 0,7 GB za rok</td><td class="num">0,50 Kč</td></tr>
-          <tr class="total"><td>Celkem</td><td class="num">14 Kč</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div>
-      <table>
-        <thead><tr><th>Fixní měsíčně</th><th></th></tr></thead>
-        <tbody>
-          <tr><td>Hosting</td><td class="num">300 Kč</td></tr>
-          <tr><td>AI nástroje</td><td class="num">250 Kč</td></tr>
-          <tr><td>Vlastní čas 15 h</td><td class="num">3 750 Kč</td></tr>
-          <tr class="total"><td>Celkem</td><td class="num">4 300 Kč</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div>
+    <table>
+      <thead><tr><th>Fixní měsíčně</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Hosting</td><td class="num">300 Kč</td></tr>
+        <tr><td>AI nástroje</td><td class="num">250 Kč</td></tr>
+        <tr><td>Vlastní čas 15 h</td><td class="num">3 750 Kč</td></tr>
+        <tr class="total"><td>Celkem</td><td class="num">4 300 Kč</td></tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <h2><span class="n">C</span>Cenotvorba a prodejní plán</h2>
-  <p>Průměrná cena je 300 Kč za kameru a měsíc. Variabilní náklad je 14 Kč, marže tedy 286 Kč, tj. 95 %.</p>
-
-  <table>
-    <thead><tr><th>Měsíc 2027</th><th class="num">Zákazníci</th><th class="num">Kamery</th><th class="num">Tržby</th></tr></thead>
-    <tbody><tr>
+<h2><span class="n">C</span>Balíčky a prodejní plán</h2>
+<p>Všechny balíčky zahrnují 12 měsíců historie. Cena je měsíční, včetně DPH.</p>
+<table>
+  <thead><tr><th>Balíček</th><th class="num">Kamer</th><th class="num">EUR / měsíc</th><th class="num">Kč / měsíc</th></tr></thead>
+  <tbody><tr>
+    <td>Solo</td>
+    <td class="num">1</td>
+    <td class="num">7,99 €</td>
+    <td class="num">199,75 Kč</td>
+  </tr><tr>
+    <td>Starter</td>
+    <td class="num">3</td>
+    <td class="num">13,99 €</td>
+    <td class="num">349,75 Kč</td>
+  </tr><tr>
+    <td>Plus</td>
+    <td class="num">5</td>
+    <td class="num">19,99 €</td>
+    <td class="num">499,75 Kč</td>
+  </tr><tr>
+    <td>Pro</td>
+    <td class="num">10</td>
+    <td class="num">29,99 €</td>
+    <td class="num">749,75 Kč</td>
+  </tr><tr>
+    <td>Network</td>
+    <td class="num">25</td>
+    <td class="num">49,99 €</td>
+    <td class="num">1 249,75 Kč</td>
+  </tr></tbody>
+</table>
+<div class="table-gap" style="height:3mm"></div>
+<table>
+  <thead><tr><th>Měsíc 2027</th><th class="num">Zákazníci</th><th class="num">Kamery</th><th class="num">Tržby</th></tr></thead>
+  <tbody><tr>
       <td>březen</td>
-      <td class="num">1</td>
-      <td class="num">2,5</td>
-      <td class="num">750 Kč</td>
+      <td class="num">3</td>
+      <td class="num">9</td>
+      <td class="num">1 049 Kč</td>
     </tr><tr>
       <td>duben</td>
-      <td class="num">2</td>
-      <td class="num">5,0</td>
-      <td class="num">1 500 Kč</td>
+      <td class="num">5</td>
+      <td class="num">15</td>
+      <td class="num">1 749 Kč</td>
     </tr><tr>
       <td>květen</td>
-      <td class="num">3</td>
-      <td class="num">7,5</td>
-      <td class="num">2 250 Kč</td>
+      <td class="num">8</td>
+      <td class="num">24</td>
+      <td class="num">2 798 Kč</td>
     </tr><tr>
       <td>červen</td>
-      <td class="num">4</td>
-      <td class="num">10,0</td>
-      <td class="num">3 000 Kč</td>
+      <td class="num">10</td>
+      <td class="num">30</td>
+      <td class="num">3 498 Kč</td>
     </tr><tr>
       <td>červenec</td>
-      <td class="num">6</td>
-      <td class="num">15,0</td>
-      <td class="num">4 500 Kč</td>
+      <td class="num">15</td>
+      <td class="num">45</td>
+      <td class="num">5 246 Kč</td>
     </tr><tr>
       <td>srpen</td>
-      <td class="num">8</td>
-      <td class="num">20,0</td>
-      <td class="num">6 000 Kč</td>
+      <td class="num">20</td>
+      <td class="num">60</td>
+      <td class="num">6 995 Kč</td>
     </tr><tr>
       <td>září</td>
-      <td class="num">10</td>
-      <td class="num">25,0</td>
-      <td class="num">7 500 Kč</td>
+      <td class="num">25</td>
+      <td class="num">75</td>
+      <td class="num">8 744 Kč</td>
     </tr><tr>
       <td>říjen</td>
-      <td class="num">13</td>
-      <td class="num">32,5</td>
-      <td class="num">9 750 Kč</td>
+      <td class="num">33</td>
+      <td class="num">99</td>
+      <td class="num">11 542 Kč</td>
     </tr><tr>
       <td>listopad</td>
-      <td class="num">16</td>
-      <td class="num">40,0</td>
-      <td class="num">12 000 Kč</td>
+      <td class="num">40</td>
+      <td class="num">120</td>
+      <td class="num">13 990 Kč</td>
     </tr><tr>
       <td>prosinec</td>
-      <td class="num">20</td>
-      <td class="num">50,0</td>
-      <td class="num">15 000 Kč</td>
+      <td class="num">50</td>
+      <td class="num">150</td>
+      <td class="num">17 488 Kč</td>
     </tr></tbody>
-    <tfoot><tr class="total"><td>Rok 1</td><td class="num">20</td><td class="num">50</td><td class="num">62 250 Kč</td></tr></tfoot>
-  </table>
-  <p class="note">První platící zákazník v březnu 2027. Do prosince 20 zákazníků a 50 kamer.</p>
-</section>
+</table>
 
-<section class="page keep">
+<section class="keep">
   <h2><span class="n">D</span>Bod zvratu a návratnost</h2>
-  <p class="beat">Únor 2028</p>
-  <p class="beat-note">V tento měsíc kumulativní tržby poprvé pokryjí počáteční vývoj 25 300 Kč, měsíční provoz i 15 h měsíčně na vlastní práci. Bez započtení vlastního času by to bylo v říjnu 2027.</p>
+  <p class="beat">Leden 2028</p>
+  <p class="beat-note">V tento měsíc kumulativní tržby poprvé pokryjí počáteční investici 25 300 Kč, měsíční provoz i 15 h měsíčně na vlastní práci. Bez započtení vlastního času by to bylo v říjnu 2027.</p>
   <div class="facts">
-    <div><strong>16 kamer</strong><span>pokryje měsíční náklady včetně času</span></div>
-    <div><strong>10 000 Kč</strong><span>měsíční zisk při 50 kamerách</span></div>
+    <div><strong>13 zákazníků</strong><span>pokryje měsíční náklady včetně času</span></div>
+    <div><strong>12 326 Kč</strong><span>měsíční zisk při 50 zákaznících</span></div>
   </div>
-
   <div class="chart">
-<svg viewBox="0 0 660 210" role="img" aria-label="Kumulativní bilance projektu">
+<svg viewBox="0 0 660 220" role="img" aria-label="Kumulativní bilance projektu">
   <text x="0" y="10" font-size="8" fill="#5b6b7c">tis. Kč</text>
   <g font-size="8.5" fill="#5b6b7c">
-    <line x1="46" y1="164.5" x2="648" y2="164.5" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="167.5" text-anchor="end">−40</text><line x1="46" y1="129.6" x2="648" y2="129.6" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="132.6" text-anchor="end">−20</text><line x1="46" y1="94.6" x2="648" y2="94.6" stroke="#101828" stroke-width="1" /><text x="38" y="97.6" text-anchor="end">0</text><line x1="46" y1="59.7" x2="648" y2="59.7" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="62.7" text-anchor="end">+20</text><line x1="46" y1="24.7" x2="648" y2="24.7" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="27.7" text-anchor="end">+40</text>
-    <text x="46.0" y="202" text-anchor="middle">12/26</text><text x="146.3" y="202" text-anchor="middle">03/27</text><text x="246.7" y="202" text-anchor="middle">06/27</text><text x="347.0" y="202" text-anchor="middle">09/27</text><text x="447.3" y="202" text-anchor="middle">12/27</text><text x="547.7" y="202" text-anchor="middle">03/28</text><text x="648.0" y="202" text-anchor="middle">06/28</text>
+    <line x1="46" y1="192.0" x2="648" y2="192.0" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="195.0" text-anchor="end">−50</text><line x1="46" y1="156.8" x2="648" y2="156.8" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="159.8" text-anchor="end">−25</text><line x1="46" y1="121.6" x2="648" y2="121.6" stroke="#101828" stroke-width="1" /><text x="38" y="124.6" text-anchor="end">0</text><line x1="46" y1="86.4" x2="648" y2="86.4" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="89.4" text-anchor="end">+25</text><line x1="46" y1="51.2" x2="648" y2="51.2" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="54.2" text-anchor="end">+50</text><line x1="46" y1="16.0" x2="648" y2="16.0" stroke="#e3e9ef" stroke-width="0.8" /><text x="38" y="19.0" text-anchor="end">+75</text>
+    <text x="46.0" y="212" text-anchor="middle">12/26</text><text x="146.3" y="212" text-anchor="middle">03/27</text><text x="246.7" y="212" text-anchor="middle">06/27</text><text x="347.0" y="212" text-anchor="middle">09/27</text><text x="447.3" y="212" text-anchor="middle">12/27</text><text x="547.7" y="212" text-anchor="middle">03/28</text><text x="648.0" y="212" text-anchor="middle">06/28</text>
   </g>
-  <path d="M46.0,138.8 L79.4,146.4 L112.9,153.9 L146.3,160.1 L179.8,165.1 L213.2,168.9 L246.7,171.4 L280.1,171.4 L313.6,169.0 L347.0,164.0 L380.4,155.3 L413.9,142.8 L447.3,125.3 L480.8,107.8 L514.2,90.4 L547.7,72.9 L581.1,55.4 L614.6,37.9 L648.0,20.5" fill="none" stroke="#0e7490" stroke-width="2.2" stroke-linejoin="round" />
-  <circle cx="514.2" cy="90.4" r="3.6" fill="#15803d" />
-  <text x="506.2" y="83.4" text-anchor="end" font-size="8.5" font-weight="600" fill="#15803d">návratnost: únor 2028</text>
+  <path d="M46.0,157.2 L79.4,163.3 L112.9,169.3 L146.3,174.0 L179.8,177.7 L213.2,180.0 L246.7,181.4 L280.1,180.4 L313.6,177.1 L347.0,171.4 L380.4,162.1 L413.9,149.4 L447.3,132.0 L480.8,114.7 L514.2,97.3 L547.7,80.0 L581.1,62.6 L614.6,45.3 L648.0,27.9" fill="none" stroke="#0e7490" stroke-width="2.2" stroke-linejoin="round" />
+  <circle cx="480.8" cy="114.7" r="3.6" fill="#15803d" />
+  <text x="472.8" y="107.7" text-anchor="end" font-size="8.5" font-weight="600" fill="#15803d">návratnost: leden 2028</text>
 </svg></div>
-  <p class="note">Kumulativní bilance: počáteční investice, provoz, variabilní náklady a 15 h měsíčně. 50 kamer od ledna 2028.</p>
 
   <h2><span class="n">E</span>Měsíční výkaz zisku a ztráty</h2>
-  <p class="note">Modelový měsíc při 50 kamerech, tj. 20 zákazníků s průměrně 2,5 kamery.</p>
-
+  <p class="note">Modelový měsíc při 50 zákaznících, tj. 150 kamer (3 na zákazníka).</p>
   <table class="big-table">
     <thead><tr><th>Položka</th><th class="num">Kč</th></tr></thead>
     <tbody>
-      <tr><td>Tržby z prodeje (50 × 300)</td><td class="num">15 000 Kč</td></tr>
-      <tr><td>Variabilní náklady (50 × 14 Kč)</td><td class="num">−700 Kč</td></tr>
-      <tr class="total"><td>Hrubý zisk</td><td class="num">14 300 Kč</td></tr>
+      <tr><td>Tržby z prodeje (50 × 349,75)</td><td class="num">17 488 Kč</td></tr>
+      <tr><td>Variabilní náklady (50 × 17,24 Kč)</td><td class="num">−862 Kč</td></tr>
+      <tr class="total"><td>Hrubý zisk</td><td class="num">16 626 Kč</td></tr>
       <tr><td>Měsíční fixní náklady</td><td class="num">−550 Kč</td></tr>
       <tr><td>Vlastní čas 15 h × 250 Kč</td><td class="num">−3 750 Kč</td></tr>
-      <tr class="total"><td>Čistý zisk za měsíc</td><td class="num">10 000 Kč</td></tr>
+      <tr class="total"><td>Čistý zisk za měsíc</td><td class="num">12 326 Kč</td></tr>
     </tbody>
   </table>
-
-  <p class="beat-note" style="margin-top:6mm">Při 50 kamerech vydělá projekt 13 750 Kč měsíčně před započtením času. Z toho 3 750 Kč je zaplacený vlastní čas a 10 000 Kč zisk nad jeho rámec.</p>
+  <p class="beat-note" style="margin-top:5mm">Při 50 zákaznících vydělá projekt 16 076 Kč měsíčně před započtením času. Z toho 3 750 Kč je zaplacený vlastní čas a 12 326 Kč zisk nad jeho rámec.</p>
 </section>
 
 </body>

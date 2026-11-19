@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import type { AppConfig } from "@ch/core";
+import type { AppConfig, PackageCode } from "@ch/core";
 
 export interface StripeWebhookEvent {
   type: string;
@@ -10,19 +10,32 @@ export interface StripeGateway {
   createCustomer(input: { tenantId: string; email?: string; name?: string }): Promise<{ id: string }>;
   createCheckoutSession(input: {
     customer: string;
-    items: Array<{ priceId: string; quantity: number }>;
+    priceId: string;
     tenantId: string;
-    planMonths: number;
-    trialPeriodDays?: number;
+    packageCode: PackageCode;
     successUrl: string;
     cancelUrl: string;
   }): Promise<{ url: string; customer: string | null; subscription: string | null }>;
+  changePackage(input: {
+    subscriptionId: string;
+    priceId: string;
+    packageCode: PackageCode;
+  }): Promise<void>;
   createPortalSession(input: { customer: string; returnUrl: string }): Promise<{ url: string }>;
   verifyWebhook(input: { payload: string; signature: string }): Promise<StripeWebhookEvent>;
 }
 
 export function adminBase(cfg: AppConfig): string {
   return `${cfg.api.publicBaseUrl.replace(/\/+$/, "")}/admin`;
+}
+
+function idOf(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "id" in value) {
+    const id = (value as { id?: unknown }).id;
+    return typeof id === "string" ? id : null;
+  }
+  return null;
 }
 
 export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
@@ -45,32 +58,46 @@ export function createStripeGateway(cfg: AppConfig): StripeGateway | null {
         billing_address_collection: "required",
         payment_method_collection: "always",
         managed_payments: { enabled: true },
-        line_items: input.items.map((item) => ({ price: item.priceId, quantity: item.quantity })),
+        line_items: [{ price: input.priceId, quantity: 1 }],
         subscription_data: {
           metadata: {
             tenantId: input.tenantId,
-            planMonths: String(input.planMonths),
-            trialClaimed: input.trialPeriodDays ? "1" : "0",
+            packageCode: input.packageCode,
           },
-          ...(input.trialPeriodDays ? { trial_period_days: input.trialPeriodDays } : {}),
-          ...(input.trialPeriodDays
-            ? { trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } } }
-            : {}),
         },
         client_reference_id: input.tenantId,
         metadata: {
           tenantId: input.tenantId,
-          planMonths: String(input.planMonths),
-          trialClaimed: input.trialPeriodDays ? "1" : "0",
+          packageCode: input.packageCode,
         },
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,
       });
-      const customer =
-        typeof session.customer === "string" ? session.customer : String((session.customer as { id?: string } | null)?.id ?? "");
-      const subscription =
-        typeof session.subscription === "string" ? session.subscription : String((session.subscription as { id?: string } | null)?.id ?? "");
-      return { url: session.url ?? "", customer, subscription };
+      return {
+        url: session.url ?? "",
+        customer: idOf(session.customer),
+        subscription: idOf(session.subscription),
+      };
+    },
+    async changePackage({ subscriptionId, priceId, packageCode }) {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ["items.data.price"],
+      });
+      const [first, ...rest] = subscription.items.data;
+      if (!first) throw new Error("subscription has no items");
+      await stripe.subscriptionItems.update(first.id, {
+        price: priceId,
+        quantity: 1,
+        proration_behavior: "create_prorations",
+      });
+      for (const item of rest) {
+        await stripe.subscriptionItems.del(item.id, {
+          proration_behavior: "create_prorations",
+        });
+      }
+      await stripe.subscriptions.update(subscriptionId, {
+        metadata: { ...subscription.metadata, packageCode },
+      });
     },
     async createPortalSession({ customer, returnUrl }) {
       const session = await stripe.billingPortal.sessions.create({

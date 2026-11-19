@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package.json tsconfig.base.json ./
 COPY packages/web packages/web
 COPY packages/admin packages/admin
+COPY packages/design packages/design
 RUN npm install --workspace @ch/web --workspace @ch/admin
 RUN npm run build --workspace @ch/web --workspace @ch/admin
 

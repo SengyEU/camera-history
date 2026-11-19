@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, lt, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, notInArray, sql } from "drizzle-orm";
 import type {
   AdminCameraGroup,
   BillingPatch,
@@ -17,6 +17,7 @@ import type {
   Tenant,
   User,
 } from "@ch/core";
+import { DEFAULT_PACKAGE, RETENTION_MONTHS } from "@ch/core";
 import type { Db } from "./db.js";
 import { cameraGroupMembers, cameraGroups, cameras, images, tenants, users } from "./schema.js";
 import type { Repos } from "./repos.types.js";
@@ -34,14 +35,35 @@ function toDate(value: unknown): Date | null {
 }
 
 function toTenant(row: TenantRow): Tenant {
-  return { ...row, planMonths: Number(row.planMonths) };
+  return { ...row, packageCode: row.packageCode as Tenant["packageCode"] };
 }
 
 function toCamera(row: CameraRow): Camera {
   return {
     ...row,
-    planMonths: row.planMonths === null ? null : Number(row.planMonths),
     timeFormat: row.timeFormat as "12h" | "24h",
+  };
+}
+
+function cameraValues(tenantId: string, input: NewCamera) {
+  return {
+    tenantId,
+    name: input.name,
+    feedType: input.feedType,
+    feedUrl: input.feedUrl,
+    feedConfig: input.feedConfig ?? {},
+    intervalMinutes: input.intervalMinutes,
+    activeFrom: input.activeFrom,
+    activeTo: input.activeTo,
+    timezone: input.timezone,
+    enabled: input.enabled ?? true,
+    theme: input.theme ?? "light",
+    themeColors: input.themeColors ?? null,
+    timeFormat: input.timeFormat ?? "12h",
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
+    daylightOnly: input.daylightOnly ?? false,
+    showNight: input.showNight ?? false,
   };
 }
 
@@ -50,7 +72,7 @@ export function createRepos(db: Db): Repos {
     async createTenant(input: NewTenant): Promise<Tenant> {
       const [row] = await db
         .insert(tenants)
-        .values({ name: input.name, slug: input.slug, planMonths: String(input.planMonths ?? 12) })
+        .values({ name: input.name, slug: input.slug, packageCode: input.packageCode ?? DEFAULT_PACKAGE })
         .returning();
       return toTenant(row!);
     },
@@ -79,30 +101,25 @@ export function createRepos(db: Db): Repos {
       return row ?? null;
     },
     async createCamera(tenantId: string, input: NewCamera): Promise<Camera> {
-      const [row] = await db
-        .insert(cameras)
-        .values({
-          tenantId,
-          name: input.name,
-          feedType: input.feedType,
-          feedUrl: input.feedUrl,
-          feedConfig: input.feedConfig ?? {},
-          intervalMinutes: input.intervalMinutes,
-          activeFrom: input.activeFrom,
-          activeTo: input.activeTo,
-          timezone: input.timezone,
-          enabled: input.enabled ?? true,
-          theme: input.theme ?? "light",
-          themeColors: input.themeColors ?? null,
-          planMonths: input.planMonths === null || input.planMonths === undefined ? null : String(input.planMonths),
-          timeFormat: input.timeFormat ?? "12h",
-          latitude: input.latitude ?? null,
-          longitude: input.longitude ?? null,
-          daylightOnly: input.daylightOnly ?? false,
-          showNight: input.showNight ?? false,
-        })
-        .returning();
+      const [row] = await db.insert(cameras).values(cameraValues(tenantId, input)).returning();
       return toCamera(row!);
+    },
+    async createCameraWithLimit(tenantId, input, limit) {
+      return db.transaction(async (tx) => {
+        const [tenant] = await tx
+          .select({ id: tenants.id })
+          .from(tenants)
+          .where(eq(tenants.id, tenantId))
+          .for("update");
+        if (!tenant) throw new Error("tenant not found");
+        const rows = await tx
+          .select({ id: cameras.id })
+          .from(cameras)
+          .where(eq(cameras.tenantId, tenantId));
+        if (rows.length >= limit) return { camera: null, cameraCount: rows.length };
+        const [row] = await tx.insert(cameras).values(cameraValues(tenantId, input)).returning();
+        return { camera: toCamera(row!) };
+      });
     },
     async getCameraById(id: string) {
       const [row] = await db.select().from(cameras).where(eq(cameras.id, id));
@@ -113,14 +130,7 @@ export function createRepos(db: Db): Repos {
       return rows.map(toCamera);
     },
     async updateCamera(id: string, patch: CameraPatch) {
-      const { planMonths, ...rest } = patch;
-      const values = {
-        ...rest,
-        ...(planMonths !== undefined
-          ? { planMonths: planMonths === null ? null : String(planMonths) }
-          : {}),
-      };
-      const [row] = await db.update(cameras).set(values).where(eq(cameras.id, id)).returning();
+      const [row] = await db.update(cameras).set(patch).where(eq(cameras.id, id)).returning();
       return row ? toCamera(row) : null;
     },
     async deleteCamera(id: string) {
@@ -148,8 +158,6 @@ export function createRepos(db: Db): Repos {
           themeColors: cameras.themeColors,
           timezone: cameras.timezone,
           timeFormat: cameras.timeFormat,
-          cameraPlan: cameras.planMonths,
-          tenantPlan: tenants.planMonths,
           latitude: cameras.latitude,
           longitude: cameras.longitude,
           showNight: cameras.showNight,
@@ -172,7 +180,7 @@ export function createRepos(db: Db): Repos {
             themeColors: row.themeColors ?? null,
             timezone: row.timezone,
             timeFormat: row.timeFormat as "12h" | "24h",
-            retentionMonths: Number(row.cameraPlan ?? row.tenantPlan ?? 12),
+            retentionMonths: RETENTION_MONTHS,
             latitude: row.latitude,
             longitude: row.longitude,
             showNight: row.showNight,
@@ -203,21 +211,27 @@ export function createRepos(db: Db): Repos {
         .limit(1);
       return row ?? null;
     },
+    async listImagesBefore(cutoff: Date, limit: number) {
+      return db
+        .select({ id: images.id, storageKey: images.storageKey })
+        .from(images)
+        .where(lt(images.timestamp, cutoff))
+        .orderBy(images.timestamp)
+        .limit(limit);
+    },
+    async deleteImages(ids: string[]) {
+      if (ids.length === 0) return;
+      await db.delete(images).where(inArray(images.id, ids));
+    },
+    async listImagesForCamera(cameraId: string) {
+      return db
+        .select({ id: images.id, storageKey: images.storageKey })
+        .from(images)
+        .where(eq(images.cameraId, cameraId));
+    },
     async countCameras(tenantId: string) {
       const rows = await db.select({ id: cameras.id }).from(cameras).where(eq(cameras.tenantId, tenantId));
       return rows.length;
-    },
-    async cameraPlanCounts(tenantId: string) {
-      const rows = await db
-        .select({
-          months: sql<string>`COALESCE(${cameras.planMonths}, ${tenants.planMonths})`,
-          count: sql<number>`COUNT(*)`,
-        })
-        .from(cameras)
-        .innerJoin(tenants, eq(cameras.tenantId, tenants.id))
-        .where(eq(cameras.tenantId, tenantId))
-        .groupBy(sql`COALESCE(${cameras.planMonths}, ${tenants.planMonths})`);
-      return new Map(rows.map((row) => [Number(row.months), Number(row.count)]));
     },
     async usageStats(tenantId: string) {
       const [row] = await db
@@ -272,19 +286,11 @@ export function createRepos(db: Db): Repos {
           stripeSubscriptionId: patch.stripeSubscriptionId,
           billingStatus: patch.billingStatus,
           billingGraceUntil: patch.billingGraceUntil,
-          trialClaimedAt: patch.trialClaimedAt,
-          planMonths: patch.planMonths !== undefined ? String(patch.planMonths) : undefined,
+          packageCode: patch.packageCode,
         })
         .where(eq(tenants.id, tenantId))
         .returning();
       return row ? toTenant(row) : null;
-    },
-    async countTrialClaims() {
-      const rows = await db
-        .select({ id: tenants.id })
-        .from(tenants)
-        .where(isNotNull(tenants.trialClaimedAt));
-      return rows.length;
     },
     async listTenantsByBillingStatus(status: BillingStatus) {
       const rows = await db.select().from(tenants).where(eq(tenants.billingStatus, status));
@@ -375,8 +381,6 @@ export function createRepos(db: Db): Repos {
           ctimeFormat: cameras.timeFormat,
           cenabled: cameras.enabled,
           cshowNight: cameras.showNight,
-          cplanMonths: cameras.planMonths,
-          tplanMonths: tenants.planMonths,
           cposition: cameraGroupMembers.position,
         })
         .from(cameraGroups)
@@ -402,7 +406,7 @@ export function createRepos(db: Db): Repos {
           themeColors: r.cthemeColors ?? null,
           timezone: r.ctimezone!,
           timeFormat: r.ctimeFormat as "12h" | "24h",
-          retentionMonths: Number(r.cplanMonths ?? r.tplanMonths ?? 12),
+          retentionMonths: RETENTION_MONTHS,
           showNight: r.cshowNight!,
         }));
       return { group, cameras: cams };

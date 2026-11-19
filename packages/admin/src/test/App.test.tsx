@@ -241,7 +241,7 @@ describe("App camera CRUD", () => {
         return new Response(null, { status: 204 });
       }
       if (u.endsWith("/api/v1/admin/tenant")) {
-        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme", planMonths: 12 } });
+        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme", packageCode: "starter", cameraLimit: 3 } });
       }
       return jsonResponse({ detail: "not found" }, 404);
     });
@@ -308,7 +308,6 @@ describe("App camera CRUD", () => {
     const { fn } = listServer({
       imageCount: 120,
       totalBytes: 1_500_000,
-      planMonths: 3,
       firstCaptureAt: "2026-09-20T12:00:00.000Z",
       lastCaptureAt: "2026-09-23T13:00:00.000Z",
     });
@@ -317,7 +316,7 @@ describe("App camera CRUD", () => {
     await screen.findByText("Beach cam");
 
     expect(screen.getByTestId("camera-images-cam-1")).toHaveTextContent("120");
-    expect(screen.getByTestId("camera-plan-cam-1")).toHaveTextContent("3 months");
+    expect(screen.getByTestId("camera-history-cam-1")).toHaveTextContent("12 months");
     expect(screen.getByTestId("camera-running-cam-1")).not.toHaveTextContent("—");
     expect(screen.getByTestId("summary-images")).toHaveTextContent("120");
     expect(screen.getByTestId("summary-since")).toHaveTextContent(/2026/);
@@ -420,63 +419,16 @@ describe("App camera CRUD", () => {
     expect(window.location.hash).toBe("#/cameras");
   });
 
-  it("shows the inherited account plan on a camera card", async () => {
+  it("shows 12 months on the camera card and in the editor", async () => {
     const { fn } = listServer();
     vi.stubGlobal("fetch", fn);
     render(<App />);
     await screen.findByText("Beach cam");
-    expect(screen.getByTestId("camera-plan-cam-1")).toHaveTextContent("Account (12 months)");
-  });
-
-  it("shows and saves a per-camera plan", async () => {
-    const { fn, calls } = listServer({ planMonths: 3 });
-    vi.stubGlobal("fetch", fn);
-    render(<App />);
-    await screen.findByText("Beach cam");
+    expect(screen.getByTestId("camera-history-cam-1")).toHaveTextContent("12 months");
 
     await userEvent.click(screen.getByTestId("edit-cam-1"));
-    expect(screen.getByTestId("camera-plan-card")).toBeInTheDocument();
-    expect(screen.getByTestId("camera-plan-card").closest(".camera-preview")).not.toBeNull();
-    expect(screen.getByTestId("camera-plan-current")).toHaveTextContent("3 months");
-    const plan = screen.getByTestId("form-plan") as HTMLSelectElement;
-    expect(plan.value).toBe("3");
-    expect(plan).toHaveTextContent("Inherit from account (12 months)");
-    expect(plan).toHaveTextContent("6 months");
-
-    await userEvent.selectOptions(plan, "6");
-    expect(screen.getByTestId("camera-plan-current")).toHaveTextContent("6 months");
-    await userEvent.click(screen.getByTestId("form-submit"));
-
-    await waitFor(() =>
-      expect(calls.some((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")).toBe(true),
-    );
-    const put = calls.find(
-      (c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT",
-    )!;
-    expect(JSON.parse(String(put.init?.body))).toMatchObject({ planMonths: 6 });
-    expect(await screen.findByTestId("camera-saved")).toHaveTextContent("Saved");
-    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
-  });
-
-  it("clears a per-camera plan back to inherit", async () => {
-    const { fn, calls } = listServer({ planMonths: 6 });
-    vi.stubGlobal("fetch", fn);
-    render(<App />);
-    await screen.findByText("Beach cam");
-
-    await userEvent.click(screen.getByTestId("edit-cam-1"));
-    await userEvent.selectOptions(screen.getByTestId("form-plan"), "");
-    await userEvent.click(screen.getByTestId("form-submit"));
-
-    await waitFor(() =>
-      expect(calls.some((c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT")).toBe(true),
-    );
-    const put = calls.find(
-      (c) => c.u.includes("/api/v1/admin/cameras/cam-1") && c.init?.method === "PUT",
-    )!;
-    expect(JSON.parse(String(put.init?.body))).toMatchObject({ planMonths: null });
-    expect(await screen.findByTestId("camera-saved")).toHaveTextContent("Saved");
-    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
+    expect(screen.getByTestId("camera-history")).toHaveTextContent("12 months");
+    expect(screen.queryByTestId("form-plan")).not.toBeInTheDocument();
   });
 
   it("saves the camera time format", async () => {
@@ -869,7 +821,7 @@ describe("App groups", () => {
       }
       if (u.includes("/preview")) return jsonResponse({ latest: null });
       if (u.endsWith("/api/v1/admin/tenant")) {
-        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: tenantSlug, planMonths: 12 } });
+        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: tenantSlug, packageCode: "starter", cameraLimit: 3 } });
       }
       if (u.endsWith("/api/v1/admin/groups") && method === "GET") {
         return jsonResponse({ groups: state.groups });

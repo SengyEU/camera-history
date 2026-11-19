@@ -1,38 +1,64 @@
-export interface BillingTier {
-  months: number;
-  label: string;
-  eurPerCamera: number;
+export const RETENTION_MONTHS = 12;
+
+export type PackageCode = "solo" | "starter" | "plus" | "pro" | "network";
+
+export interface PackageTier {
+  code: PackageCode;
+  name: string;
+  maxCameras: number;
+  eurPerMonth: number;
+  priceEnv: string;
 }
 
-export const BILLING_TIERS: BillingTier[] = [
-  { months: 0.5, label: "14 days", eurPerCamera: 5 },
-  { months: 1, label: "1 month", eurPerCamera: 9 },
-  { months: 3, label: "3 months", eurPerCamera: 15 },
-  { months: 6, label: "6 months", eurPerCamera: 22 },
-  { months: 12, label: "12 months", eurPerCamera: 29 },
-  { months: 24, label: "24 months", eurPerCamera: 49 },
-  { months: 36, label: "36 months", eurPerCamera: 69 },
+export const PACKAGE_TIERS: PackageTier[] = [
+  { code: "solo", name: "Solo", maxCameras: 1, eurPerMonth: 7.99, priceEnv: "STRIPE_PRICE_SOLO" },
+  { code: "starter", name: "Starter", maxCameras: 3, eurPerMonth: 13.99, priceEnv: "STRIPE_PRICE_STARTER" },
+  { code: "plus", name: "Plus", maxCameras: 5, eurPerMonth: 19.99, priceEnv: "STRIPE_PRICE_PLUS" },
+  { code: "pro", name: "Pro", maxCameras: 10, eurPerMonth: 29.99, priceEnv: "STRIPE_PRICE_PRO" },
+  { code: "network", name: "Network", maxCameras: 25, eurPerMonth: 49.99, priceEnv: "STRIPE_PRICE_NETWORK" },
 ];
 
-export function isValidPlanMonths(months: number): boolean {
-  return BILLING_TIERS.some((t) => t.months === months);
+export const DEFAULT_PACKAGE: PackageCode = "starter";
+
+export function isPackageCode(value: string): value is PackageCode {
+  return PACKAGE_TIERS.some((tier) => tier.code === value);
 }
 
-export function eurPerCamera(months: number): number | null {
-  return BILLING_TIERS.find((t) => t.months === months)?.eurPerCamera ?? null;
+export function packageForCode(code: string): PackageTier | null {
+  return PACKAGE_TIERS.find((tier) => tier.code === code) ?? null;
 }
 
-export function priceIdForTier(prices: Record<string, string>, months: number): string | null {
-  const id = prices[String(months)];
+export function cameraLimitForPackage(code: string): number {
+  return packageForCode(code)?.maxCameras ?? 0;
+}
+
+export function priceIdForPackage(
+  prices: Record<string, string>,
+  code: string,
+): string | null {
+  const id = prices[code];
   return id && id !== "" ? id : null;
 }
 
-export function monthsForPriceId(prices: Record<string, string>, priceId: string): number | null {
-  for (const [key, value] of Object.entries(prices)) {
-    if (value === priceId) {
-      const months = Number(key);
-      if (Number.isFinite(months)) return months;
-    }
+export function packageForPriceId(
+  prices: Record<string, string>,
+  priceId: string,
+): PackageCode | null {
+  for (const [code, value] of Object.entries(prices)) {
+    if (value === priceId && isPackageCode(code)) return code;
   }
   return null;
+}
+
+/**
+ * Smallest package that fits the camera count for a backfill.
+ * A tenant with one camera gets Solo; zero cameras gets the default Starter,
+ * so a new empty tenant is not capped at one camera.
+ */
+export function packageForCameraCount(count: number): PackageTier {
+  if (count === 1) return packageForCode("solo")!;
+  if (count <= 3) return packageForCode("starter")!;
+  if (count <= 5) return packageForCode("plus")!;
+  if (count <= 10) return packageForCode("pro")!;
+  return packageForCode("network")!;
 }

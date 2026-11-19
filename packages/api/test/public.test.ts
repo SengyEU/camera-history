@@ -375,13 +375,13 @@ describe("public routes", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("returns public group cameras in configured order with per-camera retention", async () => {
+  it("returns public group cameras in configured order with 12-month retention", async () => {
     const { app, repos } = makeApp();
-    const t = await repos.createTenant({ name: "T", slug: "t-one", planMonths: 24 });
+    const t = await repos.createTenant({ name: "T", slug: "t-one" });
     const cam = await repos.createCamera(t.id, {
       name: "Zulu", feedType: "static_url", feedUrl: "https://e.com/z.jpg",
       intervalMinutes: 15, activeFrom: "00:00", activeTo: "23:59",
-      timezone: "America/Edmonton", theme: "dark", showNight: true, planMonths: 3,
+      timezone: "America/Edmonton", theme: "dark", showNight: true,
     });
     const alpha = await repos.createCamera(t.id, {
       name: "Alpha", feedType: "static_url", feedUrl: "https://e.com/a.jpg",
@@ -399,8 +399,8 @@ describe("public routes", () => {
     const body = res.json();
     expect(body.group.slug).toBe("g-one");
     expect(body.cameras.map((c: { name: string }) => c.name)).toEqual(["Zulu", "Alpha"]);
-    expect(body.cameras[0]).toMatchObject({ retentionMonths: 3, showNight: true, timeFormat: "12h" });
-    expect(body.cameras[1]).toMatchObject({ retentionMonths: 24, timeFormat: "12h" });
+    expect(body.cameras[0]).toMatchObject({ retentionMonths: 12, showNight: true, timeFormat: "12h" });
+    expect(body.cameras[1]).toMatchObject({ retentionMonths: 12, timeFormat: "12h" });
   });
 
   it("404s for unknown public group with a group-specific detail", async () => {

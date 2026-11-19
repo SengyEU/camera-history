@@ -5,7 +5,6 @@ import { EmbedCodePanel } from "./EmbedCodePanel";
 import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
 import { formatAge } from "./format";
 import { GroupEditor, GroupsView, type GroupInput } from "./Groups";
-import { PLAN_OPTIONS, planLabel } from "./plans";
 import { SLUG_RE, slugify } from "./slug";
 import { DEFAULT_THEME_COLORS, THEME_COLOR_FIELDS, contrastWarnings } from "./theme";
 import "./App.css";
@@ -26,7 +25,6 @@ const emptyInput = (): CameraInput => ({
   timezone: "UTC",
   theme: "light",
   themeColors: null,
-  planMonths: null,
   timeFormat: "12h",
   latitude: null,
   longitude: null,
@@ -282,7 +280,6 @@ function CameraForm({
   onCancel,
   cameraId,
   tenantSlug,
-  tenantPlanMonths,
 }: {
   initial: CameraInput;
   onSave: (
@@ -292,7 +289,6 @@ function CameraForm({
   onCancel: () => void;
   cameraId?: string | null;
   tenantSlug: string;
-  tenantPlanMonths: number;
 }) {
   const [input, setInput] = useState<CameraInput>(initial);
   const [latitudeText, setLatitudeText] = useState(initial.latitude === null ? "" : String(initial.latitude));
@@ -680,40 +676,9 @@ function CameraForm({
             Theme changes apply to the preview instantly and are saved automatically. Other settings
             apply after saving.
           </p>
-          <div className="camera-plan-card" data-testid="camera-plan-card">
-            <div className="panel-head">
-              <h3>Retention plan</h3>
-              <span className="ts-chip">PLAN</span>
-            </div>
-            <strong className="camera-plan-current" data-testid="camera-plan-current">
-              {input.planMonths === null
-                ? `Account plan · ${planLabel(tenantPlanMonths)}`
-                : planLabel(input.planMonths)}
-            </strong>
-            <label className="camera-plan-field">
-              Plan
-              <select
-                value={input.planMonths === null ? "" : String(input.planMonths)}
-                onChange={(e) =>
-                  setInput((state) => ({
-                    ...state,
-                    planMonths: e.target.value === "" ? null : Number(e.target.value),
-                  }))
-                }
-                data-testid="form-plan"
-              >
-                <option value="">{`Inherit from account (${planLabel(tenantPlanMonths)})`}</option>
-                {PLAN_OPTIONS.map((option) => (
-                  <option key={option.months} value={option.months}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span className="field-hint">
-              Applies after saving. Billing still follows the account plan for now.
-            </span>
-          </div>
+          <p className="field-hint" data-testid="camera-history">
+            History · 12 months included.
+          </p>
           {cameraId && tenantSlug ? (
             <EmbedCodePanel
               code={embedCode}
@@ -731,7 +696,7 @@ function CameraForm({
   );
 }
 
-function CameraSummary({ cameras }: { cameras: AdminCamera[] }) {
+function CameraSummary({ cameras, limit }: { cameras: AdminCamera[]; limit: number }) {
   const images = cameras.reduce((total, cam) => total + (cam.imageCount ?? 0), 0);
   const oldest =
     cameras
@@ -743,7 +708,9 @@ function CameraSummary({ cameras }: { cameras: AdminCamera[] }) {
     <div className="camera-summary" data-testid="camera-summary">
       <div>
         <span>Cameras</span>
-        <strong>{cameras.length}</strong>
+        <strong>
+          {cameras.length} / {limit}
+        </strong>
       </div>
       <div>
         <span>Images collected</span>
@@ -762,13 +729,11 @@ function CameraSummary({ cameras }: { cameras: AdminCamera[] }) {
 function CameraCard({
   cam,
   tenantSlug,
-  tenantPlanMonths,
   onEdit,
   onDelete,
 }: {
   cam: AdminCamera;
   tenantSlug: string;
-  tenantPlanMonths: number;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -851,12 +816,8 @@ function CameraCard({
             <dd data-testid={`camera-images-${cam.id}`}>{(cam.imageCount ?? 0).toLocaleString()}</dd>
           </div>
           <div>
-            <dt>Plan</dt>
-            <dd data-testid={`camera-plan-${cam.id}`}>
-              {cam.planMonths === null || cam.planMonths === undefined
-                ? `Account (${planLabel(tenantPlanMonths)})`
-                : planLabel(cam.planMonths)}
-            </dd>
+            <dt>History</dt>
+            <dd data-testid={`camera-history-${cam.id}`}>12 months</dd>
           </div>
           <div>
             <dt>Running</dt>
@@ -912,7 +873,7 @@ export function App() {
   const [camerasLoading, setCamerasLoading] = useState(true);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [tenantSlug, setTenantSlug] = useState<string>("");
-  const [tenantPlanMonths, setTenantPlanMonths] = useState<number>(12);
+  const [tenantCameraLimit, setTenantCameraLimit] = useState<number>(3);
   const [view, setView] = useState<"cameras" | "groups" | "billing">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
@@ -984,7 +945,7 @@ export function App() {
       .getTenant()
       .then((t) => {
         setTenantSlug(t.slug);
-        setTenantPlanMonths(t.planMonths ?? 12);
+        setTenantCameraLimit(t.cameraLimit);
       })
       .catch(() => setTenantSlug(""));
   }, [email]);
@@ -1019,7 +980,6 @@ export function App() {
     timezone: cam.timezone,
     theme: cam.theme,
     themeColors: cam.themeColors ?? null,
-    planMonths: cam.planMonths ?? null,
     timeFormat: cam.timeFormat ?? "12h",
     latitude: cam.latitude ?? null,
     longitude: cam.longitude ?? null,
@@ -1273,7 +1233,6 @@ export function App() {
              onCancel={closeCamera}
              cameraId={editingId}
              tenantSlug={tenantSlug}
-             tenantPlanMonths={tenantPlanMonths}
            />
          ) : camerasLoading ? (
            <p className="loading">Loading…</p>
@@ -1292,7 +1251,16 @@ export function App() {
         <section className="panel">
           <div className="panel-head">
             <h2>Cameras</h2>
-            <button onClick={openNewCamera} data-testid="add-camera">
+            <button
+              onClick={openNewCamera}
+              data-testid="add-camera"
+              disabled={cameras.length >= tenantCameraLimit}
+              title={
+                cameras.length >= tenantCameraLimit
+                  ? "Camera limit reached. Upgrade in Billing."
+                  : undefined
+              }
+            >
               + New camera
             </button>
           </div>
@@ -1308,14 +1276,13 @@ export function App() {
             </div>
           ) : (
             <>
-              <CameraSummary cameras={cameras} />
+              <CameraSummary cameras={cameras} limit={tenantCameraLimit} />
               <div className="camera-grid">
                 {cameras.map((cam) => (
                   <CameraCard
                     key={cam.id}
                     cam={cam}
                     tenantSlug={tenantSlug}
-                    tenantPlanMonths={tenantPlanMonths}
                     onEdit={() => openCamera(cam.id)}
                     onDelete={() => setConfirming(cam)}
                   />

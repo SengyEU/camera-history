@@ -102,47 +102,57 @@ node scripts/zip-wp-plugin.mjs   # → packages/wp-plugin/dist/camera-history.zi
 php packages/wp-plugin/test/harness.php   # stub harness clienta + shortcodu (bez PHPUnit/WP)
 php -l packages/wp-plugin/camera-history/*.php packages/wp-plugin/camera-history/includes/*.php
 ```
-## M4 — Billing (Stripe, per-camera licensed tiers)
+## M4 — Billing (Stripe, camera-count packages)
 
-Každá kamera má retenční plán (`plan_months`); `null` znamená „dědí výchozí plán tenanta“.
-Výchozí plán se nastavuje v Billingu, per-kamera override v editoru kamery. Celková cena je
-součet počtu kamer v každém tieru × cena za kameru.
+Platba je za **balíček podle počtu kamer**, ne za jednotlivou kameru. Každý balíček obsahuje
+**12 měsíců historie**. Ceny jsou měsíční, v EUR a včetně DPH.
 
-Stripe model: **jedna subscription na tenanta s licensed cenami po tierech**. Každá cena má
-quantity = počet kamer v daném efektivním tieru. Worker každou hodinu synchronizuje quantities
-(přidá/upraví/odebere subscription item); checkout obsahuje jen tiery, které tenant aktuálně používá.
-Billing stránka ukazuje odhad měsíční částky včetně DPH a rozpad podle plánů.
+| Balíček | Max. kamer | Cena / měsíc |
+|---|---:|---:|
+| Solo | 1 | €7.99 |
+| Starter | 3 | €13.99 |
+| Plus | 5 | €19.99 |
+| Pro | 10 | €29.99 |
+| Network | 25 | €49.99 |
+
+Stripe model: **jedna subscription na tenanta s jednou package cenou a quantity 1**. Změna balíčku
+mění price subscription itemu; žádný hodinový sync quantities už neexistuje. Checkout vytváří jednu
+položku, bez trialu. Limit kamer se vynucuje v API transakcí; čtvrtá kamera na Starteru vrátí
+`409 camera_limit_reached`. Downgrade je blokovaný, dokud zákazník nesmaže kamery
+(`409 camera_limit_exceeded`). Smazání kamery smaže i její historii a uvolní slot.
+
+Billing stránka ukazuje aktuální balíček, cenu, `X / Y` kamer, obsazenost a karty všech balíčků.
+Faktury, cancel a resume zůstávají ve Stripe portálu; změna balíčku je v aplikaci.
 
 ### Zapnutí sandboxu
 
-1. `STRIPE_SECRET_KEY=sk_test_... node scripts/seed-stripe.mjs` — vytvoří produkt a 7 licensed cen.
-2. Do `.env` zkopíruj vypsané `STRIPE_PRICE_*`, `STRIPE_PORTAL_CONFIG_ID` a nastav `STRIPE_ENABLED=true`.
+1. `node --env-file=.env scripts/seed-stripe.mjs` — vytvoří produkt, 5 package cen a archivuje staré retenční ceny.
+2. Do `.env` zkopíruj `STRIPE_PRICE_SOLO` … `STRIPE_PRICE_NETWORK`, `STRIPE_PORTAL_CONFIG_ID`
+   a nastav `STRIPE_ENABLED=true`. Staré `STRIPE_PRICE_0_5`…`36` smaž.
 3. Stripe → Developers → Webhooks → endpoint `https://camera.sengycraft.cz/api/v1/billing/webhook`
-   s událostmi `checkout.session.completed`, `checkout.session.expired`,
-   `customer.subscription.updated`, `customer.subscription.deleted`; nastav
-   `STRIPE_WEBHOOK_SECRET`.
-4. Restartuj API/worker. Registrace už nespouští checkout; přidej kameru a v Billingu klikni
-   na **Start billing**. Checkout obsahuje jen tiery, které tenant používá; worker synchronizuje quantities hourly.
-   Prvních **20** nových subscription dostane automaticky **30 dní zdarma**; při expiraci
-   nezaplaceného Checkoutu se slot uvolní.
+   s událostmi `checkout.session.completed`, `customer.subscription.updated`,
+   `customer.subscription.deleted`; nastav `STRIPE_WEBHOOK_SECRET`.
+4. Restartuj API/worker (`docker compose build api worker && docker compose up -d api worker`).
+   API při startu aplikuje migraci `0011`. Přidej kameru a v Billingu klikni na **Start billing**.
+5. **Trial neexistuje.** Pilotní účty jsou zdarma; samoobsluha platí od prvního dne.
 
 Managed Payments / Stripe Tax je zapnuté; produkt má tax code `txcd_10103001` (SaaS, business use).
-Ceny jsou uvedené **včetně DPH**; Stripe z nich daň vypočte a odvede (v sandboxu ověřeno 19 % pro DE).
+Ceny jsou uvedené **včetně DPH**; Stripe z nich daň vypočte a odvede.
 
 ### Pilotní účty
 
-Pilotní design partneři jsou zdarma a nesmí spotřebovat free-month sloty. Platby se vypínají v DB
-(bez admin endpointu, aby si tenant nemohl sám vypnout platby):
+Pilotní design partneři jsou zdarma a neprocházejí checkoutem. Platby se vypínají v DB:
 
 ```sql
 UPDATE tenants
-SET is_pilot = true, pilot_until = '2027-04-01'
+SET is_pilot = true, pilot_until = '2027-04-01', package_code = 'network'
 WHERE slug = 'nazev-tenanta';
 ```
 
 - `is_pilot` — checkout vrátí `409 pilot_account`, billing stránka ukáže pilot stav.
-- `pilot_until` — konec pilotu; po něm přepni `is_pilot = false`, nastav `trial_claimed_at = now()`
-  (aby nedostal další free měsíc) a nech ho projít checkoutem.
+- `package_code` — i pilot má balíček, aby platil limit kamer; `network` je bezpečný default pro flexibilitu.
+- `pilot_until` — konec pilotu; po něm přepni `is_pilot = false` a nech ho projít checkoutem.
+  Žádný `trial_claimed_at` už neexistuje.
 
 Sekce „Who is using Camera History“ na landingu je ručně psaný obsah, ne data z DB.
 Přidává se v `packages/site/src/pilots.ts` (jméno, popisek, odkaz, screenshot) a screenshoty
@@ -153,6 +163,7 @@ patří do `packages/site/public/pilots/`. Dokud je pole prázdné, sekce se vů
 `past_due` + 7 dní grace (`BILLING_GRACE_DAYS`) → worker zruší subscription a tenant přejde do
 `canceled`. Widget a captures se zastaví, ale kamery a historie zůstanou v dashboardu. Pokud se
 platba během grace opraví, webhook `active` vrátí stav na `active` a vše pokračuje.
+Starší snímky než 12 měsíců maže denní retention job z DB i MinIO; selhání objektu se loguje jako orphan.
 
 ## M5 — Widget themes
 

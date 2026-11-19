@@ -4,6 +4,7 @@ import {
   gatedRange,
   localDateInZone,
   localHourInZone,
+  RETENTION_MONTHS,
   retentionCutoff,
   rfc7807,
   sunTimes,
@@ -74,7 +75,7 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           .send(rfc7807(400, "bad_request", "date must be a valid calendar date"));
       }
 
-      const cutoff = retentionCutoff(cam.retentionMonths);
+      const cutoff = retentionCutoff(RETENTION_MONTHS);
       const gated = gatedRange(range.start, range.end, cutoff);
       const data =
         gated.end <= gated.start
@@ -139,7 +140,7 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
           .send(rfc7807(400, "bad_request", "date must be a valid calendar date"));
       }
 
-      const cutoff = retentionCutoff(cam.retentionMonths);
+      const cutoff = retentionCutoff(RETENTION_MONTHS);
       const gated = gatedRange(range.start, range.end, cutoff);
       const data =
         gated.end <= gated.start
