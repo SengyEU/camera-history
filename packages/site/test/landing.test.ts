@@ -10,14 +10,31 @@ describe("landing page", () => {
     expect(html).toContain("We add the history.");
   });
 
-  it("embeds the live group widget and links to it", () => {
-    expect(html).toMatch(/src="\/group\/alpine-summit\/summit[^"]*"/);
-    expect(html).toMatch(/href="\/group\/alpine-summit\/summit[^"]*"/);
+  it("embeds the live group widget and anchors the demo", () => {
+    const heroStart = html.indexOf('<section id="demo" class="hero">');
+    const heroEnd = html.indexOf("</section>", heroStart);
+    const hero = html.slice(heroStart, heroEnd);
+
+    expect(hero).toMatch(/src="\/group\/alpine-summit\/summit[^"]*"/);
+    expect(hero).toContain('id="hero-demo"');
+    expect(hero).toContain('href="#hero-demo"');
+    expect(hero).not.toMatch(/href="\/group\/alpine-summit\/summit/);
+  });
+
+  it("puts How it works in the navigation and anchors the steps section", () => {
+    expect(html).toContain('href="#how-it-works"');
+    expect(html).toContain('id="how-it-works"');
+    expect(html).toContain("How it works");
   });
 
   it("uses the Sengycraft contact email in CTAs", () => {
     expect(html).toContain("mailto:hello@sengycraft.cz");
     expect(html).toContain("hello@sengycraft.cz");
+  });
+
+  it("says Contact us instead of Talk to us", () => {
+    expect(html).toContain("Contact us");
+    expect(html).not.toContain("Talk to us");
   });
 
   it("pins the five packages and 12-month retention", () => {
@@ -44,7 +61,8 @@ describe("landing page", () => {
 
   it("carries the resort-signage markers", () => {
     expect(html).toContain('class="ts-chip"');
-    expect(html).toContain("LIVE — ALPINE SUMMIT");
+    expect(html).toContain("LIVE DEMO");
+    expect(html).not.toContain("LIVE — ALPINE SUMMIT");
     expect(html).toContain("MOST POPULAR");
   });
 
