@@ -62,3 +62,37 @@ export function packageForCameraCount(count: number): PackageTier {
   if (count <= 10) return packageForCode("pro")!;
   return packageForCode("network")!;
 }
+
+export type BillableStatus = "none" | "active" | "past_due" | "unpaid" | "canceled";
+
+export interface TenantBillingState {
+  billingStatus: BillableStatus;
+  billingGraceUntil: Date | null;
+  isPilot: boolean;
+  pilotUntil: Date | null;
+}
+
+/**
+ * Whether captures may run for this tenant.
+ *
+ * Setup is free: a tenant can register and add cameras before paying. Captures
+ * start only when billing is active, during the past-due grace window, or for a
+ * pilot that has not expired. `none` is deliberately not billable.
+ */
+export function isTenantBillable(state: TenantBillingState, now: Date): boolean {
+  if (state.billingStatus === "active") return true;
+  if (
+    state.billingStatus === "past_due" &&
+    state.billingGraceUntil !== null &&
+    state.billingGraceUntil.getTime() > now.getTime()
+  ) {
+    return true;
+  }
+  if (
+    state.isPilot &&
+    (state.pilotUntil === null || state.pilotUntil.getTime() > now.getTime())
+  ) {
+    return true;
+  }
+  return false;
+}

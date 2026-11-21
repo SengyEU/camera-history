@@ -13,6 +13,7 @@ export const testConfig: AppConfig = {
   feed: { timeoutMs: 2000, maxBytes: 1_000_000 },
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
   billing: { graceDays: 7 },
+  pilot: { inviteCode: "", durationDays: 90 },
 };
 
 export function defineFakeStripeGateway(over: Partial<StripeGateway> = {}): StripeGateway {

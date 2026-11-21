@@ -98,4 +98,84 @@ describe("auth", () => {
     expect(res.json().billing).toBeUndefined();
     await (app as { close: () => Promise<void> }).close();
   });
+
+  it("preselects a package at registration", async () => {
+    const { app, repos } = makeApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: {
+        name: "ACME",
+        slug: "acme",
+        email: "a@acme.cz",
+        password: "password123",
+        packageCode: "plus",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(repos.db.tenants[0]!.packageCode).toBe("plus");
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects an unknown package at registration", async () => {
+    const { app } = makeApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: {
+        name: "ACME",
+        slug: "acme",
+        email: "a@acme.cz",
+        password: "password123",
+        packageCode: "enterprise",
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("creates a 90-day pilot from a valid invite code", async () => {
+    const { app, repos } = makeApp({
+      cfg: { ...testConfig, pilot: { inviteCode: "pilot-secret", durationDays: 90 } },
+    });
+    const before = Date.now();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: {
+        name: "Pilot Resort",
+        slug: "pilot-resort",
+        email: "pilot@example.com",
+        password: "password123",
+        pilotCode: "pilot-secret",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    const tenant = repos.db.tenants[0]!;
+    expect(tenant.isPilot).toBe(true);
+    expect(tenant.pilotUntil).not.toBeNull();
+    const days = (tenant.pilotUntil!.getTime() - before) / (24 * 60 * 60 * 1000);
+    expect(days).toBeGreaterThan(89.9);
+    expect(days).toBeLessThan(90.1);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("rejects an invalid pilot invite code", async () => {
+    const { app } = makeApp({
+      cfg: { ...testConfig, pilot: { inviteCode: "pilot-secret", durationDays: 90 } },
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: {
+        name: "ACME",
+        slug: "acme",
+        email: "a@acme.cz",
+        password: "password123",
+        pilotCode: "wrong",
+      },
+    });
+    expect(res.statusCode).toBe(403);
+    await (app as { close: () => Promise<void> }).close();
+  });
 });

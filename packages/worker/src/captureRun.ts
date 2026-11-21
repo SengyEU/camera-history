@@ -33,7 +33,7 @@ export async function runSchedule(deps: RunScheduleDeps): Promise<number> {
   const { repos, storage, cfg, log = () => {} } = deps;
   const now = deps.now ?? new Date();
   const sleep = deps.sleep ?? realSleep;
-  const cameras = await repos.listEnabledCameras();
+  const cameras = await repos.listEnabledCameras(now);
   const due = cameras.filter((cam) => isCaptureDue(cam, now));
   let processed = 0;
 

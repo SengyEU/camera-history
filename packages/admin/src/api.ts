@@ -170,8 +170,15 @@ async function json<T>(url: string, init: RequestInit = {}): Promise<T> {
 export const api = {
   login: (email: string, password: string) =>
     json<{ status?: string }>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
-  register: (input: { name: string; slug: string; email: string; password: string }) =>
-    json<{ status: string; tenantId: string; billing?: { required: boolean; checkoutUrl?: string } }>(
+  register: (input: {
+    name: string;
+    slug: string;
+    email: string;
+    password: string;
+    packageCode?: string;
+    pilotCode?: string;
+  }) =>
+    json<{ status: string; tenantId: string; pilot?: boolean }>(
       "/api/v1/auth/register",
       { method: "POST", body: JSON.stringify(input) },
     ),
@@ -207,6 +214,15 @@ export const api = {
     json<undefined>(`/api/v1/admin/groups/${id}/cameras`, { method: "PUT", body: JSON.stringify({ cameraIds }) }),
   getTenant: () =>
     json<{
-      tenant: { id: string; name: string; slug: string; packageCode: string; cameraLimit: number };
+      tenant: {
+        id: string;
+        name: string;
+        slug: string;
+        packageCode: string;
+        cameraLimit: number;
+        billingStatus: BillingStatus;
+        isPilot: boolean;
+        pilotUntil: string | null;
+      };
     }>("/api/v1/admin/tenant").then((r) => r.tenant),
 };

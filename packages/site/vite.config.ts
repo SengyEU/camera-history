@@ -1,9 +1,23 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+const devProxy = {
+  target: "https://camera.sengycraft.cz",
+  changeOrigin: true,
+};
+
 export default defineConfig({
   base: "/",
-  server: { host: "127.0.0.1", port: 8082 },
+  server: {
+    host: "127.0.0.1",
+    port: 8083,
+    proxy: {
+      "/api": devProxy,
+      "/group": devProxy,
+      "/widget": devProxy,
+      "/assets": devProxy,
+    },
+  },
   build: {
     rollupOptions: {
       input: {

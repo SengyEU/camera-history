@@ -181,6 +181,32 @@ describe("App dashboard", () => {
     expect(img.src).toContain("/2026-09-23/130000.jpg");
   });
 
+  it("shows an activation banner until billing starts", async () => {
+    const server = vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url);
+      if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ cameras: [camera()] });
+      if (u.endsWith("/api/v1/admin/tenant")) {
+        return jsonResponse({
+          tenant: {
+            id: "t1",
+            name: "Acme",
+            slug: "acme",
+            packageCode: "starter",
+            cameraLimit: 3,
+            billingStatus: "none",
+            isPilot: false,
+            pilotUntil: null,
+          },
+        });
+      }
+      return jsonResponse({ detail: "not found" }, 404);
+    });
+    vi.stubGlobal("fetch", server);
+
+    render(<App />);
+    expect(await screen.findByTestId("account-notice")).toHaveTextContent(/account not activated/i);
+  });
+
   it("logs out back to the login screen", async () => {
     vi.stubGlobal(
       "fetch",
@@ -241,7 +267,7 @@ describe("App camera CRUD", () => {
         return new Response(null, { status: 204 });
       }
       if (u.endsWith("/api/v1/admin/tenant")) {
-        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme", packageCode: "starter", cameraLimit: 3 } });
+        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme", packageCode: "starter", cameraLimit: 3, billingStatus: "active", isPilot: false, pilotUntil: null } });
       }
       return jsonResponse({ detail: "not found" }, 404);
     });
@@ -821,7 +847,7 @@ describe("App groups", () => {
       }
       if (u.includes("/preview")) return jsonResponse({ latest: null });
       if (u.endsWith("/api/v1/admin/tenant")) {
-        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: tenantSlug, packageCode: "starter", cameraLimit: 3 } });
+        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: tenantSlug, packageCode: "starter", cameraLimit: 3, billingStatus: "active", isPilot: false, pilotUntil: null } });
       }
       if (u.endsWith("/api/v1/admin/groups") && method === "GET") {
         return jsonResponse({ groups: state.groups });

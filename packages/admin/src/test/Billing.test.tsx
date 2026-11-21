@@ -90,6 +90,34 @@ describe("BillingPage", () => {
     expect(screen.getByTestId("change-package")).toBeDisabled();
   });
 
+  it("shows the inactive notice when billing has never started", async () => {
+    (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...billing,
+      cameraCount: 0,
+      billingStatus: "none",
+      hasSubscription: false,
+      graceUntil: null,
+    });
+    render(<BillingPage />);
+    expect(await screen.findByTestId("billing-inactive-notice")).toHaveTextContent(
+      /captures are paused until billing starts/i,
+    );
+  });
+
+  it("shows the ended notice for an expired pilot", async () => {
+    (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...billing,
+      billingStatus: "none",
+      hasSubscription: false,
+      graceUntil: null,
+      isPilot: true,
+      pilotUntil: "2020-01-01T00:00:00.000Z",
+    });
+    render(<BillingPage />);
+    expect(await screen.findByTestId("pilot-ended-notice")).toHaveTextContent(/pilot ended/i);
+    expect(screen.queryByTestId("pilot-notice")).not.toBeInTheDocument();
+  });
+
   it("starts checkout with the selected package", async () => {
     const assign = vi.fn();
     Object.defineProperty(window, "location", {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, ApiError, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup } from "./api";
+import { api, ApiError, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
 import { BillingPage } from "./Billing";
 import { EmbedCodePanel } from "./EmbedCodePanel";
 import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
@@ -168,6 +168,9 @@ function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
+  const pilotCode = params.get("pilot") ?? undefined;
+  const packageCode = params.get("package") ?? undefined;
 
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
@@ -185,11 +188,7 @@ function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void;
       return;
     }
     try {
-      const res = await api.register({ name, slug, email, password });
-      if (res.billing?.checkoutUrl) {
-        window.location.assign(res.billing.checkoutUrl);
-        return;
-      }
+      await api.register({ name, slug, email, password, pilotCode, packageCode });
       window.location.hash = "";
       onSuccess(email);
     } catch (err) {
@@ -203,6 +202,16 @@ function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void;
         <span className="auth-brand-name">Camera History</span>
         <span className="ts-chip">SIGN UP</span>
       </div>
+      {pilotCode && (
+        <p className="auth-note" data-testid="pilot-note">
+          Pilot access — free for 90 days.
+        </p>
+      )}
+      {packageCode && (
+        <p className="auth-note" data-testid="package-note">
+          Selected package: {packageCode.charAt(0).toUpperCase() + packageCode.slice(1)}.
+        </p>
+      )}
       <h1>Create account</h1>
       <label className="field" htmlFor="register-name">
         Company name
@@ -874,6 +883,11 @@ export function App() {
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [tenantSlug, setTenantSlug] = useState<string>("");
   const [tenantCameraLimit, setTenantCameraLimit] = useState<number>(3);
+  const [tenantBilling, setTenantBilling] = useState<{
+    billingStatus: BillingStatus;
+    isPilot: boolean;
+    pilotUntil: string | null;
+  } | null>(null);
   const [view, setView] = useState<"cameras" | "groups" | "billing">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
@@ -946,9 +960,17 @@ export function App() {
       .then((t) => {
         setTenantSlug(t.slug);
         setTenantCameraLimit(t.cameraLimit);
+        setTenantBilling({
+          billingStatus: t.billingStatus,
+          isPilot: t.isPilot,
+          pilotUntil: t.pilotUntil,
+        });
       })
-      .catch(() => setTenantSlug(""));
-  }, [email]);
+      .catch(() => {
+        setTenantSlug("");
+        setTenantBilling(null);
+      });
+  }, [email, view]);
 
   const refresh = useCallback(async () => {
     try {
@@ -1137,6 +1159,59 @@ export function App() {
     );
   }
 
+  const accountNotice = (() => {
+    if (!tenantBilling) return null;
+    const pilotEnded =
+      tenantBilling.isPilot &&
+      tenantBilling.pilotUntil !== null &&
+      new Date(tenantBilling.pilotUntil).getTime() <= Date.now();
+
+    if (pilotEnded) {
+      return (
+        <p className="notice danger" data-testid="account-notice">
+          Pilot ended — captures are paused. <a href="mailto:hello@sengycraft.cz">Contact us</a> to continue.
+        </p>
+      );
+    }
+    if (tenantBilling.isPilot) {
+      return (
+        <p className="notice" data-testid="account-notice">
+          Pilot account — free until{" "}
+          {tenantBilling.pilotUntil ? new Date(tenantBilling.pilotUntil).toLocaleDateString() : "further notice"}.
+        </p>
+      );
+    }
+    if (tenantBilling.billingStatus === "none") {
+      return (
+        <p className="notice danger" data-testid="account-notice">
+          Account not activated — captures are paused. <a href="#/billing">Activate billing</a> to start.
+        </p>
+      );
+    }
+    if (tenantBilling.billingStatus === "past_due") {
+      return (
+        <p className="notice danger" data-testid="account-notice">
+          Payment past due — captures continue during grace. <a href="#/billing">Update billing</a>.
+        </p>
+      );
+    }
+    if (tenantBilling.billingStatus === "unpaid" || tenantBilling.billingStatus === "canceled") {
+      return (
+        <p className="notice danger" data-testid="account-notice">
+          Account inactive — captures are paused. <a href="#/billing">Reactivate billing</a>.
+        </p>
+      );
+    }
+    if (cameras.length >= tenantCameraLimit) {
+      return (
+        <p className="notice" data-testid="account-notice">
+          All {tenantCameraLimit} cameras are in use. <a href="#/billing">Upgrade in Billing</a>.
+        </p>
+      );
+    }
+    return null;
+  })();
+
   return (
     <main className="admin" data-testid="admin-app">
       <header className="topbar">
@@ -1248,9 +1323,11 @@ export function App() {
            </section>
          )
        ) : (
-        <section className="panel">
-          <div className="panel-head">
-            <h2>Cameras</h2>
+        <>
+          {accountNotice}
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Cameras</h2>
             <button
               onClick={openNewCamera}
               data-testid="add-camera"
@@ -1290,7 +1367,8 @@ export function App() {
               </div>
             </>
           )}
-        </section>
+          </section>
+        </>
       )}
       {confirming !== null && (
         <div className="modal">

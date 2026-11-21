@@ -21,6 +21,7 @@ const cfg: AppConfig = {
   plan: { defaultRetentionMonths: 12, maxRetentionMonths: 36 },
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
   billing: { graceDays: 7 },
+  pilot: { inviteCode: "", durationDays: 90 },
 };
 
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
@@ -60,7 +61,7 @@ describe("runSchedule", () => {
   it("captures due camera, inserts image, clears error and marks operational", async () => {
     const fakes = createFakeRepos();
     const db = fakes.db;
-    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
+    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme", billingStatus: "active" });
     const camera = await fakes.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
@@ -92,9 +93,69 @@ describe("runSchedule", () => {
     expect(db.cameras[0]!.status).toBe("operational");
   });
 
+  it("does not capture for a tenant that has not activated billing", async () => {
+    const fakes = createFakeRepos();
+    const db = fakes.db;
+    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
+    await fakes.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl,
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+
+    const processed = await runSchedule({
+      repos: fakes,
+      storage,
+      cfg,
+      now: new Date("2026-09-18T09:00:00Z"),
+      log: () => {},
+      sleep,
+    });
+
+    expect(processed).toBe(0);
+    expect(db.images).toHaveLength(0);
+    expect(puts).toHaveLength(0);
+  });
+
+  it("captures for a pilot before its expiry", async () => {
+    const fakes = createFakeRepos();
+    const db = fakes.db;
+    const tenant = await fakes.createTenant({
+      name: "ACME",
+      slug: "acme",
+      isPilot: true,
+      pilotUntil: new Date("2026-12-01T00:00:00Z"),
+    });
+    await fakes.createCamera(tenant.id, {
+      name: "Main",
+      feedType: "static_url",
+      feedUrl,
+      intervalMinutes: 15,
+      activeFrom: "00:00",
+      activeTo: "23:59",
+      timezone: "UTC",
+    });
+
+    const processed = await runSchedule({
+      repos: fakes,
+      storage,
+      cfg,
+      now: new Date("2026-09-18T09:00:00Z"),
+      log: () => {},
+      sleep,
+    });
+
+    expect(processed).toBe(1);
+    expect(db.images).toHaveLength(1);
+  });
+
   it("skips cameras outside active window", async () => {
     const fakes = createFakeRepos();
-    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
+    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme", billingStatus: "active" });
     await fakes.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
@@ -118,7 +179,7 @@ describe("runSchedule", () => {
   it("retries once, waits backoff, marks camera delayed after failure", async () => {
     const fakes = createFakeRepos();
     const db = fakes.db;
-    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
+    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme", billingStatus: "active" });
     await fakes.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
@@ -141,7 +202,7 @@ describe("runSchedule", () => {
   it("treats a WebP conversion failure as a capture error", async () => {
     const fakes = createFakeRepos();
     const db = fakes.db;
-    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
+    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme", billingStatus: "active" });
     await fakes.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",
@@ -165,7 +226,7 @@ describe("runSchedule", () => {
   it("escalates a repeated failure to offline", async () => {
     const fakes = createFakeRepos();
     const db = fakes.db;
-    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme" });
+    const tenant = await fakes.createTenant({ name: "ACME", slug: "acme", billingStatus: "active" });
     const camera = await fakes.createCamera(tenant.id, {
       name: "Main",
       feedType: "static_url",

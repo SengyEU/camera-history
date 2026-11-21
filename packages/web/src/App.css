@@ -49,6 +49,17 @@
   --on-pine: var(--theme-midnight-on-pine);
 }
 
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"],
+:root[data-theme="forest"],
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+}
+
 html, body { overflow-x: hidden; }
 body { margin: 0; font-family: var(--widget-font, var(--font-ui)); background: var(--widget-bg, var(--bg)); color: var(--ink); }
 

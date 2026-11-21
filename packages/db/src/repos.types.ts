@@ -33,7 +33,7 @@ export interface Repos {
   listCameras(tenantId: string): Promise<Camera[]>;
   updateCamera(id: string, patch: CameraPatch): Promise<Camera | null>;
   deleteCamera(id: string): Promise<void>;
-  listEnabledCameras(): Promise<Camera[]>;
+  listEnabledCameras(now: Date): Promise<Camera[]>;
   getPublicCamera(cameraId: string): Promise<PublicCamera | null>;
   insertImage(input: NewImage): Promise<ImageRecord>;
   imagesForCameraDay(cameraId: string, from: Date, to: Date): Promise<ImageRecord[]>;

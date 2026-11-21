@@ -78,6 +78,10 @@ export function BillingPage() {
     data.billingEnabled && data.pricesConfigured && data.cameraCount > 0 && !data.isPilot;
   const atLimit = data.cameraCount >= data.cameraLimit;
   const usagePercent = data.cameraLimit > 0 ? Math.min(100, (data.cameraCount / data.cameraLimit) * 100) : 0;
+  const pilotEnded =
+    data.isPilot &&
+    data.pilotUntil !== null &&
+    new Date(data.pilotUntil).getTime() <= Date.now();
 
   return (
     <section className="panel" data-testid="billing-page">
@@ -92,13 +96,21 @@ export function BillingPage() {
         )}
       </div>
       {!data.billingEnabled && <p className="notice">Billing is not enabled right now.</p>}
-      {data.isPilot && (
+      {pilotEnded ? (
+        <p className="notice danger" data-testid="pilot-ended-notice">
+          Pilot ended — captures are paused. Contact us to continue on a paid package.
+        </p>
+      ) : data.isPilot ? (
         <p className="notice" data-testid="pilot-notice">
           Pilot account — free of charge
           {data.pilotUntil ? ` until ${new Date(data.pilotUntil).toLocaleDateString()}` : ""}. No
           payment needed; we will contact you before billing starts.
         </p>
-      )}
+      ) : data.billingStatus === "none" ? (
+        <p className="notice danger" data-testid="billing-inactive-notice">
+          Account not activated — captures are paused until billing starts.
+        </p>
+      ) : null}
       {data.billingEnabled && !data.pricesConfigured && (
         <p className="notice danger">All five Stripe package prices must be configured before billing can start.</p>
       )}

@@ -59,4 +59,11 @@ describe("loadConfig", () => {
     expect(cfg.stripe.prices).toEqual({});
     expect(cfg.billing.graceDays).toBe(7);
   });
+
+  it("loads the pilot invite code and duration", () => {
+    const cfg = loadConfig({ PILOT_INVITE_CODE: "secret-code", PILOT_DURATION_DAYS: "90" });
+    expect(cfg.pilot.inviteCode).toBe("secret-code");
+    expect(cfg.pilot.durationDays).toBe(90);
+    expect(loadConfig({}).pilot.inviteCode).toBe("");
+  });
 });

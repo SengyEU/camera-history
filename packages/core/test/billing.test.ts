@@ -5,6 +5,7 @@ import {
   RETENTION_MONTHS,
   cameraLimitForPackage,
   isPackageCode,
+  isTenantBillable,
   packageForCameraCount,
   packageForCode,
   packageForPriceId,
@@ -44,6 +45,26 @@ describe("package catalog", () => {
     expect(priceIdForPackage(prices, "pro")).toBeNull();
     expect(packageForPriceId(prices, "price_network")).toBe("network");
     expect(packageForPriceId(prices, "nope")).toBeNull();
+  });
+
+  it("gates captures on active billing, grace or an unexpired pilot", () => {
+    const now = new Date("2026-11-21T12:00:00Z");
+    const base = {
+      billingStatus: "none" as const,
+      billingGraceUntil: null,
+      isPilot: false,
+      pilotUntil: null,
+    };
+
+    expect(isTenantBillable({ ...base, billingStatus: "active" }, now)).toBe(true);
+    expect(isTenantBillable({ ...base, billingStatus: "past_due", billingGraceUntil: new Date("2026-11-22T12:00:00Z") }, now)).toBe(true);
+    expect(isTenantBillable({ ...base, billingStatus: "past_due", billingGraceUntil: new Date("2026-11-20T12:00:00Z") }, now)).toBe(false);
+    expect(isTenantBillable({ ...base, billingStatus: "past_due" }, now)).toBe(false);
+    expect(isTenantBillable({ ...base, billingStatus: "unpaid" }, now)).toBe(false);
+    expect(isTenantBillable({ ...base, billingStatus: "canceled" }, now)).toBe(false);
+    expect(isTenantBillable({ ...base, isPilot: true }, now)).toBe(true);
+    expect(isTenantBillable({ ...base, isPilot: true, pilotUntil: new Date("2027-01-01T12:00:00Z") }, now)).toBe(true);
+    expect(isTenantBillable({ ...base, isPilot: true, pilotUntil: new Date("2026-11-01T12:00:00Z") }, now)).toBe(false);
   });
 
   it("picks the smallest fitting package for a camera count", () => {

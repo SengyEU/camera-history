@@ -46,6 +46,12 @@ button:hover {
   background: var(--glacier-deep);
 }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 button.secondary {
   background: var(--surface);
   color: var(--glacier-deep);
@@ -167,6 +173,17 @@ button.link:hover {
   font-weight: 700;
   letter-spacing: -0.01em;
   font-size: 1.05rem;
+}
+
+.auth-note {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--glacier-weak);
+  color: var(--glacier-deep);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .auth-card h1 {

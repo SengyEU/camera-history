@@ -15,9 +15,9 @@ describe("landing page", () => {
     const heroEnd = html.indexOf("</section>", heroStart);
     const hero = html.slice(heroStart, heroEnd);
 
+    expect(html).toContain('href="#hero-demo"');
     expect(hero).toMatch(/src="\/group\/alpine-summit\/summit[^"]*"/);
     expect(hero).toContain('id="hero-demo"');
-    expect(hero).toContain('href="#hero-demo"');
     expect(hero).not.toMatch(/href="\/group\/alpine-summit\/summit/);
   });
 
@@ -35,6 +35,26 @@ describe("landing page", () => {
   it("says Contact us instead of Talk to us", () => {
     expect(html).toContain("Contact us");
     expect(html).not.toContain("Talk to us");
+  });
+
+  it("makes self-serve the primary path and keeps contact in a form", () => {
+    expect(html).toContain('href="/admin/#/register"');
+    expect(html).toContain("Get started");
+    expect(html).toContain("Still have questions? Contact us");
+    expect(html).toContain('id="contact"');
+    expect(html).toContain("data-contact-form");
+  });
+
+  it("offers both setup paths in How it works", () => {
+    expect(html).toContain("Set it up yourself");
+    expect(html).toContain("Let us set it up with you");
+    expect(html).toContain("Request a pilot");
+  });
+
+  it("links each pricing package to registration with the package preselected", () => {
+    for (const code of ["solo", "starter", "plus", "pro", "network"]) {
+      expect(html).toContain(`href="/admin/#/register?package=${code}"`);
+    }
   });
 
   it("pins the five packages and 12-month retention", () => {

@@ -60,6 +60,8 @@ services:
       STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO:-}
       STRIPE_PRICE_NETWORK: ${STRIPE_PRICE_NETWORK:-}
       BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-7}
+      PILOT_INVITE_CODE: ${PILOT_INVITE_CODE:-}
+      PILOT_DURATION_DAYS: ${PILOT_DURATION_DAYS:-90}
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,6 +102,8 @@ services:
       STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO:-}
       STRIPE_PRICE_NETWORK: ${STRIPE_PRICE_NETWORK:-}
       BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-7}
+      PILOT_INVITE_CODE: ${PILOT_INVITE_CODE:-}
+      PILOT_DURATION_DAYS: ${PILOT_DURATION_DAYS:-90}
     depends_on:
       postgres:
         condition: service_healthy

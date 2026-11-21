@@ -1,14 +1,26 @@
 import argon2 from "@node-rs/argon2";
 import type { FastifyInstance } from "fastify";
-import { HttpError } from "@ch/core";
+import { HttpError, isPackageCode } from "@ch/core";
 import type { AppDeps } from "../app.js";
 import { clearCookies, getRefreshToken, setCookies } from "../plugins/auth.js";
 
 const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const REGISTER_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
-  app.post("/api/v1/auth/register", async (req, reply) => {
-    const body = req.body as { name?: string; slug?: string; email?: string; password?: string };
+  app.post(
+    "/api/v1/auth/register",
+    { config: { rateLimit: REGISTER_RATE_LIMIT } },
+    async (req, reply) => {
+    const body = req.body as {
+      name?: string;
+      slug?: string;
+      email?: string;
+      password?: string;
+      packageCode?: string;
+      pilotCode?: string;
+    };
     if (!body.name || !body.slug || !body.email || !body.password) {
       throw new HttpError(400, "bad_request", "name, slug, email and password are required");
     }
@@ -16,6 +28,17 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
       throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
     }
     if (body.password.length < 8) throw new HttpError(400, "bad_request", "password must be at least 8 characters");
+    const packageCode = body.packageCode;
+    if (packageCode !== undefined && !isPackageCode(packageCode)) {
+      throw new HttpError(400, "bad_request", "unknown package");
+    }
+
+    const pilotRequested = body.pilotCode !== undefined;
+    if (pilotRequested) {
+      if (!deps.cfg.pilot.inviteCode || body.pilotCode !== deps.cfg.pilot.inviteCode) {
+        throw new HttpError(403, "invalid_pilot_code", "pilot invite code is not valid");
+      }
+    }
 
     const existing = await deps.repos.getTenantBySlug(body.slug);
     if (existing) throw new HttpError(409, "conflict", "tenant slug already taken");
@@ -24,6 +47,11 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
     const tenant = await deps.repos.createTenant({
       name: body.name,
       slug: body.slug,
+      packageCode,
+      isPilot: pilotRequested,
+      pilotUntil: pilotRequested
+        ? new Date(Date.now() + deps.cfg.pilot.durationDays * DAY_MS)
+        : null,
     });
     const user = await deps.repos.createUser({
       tenantId: tenant.id,

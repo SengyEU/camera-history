@@ -85,6 +85,10 @@ export interface NewTenant {
   name: string;
   slug: string;
   packageCode?: PackageCode;
+  billingStatus?: BillingStatus;
+  billingGraceUntil?: Date | null;
+  isPilot?: boolean;
+  pilotUntil?: Date | null;
 }
 
 export interface NewUser {

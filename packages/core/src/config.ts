@@ -56,6 +56,10 @@ const AppConfigSchema = z.object({
   billing: z.object({
     graceDays: numeric(7),
   }),
+  pilot: z.object({
+    inviteCode: z.string().default(""),
+    durationDays: numeric(90),
+  }),
 });
 
 const PACKAGE_PRICE_ENV_KEYS: Record<string, string> = {
@@ -108,5 +112,9 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
       prices: pricesFromEnv(env),
     },
     billing: { graceDays: env.BILLING_GRACE_DAYS },
+    pilot: {
+      inviteCode: env.PILOT_INVITE_CODE ?? "",
+      durationDays: env.PILOT_DURATION_DAYS,
+    },
   });
 }

@@ -398,6 +398,9 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
         slug: t.slug,
         packageCode: t.packageCode,
         cameraLimit: cameraLimitForPackage(t.packageCode),
+        billingStatus: t.billingStatus,
+        isPilot: t.isPilot,
+        pilotUntil: t.pilotUntil,
       },
     };
   });

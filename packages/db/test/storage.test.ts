@@ -26,6 +26,7 @@ const testConfig = {
   plan: { defaultRetentionMonths: 12, maxRetentionMonths: 36 },
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
   billing: { graceDays: 7 },
+  pilot: { inviteCode: "", durationDays: 90 },
 } satisfies AppConfig;
 
 describe("keyFor", () => {

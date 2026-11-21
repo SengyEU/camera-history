@@ -17,7 +17,7 @@ import type {
   Tenant,
   User,
 } from "@ch/core";
-import { DEFAULT_PACKAGE, RETENTION_MONTHS } from "@ch/core";
+import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable } from "@ch/core";
 import type { Db } from "./db.js";
 import { cameraGroupMembers, cameraGroups, cameras, images, tenants, users } from "./schema.js";
 import type { Repos } from "./repos.types.js";
@@ -72,7 +72,15 @@ export function createRepos(db: Db): Repos {
     async createTenant(input: NewTenant): Promise<Tenant> {
       const [row] = await db
         .insert(tenants)
-        .values({ name: input.name, slug: input.slug, packageCode: input.packageCode ?? DEFAULT_PACKAGE })
+        .values({
+          name: input.name,
+          slug: input.slug,
+          packageCode: input.packageCode ?? DEFAULT_PACKAGE,
+          billingStatus: input.billingStatus ?? "none",
+          billingGraceUntil: input.billingGraceUntil ?? null,
+          isPilot: input.isPilot ?? false,
+          pilotUntil: input.pilotUntil ?? null,
+        })
         .returning();
       return toTenant(row!);
     },
@@ -136,18 +144,15 @@ export function createRepos(db: Db): Repos {
     async deleteCamera(id: string) {
       await db.delete(cameras).where(eq(cameras.id, id));
     },
-    async listEnabledCameras() {
+    async listEnabledCameras(now: Date) {
       const rows = await db
-        .select({ camera: cameras })
+        .select({ camera: cameras, tenant: tenants })
         .from(cameras)
         .innerJoin(tenants, eq(cameras.tenantId, tenants.id))
-        .where(
-          and(
-            eq(cameras.enabled, true),
-            notInArray(tenants.billingStatus, ["unpaid", "canceled"]),
-          ),
-        );
-      return rows.map((row) => toCamera(row.camera));
+        .where(eq(cameras.enabled, true));
+      return rows
+        .filter((row) => isTenantBillable(row.tenant, now))
+        .map((row) => toCamera(row.camera));
     },
     async getPublicCamera(cameraId: string): Promise<PublicCamera | null> {
       const rows = await db

@@ -17,7 +17,7 @@ import type {
   Tenant,
   User,
 } from "@ch/core";
-import { DEFAULT_PACKAGE, RETENTION_MONTHS } from "@ch/core";
+import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable } from "@ch/core";
 import type { Repos } from "../repos.types.js";
 
 export interface FakeDb {
@@ -48,10 +48,10 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         packageCode: input.packageCode ?? DEFAULT_PACKAGE,
         stripeCustomerId: null,
         stripeSubscriptionId: null,
-        billingStatus: "none",
-        billingGraceUntil: null,
-        isPilot: false,
-        pilotUntil: null,
+        billingStatus: input.billingStatus ?? "none",
+        billingGraceUntil: input.billingGraceUntil ?? null,
+        isPilot: input.isPilot ?? false,
+        pilotUntil: input.pilotUntil ?? null,
       };
       db.tenants.push(tenant);
       return tenant;
@@ -125,10 +125,10 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       db.cameras = db.cameras.filter((c) => c.id !== id);
       db.images = db.images.filter((i) => i.cameraId !== id);
     },
-    async listEnabledCameras() {
+    async listEnabledCameras(now: Date) {
       return db.cameras.filter((c) => {
         const tenant = db.tenants.find((t) => t.id === c.tenantId);
-        return c.enabled && !["unpaid", "canceled"].includes(tenant?.billingStatus ?? "none");
+        return c.enabled && tenant !== undefined && isTenantBillable(tenant, now);
       });
     },
     async getPublicCamera(cameraId: string): Promise<PublicCamera | null> {

@@ -20,6 +20,26 @@ if (menu) {
   });
 }
 
+const contactForm = document.querySelector<HTMLFormElement>("[data-contact-form]");
+
+if (contactForm) {
+  contactForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(contactForm);
+    const value = (key: string) => String(data.get(key) ?? "");
+    const body = [
+      `Name: ${value("name")}`,
+      `Email: ${value("email")}`,
+      `Camera: ${value("camera")}`,
+      `Cameras: ${value("cameras")}`,
+      "",
+      value("message"),
+    ].join("\n");
+    const subject = encodeURIComponent("Camera History enquiry");
+    window.location.href = `mailto:hello@sengycraft.cz?subject=${subject}&body=${encodeURIComponent(body)}`;
+  });
+}
+
 const pilotSection = document.querySelector<HTMLElement>("[data-pilots]");
 const pilotList = document.querySelector<HTMLUListElement>("[data-pilot-list]");
 
