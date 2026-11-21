@@ -222,7 +222,12 @@ export function BillingPage() {
         >
           {data.hasSubscription ? "Save package" : "Start billing"}
         </button>
-        <button className="secondary" onClick={openPortal} data-testid="open-portal">
+        <button
+          className="secondary"
+          onClick={openPortal}
+          data-testid="open-portal"
+          disabled={!data.stripeCustomerId}
+        >
           Payments / invoices
         </button>
       </div>
