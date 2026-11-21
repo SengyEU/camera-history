@@ -48,7 +48,7 @@ describe("landing page", () => {
   it("offers both setup paths in How it works", () => {
     expect(html).toContain("Set it up yourself");
     expect(html).toContain("Let us set it up with you");
-    expect(html).toContain("Request a pilot");
+    expect(html).toContain("Contact us");
   });
 
   it("links each pricing package to registration with the package preselected", () => {
