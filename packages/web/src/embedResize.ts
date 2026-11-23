@@ -130,7 +130,7 @@ export function setupEmbedResize(): void {
 
   const post = () => {
     pending = false;
-    const height = Math.ceil(document.body.getBoundingClientRect().height) + 2;
+    const height = Math.ceil(document.body.getBoundingClientRect().height);
     if (Math.abs(height - lastHeight) < 1) return;
     lastHeight = height;
     applyHeight(height);

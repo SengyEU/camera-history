@@ -196,7 +196,7 @@
     try {
       var doc = frame.contentDocument;
       if (doc && doc.body) {
-        frame.style.height = Math.ceil(doc.body.getBoundingClientRect().height) + 2 + "px";
+        frame.style.height = Math.ceil(doc.body.getBoundingClientRect().height) + "px";
         sendFont(frame.contentWindow, frame);
       }
     } catch {

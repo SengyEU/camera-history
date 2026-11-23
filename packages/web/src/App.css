@@ -177,6 +177,11 @@ body { margin: 0; font-family: var(--widget-font, var(--font-ui)); background: v
 .frame:hover { box-shadow: inset 0 0 0 2px var(--accent); }
 .frame:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
+/* Touch devices can keep :hover after a tap; don't leave a frame looking selected. */
+@media (hover: none) {
+  .frame:hover { box-shadow: none; }
+}
+
 /* OSD hour chip (system fonts only — widget stays neutral) */
 .frame-hours {
   position: absolute;
