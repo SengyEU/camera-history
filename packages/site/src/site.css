@@ -1264,15 +1264,8 @@ button:focus-visible {
   color: var(--color-ink);
 }
 
-.contact-facts a,
-.contact-hurry a {
+.contact-facts a {
   color: var(--color-glacier-hover);
-}
-
-.contact-hurry {
-  margin: var(--space-4) 0 0;
-  color: var(--color-muted);
-  font-size: var(--text-sm);
 }
 
 .contact-form {
