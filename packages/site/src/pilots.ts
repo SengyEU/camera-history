@@ -7,7 +7,7 @@ export interface PilotStory {
   screenshot?: { src: string; alt: string };
   /** Link to the customer site, or an internal page such as the demo archive. */
   href?: string;
-  /** Link text; defaults to "Visit site →". */
+  /** Link text; defaults to "View site →". */
   linkLabel?: string;
 }
 
@@ -17,15 +17,12 @@ export interface PilotStory {
  * Screenshots go to packages/site/public/pilots/.
  */
 export const pilotStories: PilotStory[] = [
-  {
-    name: "Alpine Summit (demo)",
-    caption:
-      "Three mountain cameras with 12 months of history. This is the same archive your visitors would browse.",
-    screenshot: {
-      src: "/pilots/alpine-summit.webp",
-      alt: "Alpine Summit demo archive showing the Glacier Bowl camera",
-    },
-    href: "/group/alpine-summit/summit",
-    linkLabel: "Open the demo →",
-  },
+  // Add a real customer only after written consent:
+  // {
+  //   name: "Resort name",
+  //   caption: "One or two sentences about the cameras and the archive.",
+  //   screenshot: { src: "/pilots/resort.webp", alt: "Resort archive with the main camera" },
+  //   href: "https://example.com/archive",
+  //   linkLabel: "View archive",
+  // },
 ];

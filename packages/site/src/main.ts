@@ -77,7 +77,7 @@ function renderPilot(pilot: PilotStory): HTMLLIElement {
       link.target = "_blank";
       link.rel = "noopener";
     }
-    link.textContent = pilot.linkLabel ?? "Visit site →";
+    link.textContent = pilot.linkLabel ?? "View site →";
     body.append(link);
   }
 
@@ -87,5 +87,6 @@ function renderPilot(pilot: PilotStory): HTMLLIElement {
 
 if (pilotSection && pilotList && pilotStories.length > 0) {
   pilotList.append(...pilotStories.map(renderPilot));
+  pilotList.classList.toggle("pilot-list-single", pilotStories.length === 1);
   pilotSection.hidden = false;
 }

@@ -100,6 +100,12 @@ describe("landing page", () => {
     expect(html).toContain("Tell us how many you need and we'll build the right package.");
   });
 
+  it("keeps the customer wall hidden until a real story is added", () => {
+    expect(html).toContain("Who is using Camera History?");
+    expect(html).toContain("A few of the sites running Camera History in public.");
+    expect(html).toContain("data-pilots hidden");
+  });
+
   it("answers common questions and links to the admin", () => {
     expect(html).toContain('id="faq"');
     expect(html).toContain("How long do you keep history?");

@@ -869,6 +869,10 @@ button:focus-visible {
   list-style: none;
 }
 
+.pilot-list-single {
+  grid-template-columns: minmax(0, 720px);
+}
+
 .pilot-card {
   overflow: hidden;
   border: 1px solid var(--color-line);
