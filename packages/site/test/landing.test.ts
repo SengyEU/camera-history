@@ -95,9 +95,9 @@ describe("landing page", () => {
       expect(html).toContain(line);
     }
     expect(html).toContain('class="package-card package-card-contact"');
-    expect(html).toContain("More cameras?");
+    expect(html).toContain("Need more cameras?");
     expect(html).toContain("25+ cameras");
-    expect(html).toContain("Need a bigger network? Let's build it with you.");
+    expect(html).toContain("Tell us how many you need and we'll build the right package.");
   });
 
   it("answers common questions and links to the admin", () => {
