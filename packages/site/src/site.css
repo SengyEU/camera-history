@@ -1071,6 +1071,11 @@ button:focus-visible {
   align-items: start;
 }
 
+.faq .section-head {
+  position: sticky;
+  top: calc(var(--header-h) + var(--space-6));
+}
+
 .faq-split .text-link {
   margin-top: var(--space-5);
 }
@@ -1529,6 +1534,10 @@ button:focus-visible {
   }
 
   .pricing .section-head {
+    position: static;
+  }
+
+  .faq .section-head {
     position: static;
   }
 

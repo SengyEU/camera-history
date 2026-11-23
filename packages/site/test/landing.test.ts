@@ -108,7 +108,11 @@ describe("landing page", () => {
 
   it("answers common questions and links to the admin", () => {
     expect(html).toContain('id="faq"');
+    expect(html).toContain('<p class="section-kicker">FAQ</p>');
     expect(html).toContain("How long do you keep history?");
+    expect(html).toContain("How long does setup take?");
+    expect(html).toContain("Most cameras are live in minutes.");
+    expect(html).toContain("For more than 25, contact us.");
     expect(html).toContain('href="/admin/"');
   });
 
