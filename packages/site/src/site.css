@@ -787,17 +787,56 @@ button:focus-visible {
   background: var(--color-surface);
 }
 
+.features-split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(40px, 8vw, 104px);
+  align-items: start;
+}
+
+.features-head {
+  position: sticky;
+  top: calc(var(--header-h) + var(--space-6));
+}
+
+.features-note {
+  margin-top: var(--space-7);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+}
+
+.features-note p {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.features-note .text-link {
+  margin-top: var(--space-3);
+}
+
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: clamp(32px, 6vw, 80px);
-  margin-top: clamp(32px, 5vw, 52px);
   border-top: 1px solid var(--color-line);
 }
 
 .feature {
   padding: var(--space-5) 0 var(--space-6);
   border-bottom: 1px solid var(--color-line);
+}
+
+.feature-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-glacier-hover);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
 }
 
 .feature h3 {
@@ -1458,6 +1497,7 @@ button:focus-visible {
 @media (max-width: 960px) {
   .hero-inner,
   .split,
+  .features-split,
   .why .split,
   .pricing-split,
   .faq-split,
@@ -1485,6 +1525,14 @@ button:focus-visible {
   }
 
   .pricing .section-head {
+    position: static;
+  }
+
+  .features-split {
+    gap: var(--space-6);
+  }
+
+  .features-head {
     position: static;
   }
 

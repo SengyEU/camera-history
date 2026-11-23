@@ -32,6 +32,15 @@ describe("landing page", () => {
     expect(html).toContain("Two ways to start");
   });
 
+  it("describes the feature set as a spec sheet", () => {
+    expect(html).toContain("More than a live frame.");
+    expect(html).toContain("Every package includes the full feature set.");
+    for (const label of ["Feed", "Archive", "Theme", "Groups", "Share", "Embed"]) {
+      expect(html).toContain(`<span class="feature-label">${label}</span>`);
+    }
+    expect(html).toContain("That's the whole integration.");
+  });
+
   it("uses the Sengycraft contact email in CTAs", () => {
     expect(html).toContain("mailto:hello@sengycraft.cz");
     expect(html).toContain("hello@sengycraft.cz");
