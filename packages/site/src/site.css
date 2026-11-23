@@ -967,32 +967,8 @@ button:focus-visible {
   background: color-mix(in srgb, var(--color-glacier-weak) 55%, var(--color-surface));
 }
 
-.package-card-network {
-  grid-column: span 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-5);
-}
-
-.package-network-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.package-network-buy {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.package-network-buy .package-price {
-  margin: 0;
-}
-
-.package-network-buy .package-cta {
-  margin-top: 0;
+.package-card-contact {
+  background: var(--color-snow);
 }
 
 .package-flag {
@@ -1717,16 +1693,6 @@ button:focus-visible {
 
   .package-grid {
     grid-template-columns: 1fr;
-  }
-
-  .package-card-network {
-    grid-column: auto;
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-  }
-
-  .package-network-buy {
-    flex-wrap: wrap;
   }
 
   .faq-item summary {
