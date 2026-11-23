@@ -513,7 +513,7 @@ button:focus-visible {
 .section {
   padding: clamp(64px, 8vw, 112px) 0;
   border-top: 1px solid var(--color-line);
-  scroll-margin-top: 88px;
+  scroll-margin-top: calc(var(--header-h) + 1px);
 }
 
 .section-head {
@@ -636,6 +636,7 @@ button:focus-visible {
 /* Cover the anti-aliased seam between the SVG cut and the section on mobile. */
 #how-it-works {
   border-top: 2px solid var(--color-snow);
+  scroll-margin-top: 88px;
 }
 
 .split {
