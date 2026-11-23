@@ -100,6 +100,13 @@ describe("landing page", () => {
     expect(html).toContain("Tell us how many you need and we'll build the right package.");
   });
 
+  it("makes the case for no new stack", () => {
+    expect(html).toContain("<h2>No new stack.</h2>");
+    expect(html).toContain("for the cameras you already have.");
+    expect(html).toContain("Minutes, not a project");
+    expect(html).toContain("Your visitors stay on your site");
+  });
+
   it("frames the audience list around the places people watch", () => {
     expect(html).toContain("Who it's for");
     expect(html).toContain("Built for the places people watch.");
