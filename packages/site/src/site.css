@@ -589,10 +589,6 @@ button:focus-visible {
   color: var(--color-on-dark);
 }
 
-.problem .manifesto-list li:last-child {
-  border-bottom: 0;
-}
-
 .problem-ridge {
   position: absolute;
   right: 0;
