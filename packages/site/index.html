@@ -496,30 +496,67 @@
         <div class="shell contact-split">
           <div class="section-head">
             <p class="section-kicker">Contact</p>
-            <h2>Still have questions?</h2>
+            <h2>Ask us anything.</h2>
             <p>
-              Tell us about your camera and we'll get back to you. Prefer to set it up yourself?
-              <a href="/admin/#/register">Get started</a>.
+              A camera you want to archive, a question about packages, a partnership, or something else — one short
+              message is enough. We reply as soon as we can.
             </p>
-            <p class="contact-email">Or email <a href="mailto:hello@sengycraft.cz">hello@sengycraft.cz</a>.</p>
+            <ul class="contact-facts">
+              <li><strong>Response</strong><span>A real person replies</span></li>
+              <li><strong>Setup</strong><span>Self-service or with us</span></li>
+              <li>
+                <strong>Email</strong>
+                <span><a href="mailto:hello@sengycraft.cz">hello@sengycraft.cz</a></span>
+              </li>
+            </ul>
+            <p class="contact-hurry">In a hurry? <a href="/admin/#/register">Create an account</a>.</p>
           </div>
           <form class="contact-form" data-contact-form>
-            <label>Name<input name="name" autocomplete="name" required /></label>
-            <label>Email<input type="email" name="email" autocomplete="email" required /></label>
-            <label>Camera URL or location<input name="camera" placeholder="https://... or Alpine Summit" /></label>
             <label>
-              Number of cameras
-              <select name="cameras">
-                <option value="1">1 camera</option>
-                <option value="2-3" selected>2–3 cameras</option>
-                <option value="4-5">4–5 cameras</option>
-                <option value="6-10">6–10 cameras</option>
-                <option value="11-25">11–25 cameras</option>
-                <option value="25+">More than 25</option>
+              What is this about?
+              <select name="topic">
+                <option value="A camera or setup">A camera or setup</option>
+                <option value="Pricing and packages">Pricing &amp; packages</option>
+                <option value="Partnership or press">Partnership or press</option>
+                <option value="Something else">Something else</option>
               </select>
             </label>
-            <label>Message<textarea name="message" rows="4" placeholder="What would you like to archive?"></textarea></label>
-            <button class="btn primary" type="submit">Send message</button>
+            <div class="contact-row">
+              <label>Name<input name="name" autocomplete="name" required /></label>
+              <label>Email<input type="email" name="email" autocomplete="email" required /></label>
+            </div>
+            <div class="contact-row">
+              <label>
+                <span class="contact-label">Your website <span class="contact-optional">(optional)</span></span>
+                <input type="text" name="website" inputmode="url" autocomplete="url" placeholder="https://..." />
+              </label>
+              <label>
+                <span class="contact-label">Number of cameras <span class="contact-optional">(optional)</span></span>
+                <select name="cameras">
+                  <option value="">Not sure yet</option>
+                  <option value="1">1 camera</option>
+                  <option value="2-3">2–3 cameras</option>
+                  <option value="4-5">4–5 cameras</option>
+                  <option value="6-10">6–10 cameras</option>
+                  <option value="11-25">11–25 cameras</option>
+                  <option value="25+">More than 25</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              Message
+              <textarea
+                name="message"
+                rows="5"
+                placeholder="What would you like to archive, or what would you like to know?"
+                required
+              ></textarea>
+            </label>
+            <div class="contact-actions">
+              <button class="btn primary" type="submit">Send message</button>
+              <p class="contact-note">Opens your email app. Nothing is sent until you send it.</p>
+            </div>
+            <p class="contact-status" role="status" aria-live="polite" hidden></p>
           </form>
         </div>
       </section>

@@ -59,6 +59,15 @@ describe("landing page", () => {
     expect(html).toContain("data-contact-form");
   });
 
+  it("handles general questions as well as camera setups", () => {
+    expect(html).toContain("Ask us anything.");
+    expect(html).toContain("We reply as soon as we can.");
+    expect(html).toContain("What is this about?");
+    expect(html).toContain('name="topic"');
+    expect(html).toContain("Your website");
+    expect(html).toContain('name="website"');
+  });
+
   it("offers both setup paths in How it works", () => {
     expect(html).toContain("Set it up yourself");
     expect(html).toContain("Let us set it up with you");

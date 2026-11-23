@@ -23,20 +23,27 @@ if (menu) {
 const contactForm = document.querySelector<HTMLFormElement>("[data-contact-form]");
 
 if (contactForm) {
+  const status = contactForm.querySelector<HTMLElement>(".contact-status");
+
   contactForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const data = new FormData(contactForm);
-    const value = (key: string) => String(data.get(key) ?? "");
-    const body = [
-      `Name: ${value("name")}`,
-      `Email: ${value("email")}`,
-      `Camera: ${value("camera")}`,
-      `Cameras: ${value("cameras")}`,
-      "",
-      value("message"),
-    ].join("\n");
-    const subject = encodeURIComponent("Camera History enquiry");
-    window.location.href = `mailto:hello@sengycraft.cz?subject=${subject}&body=${encodeURIComponent(body)}`;
+    const value = (key: string) => String(data.get(key) ?? "").trim();
+    const topic = value("topic");
+    const lines = [`Topic: ${topic}`, `Name: ${value("name")}`, `Email: ${value("email")}`];
+
+    if (value("website")) lines.push(`Website: ${value("website")}`);
+    if (value("cameras")) lines.push(`Cameras: ${value("cameras")}`);
+    lines.push("", value("message"));
+
+    const subject = encodeURIComponent(`Camera History — ${topic}`);
+
+    if (status) {
+      status.hidden = false;
+      status.textContent = "Opening your email app… If nothing happens, email hello@sengycraft.cz.";
+    }
+
+    window.location.href = `mailto:hello@sengycraft.cz?subject=${subject}&body=${encodeURIComponent(lines.join("\n"))}`;
   });
 }
 
