@@ -1291,6 +1291,11 @@ button:focus-visible {
   align-items: start;
 }
 
+.audiences .section-head {
+  position: sticky;
+  top: calc(var(--header-h) + var(--space-6));
+}
+
 .audience-list {
   margin: 0;
   padding: 0;
@@ -1559,6 +1564,10 @@ button:focus-visible {
   }
 
   .faq .section-head {
+    position: static;
+  }
+
+  .audiences .section-head {
     position: static;
   }
 
