@@ -2,7 +2,20 @@ import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: "group-route-fallback",
+      configureServer(server) {
+        server.middlewares.use((request, _response, next) => {
+          if (request.url?.startsWith("/group/")) {
+            request.url = "/widget/index.html";
+          }
+          next();
+        });
+      },
+    },
+  ],
   base: "/widget/",
   server: {
     host: "127.0.0.1",

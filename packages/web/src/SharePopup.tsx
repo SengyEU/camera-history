@@ -115,10 +115,16 @@ const NETWORKS = [
 
 export function SharePopup({ title, hourLabel, imageUrl, url, onClose }: SharePopupProps) {
   const [copied, setCopied] = useState(false);
+  const [fallbackCopy, setFallbackCopy] = useState(false);
   const [closing, setClosing] = useState(false);
   const copyTimer = useRef<number | undefined>(undefined);
+  const fallbackTimer = useRef<number | undefined>(undefined);
   const closeTimer = useRef<number | undefined>(undefined);
   const closingRef = useRef(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -130,8 +136,46 @@ export function SharePopup({ title, hourLabel, imageUrl, url, onClose }: SharePo
   }, []);
 
   useEffect(() => {
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeRef.current?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.setTimeout(() => {
+        const stored = restoreFocusRef.current;
+        const target =
+          stored && stored !== document.body && stored.isConnected
+            ? stored
+            : document.querySelector<HTMLElement>('[data-testid="share-open"]');
+        target?.focus();
+      }, 0);
+    };
+  }, []);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") requestClose();
+      if (event.key === "Escape") {
+        requestClose();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.offsetParent !== null || element === document.activeElement);
+      if (focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -140,16 +184,35 @@ export function SharePopup({ title, hourLabel, imageUrl, url, onClose }: SharePo
   useEffect(
     () => () => {
       window.clearTimeout(copyTimer.current);
+      window.clearTimeout(fallbackTimer.current);
       window.clearTimeout(closeTimer.current);
     },
     [],
   );
 
+  const selectUrl = () => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  };
+
   const handleCopy = () => {
-    void navigator.clipboard?.writeText(url);
-    setCopied(true);
-    window.clearTimeout(copyTimer.current);
-    copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
+    const fallback = () => {
+      selectUrl();
+      setCopied(false);
+      setFallbackCopy(true);
+      window.clearTimeout(fallbackTimer.current);
+      fallbackTimer.current = window.setTimeout(() => setFallbackCopy(false), 2000);
+    };
+
+    if (navigator.clipboard?.writeText) {
+      setCopied(true);
+      setFallbackCopy(false);
+      window.clearTimeout(copyTimer.current);
+      copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
+      void navigator.clipboard.writeText(url).catch(fallback);
+    } else {
+      fallback();
+    }
   };
 
   const canNativeShare = typeof navigator.share === "function";
@@ -167,16 +230,19 @@ export function SharePopup({ title, hourLabel, imageUrl, url, onClose }: SharePo
         onClick={requestClose}
       />
       <div
+        ref={dialogRef}
         className={`share-popup${closing ? " share-popup-closing" : ""}`}
         data-testid="share-popup"
         role="dialog"
         aria-modal="true"
         aria-label={`Share ${title}`}
       >
+        <div className="share-handle" aria-hidden="true" />
         <div className="share-preview">
           <img className="share-preview-img" src={imageUrl} alt={title} />
           <span className="ts-chip">{hourLabel}</span>
           <button
+            ref={closeRef}
             type="button"
             className="share-close"
             data-testid="share-close"
@@ -186,6 +252,9 @@ export function SharePopup({ title, hourLabel, imageUrl, url, onClose }: SharePo
             ×
           </button>
         </div>
+        <p className="share-status" role="status" aria-live="polite">
+          {copied ? "Link copied" : fallbackCopy ? "Link selected. Press Ctrl+C to copy." : ""}
+        </p>
         <h2 className="share-title">{title}</h2>
         <p className="share-to">Share to</p>
         <div className="share-networks">
@@ -213,18 +282,26 @@ export function SharePopup({ title, hourLabel, imageUrl, url, onClose }: SharePo
             <LinkIcon />
           </span>
           <input
+            ref={inputRef}
             type="text"
             readOnly
             value={url}
             aria-label="Share URL"
             onFocus={(event) => event.currentTarget.select()}
           />
-          <button type="button" className={copied ? "is-copied" : undefined} onClick={handleCopy}>
+          <button
+            type="button"
+            className={copied ? "is-copied" : undefined}
+            aria-live="polite"
+            onClick={handleCopy}
+          >
             {copied ? (
               <>
                 <CheckIcon />
                 Copied
               </>
+            ) : fallbackCopy ? (
+              "Select"
             ) : (
               "Copy"
             )}

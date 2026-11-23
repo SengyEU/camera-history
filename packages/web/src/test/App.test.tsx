@@ -551,6 +551,33 @@ describe("App widget", () => {
     expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
   });
 
+  it("moves focus into the share dialog and restores it on close", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-img-1"));
+    const trigger = screen.getByTestId("share-open");
+    await user.click(trigger);
+
+    expect(await screen.findByTestId("share-close")).toHaveFocus();
+    await user.click(screen.getByTestId("share-close"));
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("falls back to selecting the URL when the clipboard is unavailable", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window.navigator, "clipboard", { value: {}, configurable: true });
+    render(<App />);
+    await user.click(await screen.findByTestId("frame-img-1"));
+    await user.click(screen.getByTestId("share-open"));
+    await user.click(await screen.findByRole("button", { name: "Copy" }));
+
+    expect(screen.getByRole("button", { name: "Select" })).toBeInTheDocument();
+    const input = screen.getByLabelText("Share URL") as HTMLInputElement;
+    expect(input).toHaveFocus();
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(input.value.length);
+  });
+
   it("closes the share popup via the close button, Esc and the overlay", async () => {
     const user = userEvent.setup();
     const expectClosed = () =>
@@ -754,7 +781,7 @@ describe("App widget", () => {
     await act(async () => {
       pending[1]!([]);
     });
-    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
     expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
   });
 
@@ -772,18 +799,18 @@ describe("App widget", () => {
     await act(async () => {
       pending[0]!([]);
     });
-    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Next day"));
     await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", "2026-09-19"));
 
     expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0);
-    expect(screen.getByText("No images for this date.")).toBeInTheDocument();
+    expect(screen.getByText("No captures for this date yet.")).toBeInTheDocument();
 
     await act(async () => {
       pending[1]!([]);
     });
-    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
   });
 
   it("keeps the previous day visible while preloading, then swaps the frames in together", async () => {
@@ -860,7 +887,7 @@ describe("App widget", () => {
     render(<App />);
 
     expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
-    expect(screen.queryByText("No images for this date.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No captures for this date yet.")).not.toBeInTheDocument();
     expect(vi.mocked(getImages)).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -882,7 +909,7 @@ describe("App widget", () => {
     render(<App />);
 
     await waitFor(() => expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0));
-    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
     expect(vi.mocked(getImages)).toHaveBeenCalledWith(
       "cam-1",
       cameraDate(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"),
@@ -992,8 +1019,40 @@ describe("App widget", () => {
   it("shows the pinned empty copy for a day without images", async () => {
     vi.mocked(getImages).mockResolvedValue([]);
     render(<App />);
-    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("day-only-empty")).not.toBeInTheDocument();
+  });
+
+  it("offers Back to today when an older day has no captures", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getImages).mockResolvedValue([]);
+    render(<App />);
+
+    const back = await screen.findByRole("button", { name: "Back to today" });
+    await user.click(back);
+
+    await waitFor(() =>
+      expect(vi.mocked(getImages)).toHaveBeenLastCalledWith("cam-1", cameraDate(new Date(), "UTC")),
+    );
+  });
+
+  it("shows a group error when the group cannot be loaded", async () => {
+    vi.mocked(getGroup).mockRejectedValue(new Error("offline"));
+    window.history.pushState({}, "", "/group/acme/summit");
+    render(<App />);
+
+    const error = await screen.findByTestId("error-state");
+    expect(error).toHaveTextContent("This group couldn't be loaded.");
+    expect(error).toHaveTextContent("Check the link or try again in a moment.");
+  });
+
+  it("shows an images error when captures cannot be loaded", async () => {
+    vi.mocked(getImages).mockRejectedValue(new Error("offline"));
+    render(<App />);
+
+    const error = await screen.findByTestId("error-state");
+    expect(error).toHaveTextContent("Captures couldn't be loaded.");
+    expect(error).toHaveTextContent("Refresh the page or try again in a moment.");
   });
 
   it("wraps the empty copy in a strip-sized centered box", async () => {
@@ -1001,9 +1060,9 @@ describe("App widget", () => {
     render(<App />);
     const emptyState = await screen.findByTestId("empty-state");
     expect(emptyState).toHaveClass("empty-state");
-    expect(emptyState).toHaveTextContent("No images for this date.");
+    expect(emptyState).toHaveTextContent("No captures for this date yet.");
     expect(emptyState).toHaveTextContent(
-      "Use the arrows or the date field to browse other days.",
+      "Browse another day or check back after the next hourly capture.",
     );
   });
 
@@ -1037,11 +1096,11 @@ describe("App widget", () => {
     render(<App />);
 
     expect(await screen.findByTestId("day-only-empty")).toHaveTextContent(
-      "No daytime captures for this date.",
+      "No daylight captures for this date.",
     );
     expect(screen.getByTestId("empty-state")).toContainElement(screen.getByTestId("day-only-empty"));
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
-    expect(screen.queryByText("No images for this date.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No captures for this date yet.")).not.toBeInTheDocument();
   });
 
   it("treats a missing isDaylight flag as daylight", async () => {
@@ -1236,7 +1295,7 @@ describe("App group widget", () => {
     expect(await screen.findByTestId("frame-i1")).toBeInTheDocument();
     await chooseCamera("cam-b");
 
-    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(vi.mocked(getCameraLatest)).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue("2026-10-09")).toBeInTheDocument();
@@ -1259,7 +1318,7 @@ describe("App group widget", () => {
 
     fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-05" } });
 
-    expect(await screen.findByText("No images for this date.")).toBeInTheDocument();
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
     expect(screen.getByDisplayValue("2026-10-05")).toBeInTheDocument();
     expect(vi.mocked(getCameraLatest)).not.toHaveBeenCalled();
   });
@@ -1372,7 +1431,7 @@ describe("App group widget", () => {
     render(<App />);
 
     expect(await screen.findByTestId("group-empty")).toBeInTheDocument();
-    expect(screen.getByText("No cameras in this group.")).toBeInTheDocument();
+    expect(screen.getByText("No cameras in this group yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("camera-switcher")).not.toBeInTheDocument();
     expect(vi.mocked(getImages)).not.toHaveBeenCalled();
   });

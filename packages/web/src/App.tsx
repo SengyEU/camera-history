@@ -225,6 +225,7 @@ interface WidgetBodyProps {
   children?: ReactNode;
   contentKey: string;
   showEmbedNotice: boolean;
+  errorKind: "group" | "images" | null;
 }
 
 function WidgetBody({
@@ -249,7 +250,21 @@ function WidgetBody({
   children,
   contentKey,
   showEmbedNotice,
+  errorKind,
 }: WidgetBodyProps) {
+  const errorCopy =
+    errorKind === "group"
+      ? {
+          title: "This group couldn't be loaded.",
+          hint: "Check the link or try again in a moment.",
+        }
+      : errorKind === "images"
+        ? {
+            title: "Captures couldn't be loaded.",
+            hint: "Refresh the page or try again in a moment.",
+          }
+        : null;
+
   return (
     <div className="widget" data-testid="widget" data-theme={theme}>
       {showEmbedNotice && (
@@ -272,16 +287,42 @@ function WidgetBody({
         />
       ) : (
         <ContentTransition transitionKey={contentKey}>
-          {images.length === 0 ? (
+          {errorCopy ? (
+            <div className="empty-state" data-testid="error-state">
+              <p className="empty">{errorCopy.title}</p>
+              <p className="empty-hint">{errorCopy.hint}</p>
+            </div>
+          ) : images.length === 0 ? (
             <div className="empty-state" data-testid="empty-state">
-              <p className="empty">No images for this date.</p>
-              <p className="empty-hint">Use the arrows or the date field to browse other days.</p>
+              <p className="empty">No captures for this date yet.</p>
+              <p className="empty-hint">
+                Browse another day or check back after the next hourly capture.
+              </p>
+              {date !== today && (
+                <button
+                  type="button"
+                  className="empty-action"
+                  onClick={() => onDateChange(today)}
+                >
+                  Back to today
+                </button>
+              )}
             </div>
           ) : visibleImages.length === 0 ? (
             <div className="empty-state" data-testid="empty-state">
               <p className="empty" data-testid="day-only-empty">
-                No daytime captures for this date.
+                No daylight captures for this date.
               </p>
+              <p className="empty-hint">Night frames are hidden for this camera. Try another day.</p>
+              {date !== today && (
+                <button
+                  type="button"
+                  className="empty-action"
+                  onClick={() => onDateChange(today)}
+                >
+                  Back to today
+                </button>
+              )}
             </div>
           ) : (
             <FilmStrip
@@ -351,6 +392,8 @@ export function App() {
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [images, setImages] = useState<ImageDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [groupError, setGroupError] = useState(false);
+  const [imagesError, setImagesError] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shareImage, setShareImage] = useState<ImageDto | null>(null);
   const [embedContext, setEmbedContext] = useState<EmbedContext | null>(null);
@@ -459,6 +502,7 @@ export function App() {
     getGroup(groupRoute.tenant, groupRoute.slug)
       .then((g) => {
         setGroup(g);
+        setGroupError(false);
         const requested = new URLSearchParams(window.location.search).get("camera");
         setSelectedCameraId((prev) => {
           if (prev) return prev;
@@ -467,6 +511,7 @@ export function App() {
         });
       })
       .catch(() => {
+        setGroupError(true);
         setGroup(null);
         defaultDateAppliedRef.current = true;
         setDateReady(true);
@@ -503,6 +548,11 @@ export function App() {
     () => (showNight ? images : images.filter((image) => image.isDaylight !== false)),
     [images, showNight],
   );
+  const errorKind: "group" | "images" | null = imagesError
+    ? "images"
+    : groupError && images.length === 0
+      ? "group"
+      : null;
   const contentKey = `${images[0]?.id ?? ""}|${images.length}`;
 
   useEffect(() => {
@@ -513,6 +563,7 @@ export function App() {
     if (!dateReady) return;
     let cancelled = false;
     setLoading(true);
+    setImagesError(false);
     getImages(cameraId, date)
       .then(async (imgs) => {
         if (cancelled) return;
@@ -540,7 +591,10 @@ export function App() {
         setImages(imgs);
       })
       .catch(() => {
-        if (!cancelled) setImages([]);
+        if (!cancelled) {
+          setImagesError(true);
+          setImages([]);
+        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -633,9 +687,10 @@ export function App() {
     if (group && group.cameras.length === 0) {
       return (
         <div className="widget" data-testid="widget" data-theme={theme}>
-          <p className="empty" data-testid="group-empty">
-            No cameras in this group.
-          </p>
+          <div className="empty-state" data-testid="group-empty">
+            <p className="empty">No cameras in this group yet.</p>
+            <p className="empty-hint">Cameras added to this group will appear here.</p>
+          </div>
         </div>
       );
     }
@@ -652,6 +707,7 @@ export function App() {
         hasLoadedOnce={hasLoadedOnce}
         contentKey={contentKey}
         showEmbedNotice={embedScriptMissing}
+        errorKind={errorKind}
         images={images}
         visibleImages={visibleImages}
         openId={openId}
@@ -686,6 +742,7 @@ export function App() {
       hasLoadedOnce={hasLoadedOnce}
       contentKey={contentKey}
       showEmbedNotice={embedScriptMissing}
+      errorKind={errorKind}
       images={images}
       visibleImages={visibleImages}
       openId={openId}
