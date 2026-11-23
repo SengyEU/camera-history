@@ -589,6 +589,10 @@ button:focus-visible {
   color: var(--color-on-dark);
 }
 
+.problem .manifesto-list li:last-child {
+  border-bottom: 0;
+}
+
 .problem-ridge {
   position: absolute;
   right: 0;
@@ -1504,16 +1508,18 @@ button:focus-visible {
     border-top: 1px solid var(--color-line);
   }
 
-  .steps li:last-child {
-    border-bottom: 0;
-  }
-
   .steps li::before {
     display: none;
   }
 
   .steps p {
     max-width: 48ch;
+  }
+
+  .path-head {
+    margin-top: var(--space-6);
+    padding-top: 0;
+    border-top: 0;
   }
 
   .feature-grid {
