@@ -693,7 +693,7 @@ button:focus-visible {
 }
 
 .steps li:last-child::before {
-  display: none;
+  right: 0;
 }
 
 .step-num {
