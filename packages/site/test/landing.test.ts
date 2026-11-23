@@ -100,6 +100,13 @@ describe("landing page", () => {
     expect(html).toContain("Tell us how many you need and we'll build the right package.");
   });
 
+  it("frames the audience list around the places people watch", () => {
+    expect(html).toContain("Who it's for");
+    expect(html).toContain("Built for the places people watch.");
+    expect(html).toContain("Ski resorts &amp; mountain destinations");
+    expect(html).toContain("The sky, the seasons and the wildlife, hour by hour.");
+  });
+
   it("keeps the customer wall hidden until a real story is added", () => {
     expect(html).toContain("Who is using Camera History?");
     expect(html).toContain("A few of the sites running Camera History in public.");
