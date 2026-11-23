@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Camera History — Time-lapse history for your webcam</title>
+    <title>Camera History — Time-lapse history for your camera</title>
     <meta
       name="description"
-      content="Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
+      content="Turn any public camera into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
     />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href="https://camera.sengycraft.cz/" />
@@ -14,10 +14,10 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Camera History" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content="Camera History — Time-lapse history for your webcam" />
+    <meta property="og:title" content="Camera History — Time-lapse history for your camera" />
     <meta
       property="og:description"
-      content="Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
+      content="Turn any public camera into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
     />
     <meta property="og:url" content="https://camera.sengycraft.cz/" />
     <meta property="og:image" content="https://camera.sengycraft.cz/og-image-a2-final.png" />
@@ -26,18 +26,18 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="Camera History — Your webcam only shows now. We add the history."
+      content="Camera History — Your camera only shows now. We add the history."
     />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Camera History — Time-lapse history for your webcam" />
+    <meta name="twitter:title" content="Camera History — Time-lapse history for your camera" />
     <meta
       name="twitter:description"
-      content="Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
+      content="Turn any public camera into a browsable archive. Embed a widget that lets visitors scroll back through days of captures."
     />
     <meta name="twitter:image" content="https://camera.sengycraft.cz/og-image-a2-final.png" />
     <meta
       name="twitter:image:alt"
-      content="Camera History — Your webcam only shows now. We add the history."
+      content="Camera History — Your camera only shows now. We add the history."
     />
     <script type="application/ld+json">
       {
@@ -48,14 +48,14 @@
             "@id": "https://camera.sengycraft.cz/#website",
             "url": "https://camera.sengycraft.cz/",
             "name": "Camera History",
-            "description": "Turn any public webcam into a browsable archive."
+            "description": "Turn any public camera into a browsable archive."
           },
           {
             "@type": "SoftwareApplication",
             "@id": "https://camera.sengycraft.cz/#app",
             "name": "Camera History",
             "url": "https://camera.sengycraft.cz/",
-            "description": "Turn any public webcam into a browsable archive. Embed a widget that lets visitors scroll back through days of captures.",
+            "description": "Turn any public camera into a browsable archive. Embed a widget that lets visitors scroll back through days of captures.",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web",
             "image": "https://camera.sengycraft.cz/og-image-a2-final.png",
@@ -90,9 +90,7 @@
     <header class="site-header">
       <div class="shell header-inner">
         <a class="brand" href="/" aria-label="Camera History home">
-          <span class="brand-mark" aria-hidden="true">
-            <img src="/brand/logotypes/symbol-dark.svg" alt="" width="24" height="24" />
-          </span>
+          <img class="brand-logo" src="/brand/logotypes/symbol-dark.svg" alt="" width="24" height="24" />
           <span class="brand-word">Camera <span>History</span></span>
         </a>
         <nav class="site-nav" aria-label="Primary navigation">
@@ -143,11 +141,11 @@
         <div class="shell hero-inner">
           <div class="hero-copy">
             <h1>
-              <span>Your webcam only shows now.</span>
+              <span>Your camera only shows now.</span>
               <span class="accent">We add the history.</span>
             </h1>
             <p class="lede">
-              Turn any public webcam into a browsable archive visitors can explore by day.
+              Turn any public camera into a browsable archive visitors can explore by day.
               Keep the live view, add the history, embed it with one iframe.
             </p>
             <div class="hero-actions">
@@ -187,39 +185,53 @@
       </section>
 
       <section class="section problem">
+        <svg class="problem-ridge" viewBox="0 0 1440 260" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <polyline points="0,210 180,160 360,195 540,120 720,180 900,110 1080,170 1260,130 1440,180" fill="none" stroke-width="1.5" />
+          <polyline points="0,245 200,215 400,235 600,190 800,230 1000,185 1200,225 1440,200" fill="none" stroke-width="2" />
+        </svg>
         <div class="shell split">
           <div class="section-head">
-            <h2>A webcam shows one moment. Visitors who missed it are gone.</h2>
+            <p class="section-kicker">The problem</p>
+            <h2>A camera shows one moment. The rest is lost.</h2>
           </div>
           <ul class="manifesto-list">
-            <li><p>Yesterday's powder day is nowhere to be seen.</p></li>
-            <li><p>The sunset, the storm, the first snow — overwritten.</p></li>
-            <li><p>Your live feed earns a glance, not a visit to your site.</p></li>
+            <li><p>Yesterday's conditions, progress, or event can't be checked.</p></li>
+            <li><p>A live frame can't be compared or shared after the fact.</p></li>
+            <li><p>Your camera earns a glance, not a return visit.</p></li>
           </ul>
         </div>
       </section>
+
+      <div class="section-cut" aria-hidden="true">
+        <svg viewBox="0 0 1440 120" preserveAspectRatio="none" focusable="false">
+          <path class="section-cut-fill" d="M0,120 L0,78 L160,38 L320,70 L480,28 L640,58 L800,22 L960,62 L1120,34 L1280,68 L1440,42 L1440,120 Z" />
+        </svg>
+      </div>
 
       <section id="how-it-works" class="section solution">
         <div class="shell">
           <div class="section-head section-head-wide">
             <p class="section-kicker">How it works</p>
-            <h2>One widget. Every moment you captured.</h2>
+            <h2>Connect. Archive. Embed.</h2>
             <p>Keep the live view people already know, then give them a reason to stay and explore.</p>
           </div>
           <ol class="steps">
             <li>
               <span class="step-num">01</span>
-              <div><strong>We capture your camera</strong><p>At the interval you choose, around the clock.</p></div>
+              <div><strong>Connect your cameras</strong><p>Point us at any public camera feed.</p></div>
             </li>
             <li>
               <span class="step-num">02</span>
-              <div><strong>Captures are stored safely</strong><p>In your archive for 12 months.</p></div>
+              <div><strong>We build the archive</strong><p>Captures at your interval, stored for 12 months.</p></div>
             </li>
             <li>
               <span class="step-num">03</span>
-              <div><strong>You embed one iframe</strong><p>Visitors browse the history by day, not just the live frame.</p></div>
+              <div><strong>Embed the widget</strong><p>One iframe. Visitors browse the history by day.</p></div>
             </li>
           </ol>
+          <div class="path-head">
+            <p class="section-kicker">Two ways to start</p>
+          </div>
           <div class="path-grid">
             <article class="path-card">
               <h3>Set it up yourself</h3>
@@ -366,7 +378,7 @@
             </details>
             <details class="faq-item">
               <summary>Do you archive private cameras?</summary>
-              <p>No. Camera History is built for public webcams only. We do not connect to private or indoor cameras.</p>
+              <p>No. Camera History is built for public cameras only. We do not connect to private or indoor cameras.</p>
             </details>
             <details class="faq-item">
               <summary>Can I cancel anytime?</summary>
@@ -443,6 +455,12 @@
         </div>
       </section>
 
+      <div class="section-cut section-cut--inverse" aria-hidden="true">
+        <svg viewBox="0 0 1440 120" preserveAspectRatio="none" focusable="false">
+          <path class="section-cut-fill" d="M0,120 L0,42 L160,68 L320,34 L480,62 L640,22 L800,58 L960,28 L1120,70 L1280,38 L1440,78 L1440,120 Z" />
+        </svg>
+      </div>
+
       <section class="cta-band">
         <svg class="cta-ridge" viewBox="0 0 1440 260" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <polyline points="0,190 180,150 340,178 520,104 700,164 880,92 1060,158 1220,124 1440,170" fill="none" stroke-width="1.5" />
@@ -463,7 +481,7 @@
 
     <footer class="site-footer">
       <div class="shell footer-inner">
-        <span class="brand footer-brand"><img src="/brand/logotypes/symbol-light.svg" alt="" width="22" height="22" />Camera <span>History</span></span>
+        <span class="brand footer-brand"><img src="/brand/logotypes/symbol-dark.svg" alt="" width="22" height="22" />Camera <span>History</span></span>
         <nav class="footer-nav" aria-label="Footer navigation">
           <a href="#hero-demo">Live demo</a>
           <a href="#how-it-works">How it works</a>

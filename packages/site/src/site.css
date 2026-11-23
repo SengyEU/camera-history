@@ -98,18 +98,7 @@ button:focus-visible {
   text-decoration: none;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  color: var(--color-glacier-bright);
-  border: 1px solid color-mix(in srgb, var(--color-glacier-bright) 45%, transparent);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-glacier-bright) 8%, transparent);
-}
-
-.brand-mark img {
+.brand-logo {
   display: block;
   width: 22px;
   height: 22px;
@@ -303,7 +292,6 @@ button:focus-visible {
   overflow: hidden;
   background: var(--color-night);
   color: var(--color-on-dark);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-on-dark) 10%, transparent);
   scroll-margin-top: 88px;
 }
 
@@ -563,6 +551,89 @@ button:focus-visible {
   font-size: var(--text-md);
 }
 
+.problem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: clamp(420px, 52vh, 560px);
+  overflow: hidden;
+  padding: clamp(56px, 6vw, 88px) 0;
+  border-top: 0;
+  background: var(--color-night);
+  color: var(--color-on-dark);
+}
+
+.problem .shell {
+  position: relative;
+  z-index: 1;
+}
+
+.problem .split {
+  align-items: center;
+}
+
+.problem .section-kicker {
+  color: var(--color-glacier-bright);
+}
+
+.problem h2 {
+  color: var(--color-on-dark);
+}
+
+.problem .manifesto-list,
+.problem .manifesto-list li {
+  border-color: color-mix(in srgb, var(--color-on-dark) 14%, transparent);
+}
+
+.problem .manifesto-list p {
+  color: var(--color-on-dark);
+}
+
+.problem-ridge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 55%;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.problem-ridge polyline {
+  stroke: var(--color-glacier-bright);
+}
+
+.section-cut {
+  height: clamp(72px, 8vw, 120px);
+  margin-bottom: -1px;
+  overflow: hidden;
+  background: var(--color-night);
+}
+
+.section-cut svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.section-cut-fill {
+  fill: var(--color-snow);
+}
+
+.section-cut--inverse {
+  background: var(--color-snow);
+}
+
+.section-cut--inverse .section-cut-fill {
+  fill: var(--color-night);
+}
+
+.section-cut + .section,
+#how-it-works {
+  border-top: 0;
+}
+
 .split {
   display: grid;
   grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
@@ -604,18 +675,43 @@ button:focus-visible {
 }
 
 .steps li {
+  position: relative;
   display: grid;
   gap: var(--space-4);
   align-content: start;
   padding-top: var(--space-4);
-  border-top: 1px solid var(--color-line);
+}
+
+.steps li::before {
+  content: "";
+  position: absolute;
+  top: 32px;
+  right: calc(-1 * clamp(20px, 4vw, 42px));
+  left: 32px;
+  height: 1px;
+  background: var(--color-line);
+}
+
+.steps li:last-child::before {
+  display: none;
 }
 
 .step-num {
-  color: var(--color-glacier-deep);
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-snow);
+  color: var(--color-glacier-hover);
   font-size: var(--text-xs);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .steps strong {
@@ -634,11 +730,21 @@ button:focus-visible {
   line-height: var(--leading-relaxed);
 }
 
+.path-head {
+  margin-top: var(--space-7);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+}
+
+.path-head .section-kicker {
+  margin: 0;
+}
+
 .path-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
-  margin-top: var(--space-6);
+  margin-top: var(--space-4);
 }
 
 .path-card {
@@ -669,11 +775,11 @@ button:focus-visible {
 
 .path-card .btn {
   align-self: flex-start;
-  margin-top: var(--space-2);
+  margin-top: auto;
 }
 
 .features {
-  background: var(--color-snow);
+  background: var(--color-surface);
 }
 
 .feature-grid {
@@ -762,7 +868,7 @@ button:focus-visible {
 }
 
 .pricing {
-  background: var(--color-snow);
+  background: color-mix(in srgb, var(--color-glacier-weak) 28%, var(--color-snow));
 }
 
 .pricing-split {
@@ -824,7 +930,7 @@ button:focus-visible {
 .package-flag {
   align-self: flex-start;
   background: var(--color-glacier-weak);
-  color: var(--color-glacier-deep);
+  color: var(--color-glacier-hover);
 }
 
 .package-head {
@@ -885,7 +991,7 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--color-glacier-deep);
+  color: var(--color-glacier-hover);
   font-size: var(--text-sm);
   font-weight: 600;
   text-decoration: none;
@@ -961,7 +1067,7 @@ button:focus-visible {
 }
 
 .faq-item summary:hover {
-  color: var(--color-glacier-deep);
+  color: var(--color-glacier-hover);
 }
 
 .faq-item summary:focus-visible {
@@ -1000,7 +1106,7 @@ button:focus-visible {
 
 .price-table thead th {
   background: var(--color-glacier-weak);
-  color: var(--color-glacier-deep);
+  color: var(--color-glacier-hover);
   font-family: var(--font-technical);
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -1061,7 +1167,7 @@ button:focus-visible {
 }
 
 .contact {
-  background: var(--color-surface);
+  background: var(--color-snow);
 }
 
 .contact-split {
@@ -1097,7 +1203,7 @@ button:focus-visible {
   padding: 10px 12px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
-  background: var(--color-snow);
+  background: var(--color-surface);
   color: var(--color-ink);
   font-family: var(--font-ui);
   font-size: var(--text-base);
@@ -1147,7 +1253,7 @@ button:focus-visible {
 }
 
 .why {
-  background: var(--color-snow);
+  background: var(--color-surface);
 }
 
 .why .split {
@@ -1258,7 +1364,9 @@ button:focus-visible {
 }
 
 .site-footer {
-  background: var(--color-snow);
+  background: var(--color-night);
+  color: var(--color-on-dark);
+  border-top: 1px solid color-mix(in srgb, var(--color-on-dark) 10%, transparent);
 }
 
 .footer-inner {
@@ -1268,7 +1376,7 @@ button:focus-visible {
   gap: var(--space-4) var(--space-6);
   padding-top: var(--space-5);
   padding-bottom: var(--space-7);
-  color: var(--color-muted);
+  color: color-mix(in srgb, var(--color-on-dark) 62%, transparent);
   font-size: var(--text-xs);
 }
 
@@ -1287,7 +1395,7 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  color: var(--color-ink);
+  color: var(--color-on-dark);
   font-size: var(--text-sm);
 }
 
@@ -1298,16 +1406,16 @@ button:focus-visible {
 }
 
 .footer-brand span {
-  color: var(--color-muted);
+  color: color-mix(in srgb, var(--color-on-dark) 60%, transparent);
 }
 
 .footer-inner a {
-  color: var(--color-muted);
+  color: color-mix(in srgb, var(--color-on-dark) 68%, transparent);
   transition: color var(--dur-fast) var(--ease-out);
 }
 
 .footer-inner a:hover {
-  color: var(--color-glacier);
+  color: var(--color-glacier-bright);
 }
 
 .visually-hidden {
@@ -1396,6 +1504,10 @@ button:focus-visible {
     border-top: 1px solid var(--color-line);
   }
 
+  .steps li::before {
+    display: none;
+  }
+
   .steps p {
     max-width: 48ch;
   }
@@ -1454,11 +1566,6 @@ button:focus-visible {
 @media (max-width: 720px) {
   .shell {
     width: calc(100% - 32px);
-  }
-
-  .brand-mark {
-    width: 28px;
-    height: 28px;
   }
 
   .brand-word {

@@ -120,7 +120,7 @@ Deck používá core palette. Siluety hřebene mají `--deck-ridge-1: #0f1a2e`, 
 - **Admin** `/admin/`: Montserrat, core palette, dense UI, technical text tabular nums.
 - **Widget** `/widget/`, `/group/`: host font (výjimka), Montserrat fallback; theme palettes; noindex.
 - **Dema** `/demo/`: odstraněna; nginx vrací 410. Nevytvářet nové demo stránky bez rozhodnutí.
-- **Assety:** logo/banner/OG/favicony jsou obrazové; nemění se textovým fontem.
+- **Assety:** logo/banner/OG/favicony jsou obrazové; nemění se textovým fontem. OG a bannery generuje `npm run brand:images --workspace @ch/site`.
 
 ## 8. Governance
 
@@ -129,3 +129,10 @@ Deck používá core palette. Siluety hřebene mají `--deck-ridge-1: #0f1a2e`, 
 3. Spusť `npm run design:check`; musí projít spolu s typecheck/test/lint/build.
 4. Výjimky (widget host font, custom theme, sociální sítě, deck ridge) musí být uvedené zde.
 5. Při změně vzhledu aktualizuj screenshoty v `packages/site/public/` a regeneruj deck PDF.
+
+## 9. Slogany
+
+- **Hlavní tagline:** „Your camera only shows now. We add the history.“ — hero, OG image, deck.
+- **Procesní podslogan:** **„Connect. Archive. Embed.“** — How it works a malý řádek v OG/banner assety.
+
+Trojice `Connect. Archive. Embed.` je závazná pro How it works i brandové assety; nepoužívej staré `Capture / Keep / Embed`.

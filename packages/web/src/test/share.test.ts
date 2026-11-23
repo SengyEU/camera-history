@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildShareUrl, parseEmbedContext } from "../share";
 
 const context = {
-  parentUrl: "https://resort.example/webcams?lang=en#old-section",
+  parentUrl: "https://resort.example/cameras?lang=en#old-section",
   iframeId: "camera-history-widget-acme-cam-1",
 };
 
@@ -30,7 +30,7 @@ describe("buildShareUrl", () => {
       }),
     );
     expect(url.origin).toBe("https://resort.example");
-    expect(url.pathname).toBe("/webcams");
+    expect(url.pathname).toBe("/cameras");
     expect(url.searchParams.get("lang")).toBe("en");
     expect(url.searchParams.get("ch_target")).toBe(context.iframeId);
     expect(url.searchParams.get("ch_date")).toBe("2026-10-18");
@@ -45,7 +45,7 @@ describe("buildShareUrl", () => {
         "https://camera.sengycraft.cz/widget/acme/cam-1",
         {
           parentUrl:
-            "https://resort.example/webcams?ch_date=2020-01-01&ch_camera=old&ch_target=old#old",
+            "https://resort.example/cameras?ch_date=2020-01-01&ch_camera=old&ch_target=old#old",
           iframeId: "camera-history-widget-acme-cam-1",
         },
         { date: "2026-10-18", hour: 9, cameraId: null },

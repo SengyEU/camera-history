@@ -481,7 +481,7 @@ describe("App widget", () => {
       window.dispatchEvent(
         new CustomEvent("camera-history:context", {
           detail: {
-            parentUrl: "https://resort.example/webcams?lang=en#old-section",
+            parentUrl: "https://resort.example/cameras?lang=en#old-section",
             iframeId: "camera-history-widget-acme-cam-1",
           },
         }),
@@ -493,7 +493,7 @@ describe("App widget", () => {
 
     const shareUrl = new URL((screen.getByLabelText("Share URL") as HTMLInputElement).value);
     expect(shareUrl.origin).toBe("https://resort.example");
-    expect(shareUrl.pathname).toBe("/webcams");
+    expect(shareUrl.pathname).toBe("/cameras");
     expect(shareUrl.searchParams.get("lang")).toBe("en");
     expect(shareUrl.searchParams.get("ch_target")).toBe(
       "camera-history-widget-acme-cam-1",

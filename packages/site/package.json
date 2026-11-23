@@ -11,6 +11,7 @@
     "test": "vitest run",
     "screenshots": "node scripts/capture-admin-screenshots.mjs",
     "deck:pdf": "node scripts/export-deck-pdf.mjs",
+    "brand:images": "node scripts/generate-brand-images.mjs",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\""
   },
   "devDependencies": {

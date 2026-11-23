@@ -11,7 +11,7 @@ describe("deck", () => {
 
   it("opens with the hero tagline", () => {
     expect(html).toContain("<title>Camera History — Sales Deck</title>");
-    expect(html).toContain("Your webcam only shows now.");
+    expect(html).toContain("Your camera only shows now.");
     expect(html).toContain("We add the history.");
   });
 

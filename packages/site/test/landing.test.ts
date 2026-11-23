@@ -5,8 +5,8 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 describe("landing page", () => {
   it("has the product title and hero tagline", () => {
-    expect(html).toContain("<title>Camera History — Time-lapse history for your webcam</title>");
-    expect(html).toContain("Your webcam only shows now.");
+    expect(html).toContain("<title>Camera History — Time-lapse history for your camera</title>");
+    expect(html).toContain("Your camera only shows now.");
     expect(html).toContain("We add the history.");
   });
 
@@ -25,6 +25,9 @@ describe("landing page", () => {
     expect(html).toContain('href="#how-it-works"');
     expect(html).toContain('id="how-it-works"');
     expect(html).toContain("How it works");
+    expect(html).toContain("Connect. Archive. Embed.");
+    expect(html).toContain("Connect your cameras");
+    expect(html).toContain("Two ways to start");
   });
 
   it("uses the Sengycraft contact email in CTAs", () => {
