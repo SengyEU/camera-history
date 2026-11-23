@@ -85,6 +85,16 @@ describe("landing page", () => {
     }
     expect(html).toContain("12 months of history");
     expect(html).not.toContain("36 months");
+    for (const line of [
+      "For a single viewpoint.",
+      "For a small resort or attraction.",
+      "For a destination with several angles.",
+      "For larger, multi-zone sites.",
+      "For a portfolio of destinations.",
+    ]) {
+      expect(html).toContain(line);
+    }
+    expect(html).toContain('class="package-card package-card-network"');
   });
 
   it("answers common questions and links to the admin", () => {
