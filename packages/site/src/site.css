@@ -1374,9 +1374,10 @@ button:focus-visible {
 
 .proof-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  margin: clamp(48px, 7vw, 80px) 0 0;
+  max-width: 420px;
+  margin: clamp(32px, 4vw, 44px) 0 0;
   border-top: 1px solid var(--color-line);
   border-left: 1px solid var(--color-line);
 }
@@ -1568,10 +1569,6 @@ button:focus-visible {
 
   .why .section-head {
     position: static;
-  }
-
-  .proof-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hero {
