@@ -1504,6 +1504,10 @@ button:focus-visible {
     border-top: 1px solid var(--color-line);
   }
 
+  .steps li:last-child {
+    border-bottom: 0;
+  }
+
   .steps li::before {
     display: none;
   }
