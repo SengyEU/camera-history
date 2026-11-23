@@ -1235,39 +1235,6 @@ button:focus-visible {
   top: calc(var(--header-h) + var(--space-6));
 }
 
-.contact-facts {
-  margin: clamp(28px, 4vw, 40px) 0 0;
-  padding: 0;
-  border-top: 1px solid var(--color-line);
-  list-style: none;
-}
-
-.contact-facts li {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: var(--space-3);
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-line);
-  font-size: var(--text-sm);
-}
-
-.contact-facts strong {
-  padding-top: 1px;
-  color: var(--color-muted);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-}
-
-.contact-facts span {
-  color: var(--color-ink);
-}
-
-.contact-facts a {
-  color: var(--color-glacier-hover);
-}
-
 .contact-form {
   display: grid;
   gap: var(--space-4);
@@ -1324,19 +1291,8 @@ button:focus-visible {
   border-color: transparent;
 }
 
-.contact-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3) var(--space-4);
-}
-
-.contact-note {
-  max-width: 32ch;
-  margin: 0;
-  color: var(--color-muted);
-  font-size: var(--text-xs);
-  line-height: var(--leading-relaxed);
+.contact-form .btn {
+  justify-self: start;
 }
 
 .contact-status {
