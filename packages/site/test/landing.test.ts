@@ -59,6 +59,11 @@ describe("landing page", () => {
     expect(html).toContain("data-contact-form");
   });
 
+  it("closes with a concrete reason to return", () => {
+    expect(html).toContain("Show your visitors more than right now");
+    expect(html).toContain("One iframe adds a year of history to the camera you already run.");
+  });
+
   it("handles general questions as well as camera setups", () => {
     expect(html).toContain("Ask us anything.");
     expect(html).toContain("We reply as soon as we can.");
