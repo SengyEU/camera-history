@@ -629,9 +629,13 @@ button:focus-visible {
   fill: var(--color-night);
 }
 
-.section-cut + .section,
-#how-it-works {
+.section-cut + .section {
   border-top: 0;
+}
+
+/* Cover the anti-aliased seam between the SVG cut and the section on mobile. */
+#how-it-works {
+  border-top: 2px solid var(--color-snow);
 }
 
 .split {
