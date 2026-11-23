@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import {
+  CAPTURE_INTERVAL_MINUTES,
   THEMES,
   cameraLimitForPackage,
   isValidTheme,
@@ -12,7 +13,6 @@ import type { AppDeps } from "../app.js";
 import { requireAuth } from "../plugins/auth.js";
 
 const FEED_TYPES = ["static_url", "mjpeg", "hls", "rtsp", "custom"];
-const INTERVALS = [5, 15, 30, 60];
 const TIME_FORMATS = ["12h", "24h"] as const;
 const RATE_LIMIT = { max: 300, timeWindow: "1 minute" };
 
@@ -83,14 +83,10 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     const name = typeof body.name === "string" ? body.name : "";
     const feedType = String(body.feedType ?? "");
     const feedUrl = typeof body.feedUrl === "string" ? body.feedUrl : "";
-    const intervalMinutes = Number(body.intervalMinutes ?? "15");
 
     if (!name) throw new HttpError(400, "bad_request", "name is required");
     if (!FEED_TYPES.includes(feedType)) {
       throw new HttpError(400, "bad_request", `feedType must be one of ${FEED_TYPES.join(", ")}`);
-    }
-    if (!INTERVALS.includes(intervalMinutes)) {
-      throw new HttpError(400, "bad_request", "intervalMinutes must be one of 5, 15, 30, 60");
     }
     const theme = typeof body.theme === "string" ? body.theme : "light";
     if (!isValidTheme(theme)) {
@@ -143,7 +139,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       name,
       feedType: feedType as never,
       feedUrl,
-      intervalMinutes,
+      intervalMinutes: CAPTURE_INTERVAL_MINUTES,
       activeFrom: String(body.activeFrom ?? "00:00"),
       activeTo: String(body.activeTo ?? "23:59"),
       timezone: String(body.timezone ?? "UTC"),
@@ -197,7 +193,6 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
           "name",
           "feedType",
           "feedUrl",
-          "intervalMinutes",
           "activeFrom",
           "activeTo",
           "timezone",
@@ -263,6 +258,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     if (patch.latitude !== undefined) patch.latitude = effectiveLatitude;
     if (patch.longitude !== undefined) patch.longitude = effectiveLongitude;
     if (patch.daylightOnly !== undefined) patch.daylightOnly = effectiveDaylightOnly;
+    patch.intervalMinutes = CAPTURE_INTERVAL_MINUTES;
     const updated = await deps.repos.updateCamera(id, patch as never);
     return { camera: updated };
   });

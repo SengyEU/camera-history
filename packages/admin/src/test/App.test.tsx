@@ -145,7 +145,7 @@ describe("App dashboard", () => {
     name: "Beach cam",
     feedType: "static_url",
     feedUrl: "https://placehold.co/600x400.jpg",
-    intervalMinutes: 5,
+    intervalMinutes: 60,
     activeFrom: "00:00",
     activeTo: "23:59",
     timezone: "UTC",
@@ -231,7 +231,7 @@ describe("App camera CRUD", () => {
     name: "Beach cam",
     feedType: "static_url",
     feedUrl: "https://placehold.co/600x400.jpg",
-    intervalMinutes: 5,
+    intervalMinutes: 60,
     activeFrom: "00:00",
     activeTo: "23:59",
     timezone: "UTC",
@@ -281,13 +281,16 @@ describe("App camera CRUD", () => {
     await screen.findByText("Beach cam");
 
     await userEvent.click(screen.getByTestId("add-camera"));
+    const interval = screen.getByTestId("form-interval") as HTMLInputElement;
+    expect(interval.value).toBe("Every hour");
+    expect(interval.readOnly).toBe(true);
     await userEvent.type(screen.getByTestId("form-name"), "New cam");
     await userEvent.click(screen.getByTestId("form-submit"));
 
     await waitFor(() => expect(calls.some((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")).toBe(true));
     const post = calls.find((c) => c.u.endsWith("/api/v1/admin/cameras") && c.init?.method === "POST")!;
     const body = JSON.parse(String(post.init?.body)) as Record<string, unknown>;
-    expect(body).toMatchObject({ name: "New cam", feedType: "static_url", theme: "light" });
+    expect(body).toMatchObject({ name: "New cam", feedType: "static_url", theme: "light", intervalMinutes: 60 });
     expect(body.latitude).toBeNull();
     expect(body.longitude).toBeNull();
     expect(await screen.findByTestId("camera-saved")).toHaveTextContent("Saved");
@@ -810,7 +813,7 @@ describe("App groups", () => {
     name: "Beach cam",
     feedType: "static_url",
     feedUrl: "https://placehold.co/600x400.jpg",
-    intervalMinutes: 5,
+    intervalMinutes: 60,
     activeFrom: "00:00",
     activeTo: "23:59",
     timezone: "UTC",

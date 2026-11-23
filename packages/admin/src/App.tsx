@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, ApiError, FEED_LABELS, FEED_TYPES, INTERVALS, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
+import { api, ApiError, FEED_LABELS, FEED_TYPES, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
 import { BillingPage } from "./Billing";
 import { EmbedCodePanel } from "./EmbedCodePanel";
 import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
@@ -19,7 +19,7 @@ const emptyInput = (): CameraInput => ({
   name: "",
   feedType: "static_url",
   feedUrl: "",
-  intervalMinutes: 15,
+  intervalMinutes: 60,
   activeFrom: "00:00",
   activeTo: "23:59",
   timezone: "UTC",
@@ -535,14 +535,9 @@ function CameraForm({
           </div>
         )}
         <label>
-          Interval (min)
-          <select value={input.intervalMinutes} onChange={(e) => set("intervalMinutes", Number(e.target.value))} data-testid="form-interval">
-            {INTERVALS.map((i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
-            ))}
-          </select>
+          Interval
+          <input value="Every hour" readOnly data-testid="form-interval" />
+          <span className="field-hint">One capture per hour, around the clock.</span>
         </label>
         <div className="form-row">
           <label>
@@ -816,7 +811,7 @@ function CameraCard({
           </span>
         </div>
         <p className="camera-meta">
-          {FEED_LABELS[cam.feedType]} · every {cam.intervalMinutes} min · {cam.timezone} ·{" "}
+          {FEED_LABELS[cam.feedType]} · hourly · {cam.timezone} ·{" "}
           {cam.timeFormat === "24h" ? "24h" : "12h"}
         </p>
         <dl className="camera-stats">
@@ -996,7 +991,7 @@ export function App() {
     name: cam.name,
     feedType: cam.feedType,
     feedUrl: cam.feedUrl,
-    intervalMinutes: cam.intervalMinutes,
+    intervalMinutes: 60,
     activeFrom: cam.activeFrom,
     activeTo: cam.activeTo,
     timezone: cam.timezone,

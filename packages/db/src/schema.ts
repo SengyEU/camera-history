@@ -67,7 +67,7 @@ export const cameras = pgTable("cameras", {
   feedType: feedTypeEnum("feed_type").notNull(),
   feedUrl: text("feed_url").notNull(),
   feedConfig: jsonb("feed_config").$type<Record<string, unknown>>().notNull().default({}),
-  intervalMinutes: integer("interval_minutes").notNull().default(15),
+  intervalMinutes: integer("interval_minutes").notNull().default(60),
   activeFrom: time("active_from").notNull().default("00:00"),
   activeTo: time("active_to").notNull().default("23:59"),
   timezone: text("timezone").notNull().default("UTC"),

@@ -105,8 +105,6 @@ export const FEED_LABELS: Record<FeedType, string> = {
 
 export const FEED_TYPES = Object.keys(FEED_LABELS) as FeedType[];
 
-export const INTERVALS = [5, 15, 30, 60];
-
 export const THEME_LABELS: Record<string, string> = {
   light: "Light",
   dark: "Dark",

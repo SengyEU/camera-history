@@ -169,16 +169,38 @@ describe("admin cameras", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
-  it("rejects bad interval", async () => {
+  it("pins the capture interval to 60 minutes", async () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);
     const res = await app.inject({
       method: "POST",
       url: "/api/v1/admin/cameras",
       headers: { cookie },
-      payload: { name: "Main", feedType: "static_url", feedUrl: "https://x/cam.jpg", intervalMinutes: 7 },
+      payload: { name: "Main", feedType: "static_url", feedUrl: "https://x/cam.jpg", intervalMinutes: 5 },
     });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(201);
+    expect(res.json().camera.intervalMinutes).toBe(60);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("keeps the capture interval hourly on update", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: { name: "Main", feedType: "static_url", feedUrl: "https://x/cam.jpg", intervalMinutes: 15 },
+    });
+    const id = created.json().camera.id as string;
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+      payload: { intervalMinutes: 5 },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().camera.intervalMinutes).toBe(60);
     await (app as { close: () => Promise<void> }).close();
   });
 

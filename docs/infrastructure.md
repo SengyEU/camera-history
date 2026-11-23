@@ -4,7 +4,7 @@ Status: pilot planning document. No destructive disk cleanup has been performed.
 
 ## 1. Decisions
 
-- Standard camera interval: **60 minutes**.
+- Camera interval: **60 minutes, fixed** (one capture per camera per hour).
 - Standard retention: **12 months**.
 - First 20 pilot customers: may run on the existing shared host, with no SLA.
 - Production host purchase: only after 100/500/1,000-camera load tests and a storage forecast.
@@ -28,7 +28,7 @@ Assumptions:
 
 At 1,000 cameras/60 min the worker averages only ~0.28 images/second. The hard problems are storage lifecycle, retention deletion, backups, cache invalidation and availability, not raw request throughput.
 
-For comparison only:
+Legacy intervals (no longer offered for new cameras):
 
 | Interval | Storage/camera/year | 1,000 cameras/year |
 |---|---:|---:|

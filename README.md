@@ -2,6 +2,7 @@
 
 Multi-tenant SaaS pro resorty a skiareály: periodické snímkování venkovních kamer + veřejná embedovatelná historie.
 
+- Capture cadence: **hourly** (one image per camera per hour, fixed at 60 minutes).
 - Monorepo: `packages/{core,db,worker,api,web}` (design doc: `docs/superpowers/specs/2026-09-18-camera-history-saas-design.md`)
 - UI design system: `docs/design-system.md` (`@ch/design` tokens, Montserrat, `npm run design:check`)
 - Stack: TypeScript, Node (Fastify), Postgres (drizzle), MinIO, React (Vite)

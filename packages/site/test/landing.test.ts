@@ -27,6 +27,8 @@ describe("landing page", () => {
     expect(html).toContain("How it works");
     expect(html).toContain("Connect. Archive. Embed.");
     expect(html).toContain("Connect your cameras");
+    expect(html).toContain("Hourly captures, stored for 12 months.");
+    expect(html).toContain("How often do you capture?");
     expect(html).toContain("Two ways to start");
   });
 

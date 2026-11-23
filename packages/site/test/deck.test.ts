@@ -15,6 +15,11 @@ describe("deck", () => {
     expect(html).toContain("We add the history.");
   });
 
+  it("states the hourly capture cadence", () => {
+    expect(html).toContain("We capture your camera every hour");
+    expect(html).toContain("Hourly captures, stored for 12 months.");
+  });
+
   it("embeds the live demo and the admin screenshots", () => {
     expect(html).toContain('src="/group/alpine-summit/summit"');
     expect(html).toContain('src="/admin-cameras.png?v=20261020"');

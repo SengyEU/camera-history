@@ -9,7 +9,7 @@ const baseCam: Camera = {
   feedType: "static_url",
   feedUrl: "https://example.com/cam.jpg",
   feedConfig: {},
-  intervalMinutes: 15,
+  intervalMinutes: 60,
   activeFrom: "00:00",
   activeTo: "23:59",
   timezone: "UTC",
@@ -62,8 +62,8 @@ describe("isCaptureDue", () => {
   });
   it("not due twice in the same bucket", () => {
     const cam = { ...baseCam, lastCaptureAt: new Date("2026-07-18T11:00:01Z") };
-    expect(isCaptureDue(cam, new Date("2026-07-18T11:14:59Z"))).toBe(false);
-    expect(isCaptureDue(cam, new Date("2026-07-18T11:15:00Z"))).toBe(true);
+    expect(isCaptureDue(cam, new Date("2026-07-18T11:59:59Z"))).toBe(false);
+    expect(isCaptureDue(cam, new Date("2026-07-18T12:00:00Z"))).toBe(true);
   });
   it("not due before the next bucket boundary", () => {
     const cam = { ...baseCam, intervalMinutes: 60, lastCaptureAt: new Date("2026-07-18T10:00:05Z") };
@@ -77,18 +77,18 @@ describe("isCaptureDue", () => {
     const cam = { ...baseCam, intervalMinutes: 60, lastCaptureAt: new Date("2026-07-18T10:59:59Z") };
     expect(isCaptureDue(cam, new Date("2026-07-18T11:00:01Z"))).toBe(true);
   });
-  const alignmentCases: Array<[number, string]> = [
-    [5, "2026-07-18T10:05:00Z"],
-    [15, "2026-07-18T10:15:00Z"],
-    [30, "2026-07-18T10:30:00Z"],
-    [60, "2026-07-18T11:00:00Z"],
-  ];
-  it.each(alignmentCases)("aligns %i-minute intervals to UTC bucket boundaries", (intervalMinutes, boundary) => {
-    const cam = { ...baseCam, intervalMinutes, lastCaptureAt: new Date("2026-07-18T10:00:00Z") };
-    const at = new Date(boundary);
-    expect(isCaptureDue(cam, new Date(at.getTime() - 1000))).toBe(false);
-    expect(isCaptureDue(cam, at)).toBe(true);
-  });
+  it.each([5, 15, 30, 60])(
+    "ignores a legacy %i-minute setting and captures hourly",
+    (intervalMinutes) => {
+      const cam = {
+        ...baseCam,
+        intervalMinutes,
+        lastCaptureAt: new Date("2026-07-18T10:00:00Z"),
+      };
+      expect(isCaptureDue(cam, new Date("2026-07-18T10:59:59Z"))).toBe(false);
+      expect(isCaptureDue(cam, new Date("2026-07-18T11:00:00Z"))).toBe(true);
+    },
+  );
   it("due when whole buckets were missed", () => {
     const cam = { ...baseCam, intervalMinutes: 60, lastCaptureAt: new Date("2026-07-18T08:00:00Z") };
     expect(isCaptureDue(cam, new Date("2026-07-18T12:30:00Z"))).toBe(true);
