@@ -82,10 +82,10 @@ export function formatCameraHour(
 }
 
 export function formatCameraDate(timestamp: string, timeZone: string): string {
-  return new Date(timestamp).toLocaleDateString("en-US", {
+  return new Date(timestamp).toLocaleDateString("en-GB", {
     timeZone,
-    month: "long",
-    day: "numeric",
+    day: "2-digit",
+    month: "2-digit",
     year: "numeric",
   });
 }

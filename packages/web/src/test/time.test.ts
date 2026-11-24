@@ -46,7 +46,7 @@ describe("hour formatting", () => {
     expect(formatCameraHour("2026-10-18T18:12:00Z", "UTC", "24h")).toBe("18:12");
     expect(localHourParts("2026-10-18T18:12:00Z", "UTC", "24h")).toEqual({ hour: 18, meridiem: "" });
     expect(formatCameraCaptureLabel("2026-10-18T18:12:00Z", "UTC", "24h")).toBe(
-      "October 18, 2026 · 18:12",
+      "18/10/2026 · 18:12",
     );
   });
 });

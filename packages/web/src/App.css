@@ -349,6 +349,13 @@ body { margin: 0; font-family: var(--widget-font, var(--font-ui)); background: v
   border-radius: 4px;
 }
 
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+}
+
 /* Content hand-off layers */
 .content-transition {
   display: grid;

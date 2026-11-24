@@ -230,6 +230,7 @@ interface WidgetBodyProps {
   shareImage: ImageDto | null;
   shareUrl: string;
   onCloseShare: () => void;
+  onViewLatest: () => void;
   switcher?: ReactNode;
   children?: ReactNode;
   contentKey: string;
@@ -255,6 +256,7 @@ function WidgetBody({
   shareImage,
   shareUrl,
   onCloseShare,
+  onViewLatest,
   switcher,
   children,
   contentKey,
@@ -307,15 +309,20 @@ function WidgetBody({
               <p className="empty-hint">
                 Browse another day or check back after the next hourly capture.
               </p>
-              {date !== today && (
-                <button
-                  type="button"
-                  className="empty-action"
-                  onClick={() => onDateChange(today)}
-                >
-                  Back to today
+              <div className="empty-actions">
+                <button type="button" className="empty-action" onClick={onViewLatest}>
+                  View latest capture
                 </button>
-              )}
+                {date !== today && (
+                  <button
+                    type="button"
+                    className="empty-action"
+                    onClick={() => onDateChange(today)}
+                  >
+                    Back to today
+                  </button>
+                )}
+              </div>
             </div>
           ) : visibleImages.length === 0 ? (
             <div className="empty-state" data-testid="empty-state">
@@ -323,15 +330,20 @@ function WidgetBody({
                 No daylight captures for this date.
               </p>
               <p className="empty-hint">Night frames are hidden for this camera. Try another day.</p>
-              {date !== today && (
-                <button
-                  type="button"
-                  className="empty-action"
-                  onClick={() => onDateChange(today)}
-                >
-                  Back to today
+              <div className="empty-actions">
+                <button type="button" className="empty-action" onClick={onViewLatest}>
+                  View latest capture
                 </button>
-              )}
+                {date !== today && (
+                  <button
+                    type="button"
+                    className="empty-action"
+                    onClick={() => onDateChange(today)}
+                  >
+                    Back to today
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <FilmStrip
@@ -358,6 +370,7 @@ function WidgetBody({
         <input
           type="date"
           aria-label="Date"
+          lang="en-GB"
           value={date}
           min={minDate || undefined}
           max={today}
@@ -576,7 +589,7 @@ export function App() {
     getImages(cameraId, date)
       .then(async (imgs) => {
         if (cancelled) return;
-        if (isGroup && imgs.length === 0) {
+        if (imgs.length === 0) {
           const key = `${cameraId}:${date}`;
           if (!fallbackRef.current.attempted.has(key)) {
             fallbackRef.current.attempted.add(key);
@@ -670,6 +683,16 @@ export function App() {
     window.history.replaceState(null, "", `?${params.toString()}`);
   };
 
+  const viewLatest = async () => {
+    if (!cameraId) return;
+    try {
+      const latest = await getCameraLatest(cameraId);
+      if (latest) changeDate(latest);
+    } catch {
+      // Keep the current empty state if the latest capture lookup fails.
+    }
+  };
+
   const shareUrl = useMemo(
     () =>
       shareImage
@@ -725,6 +748,7 @@ export function App() {
         shareImage={shareImage}
         shareUrl={shareUrl}
         onCloseShare={() => setShareImage(null)}
+        onViewLatest={viewLatest}
         switcher={
           group ? (
             <CameraSwitcher
@@ -760,6 +784,7 @@ export function App() {
       shareImage={shareImage}
       shareUrl={shareUrl}
       onCloseShare={() => setShareImage(null)}
+      onViewLatest={viewLatest}
     >
       {!widgetRoute && <p className="error">Invalid widget URL. Use /widget/{"{tenant}"}/{"{camera_id}"}</p>}
     </WidgetBody>

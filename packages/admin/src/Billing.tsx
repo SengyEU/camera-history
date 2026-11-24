@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type BillingDto, type BillingStatus } from "./api";
+import { formatDate, formatDateTime } from "./format";
 
 const STATUS_LABELS: Record<BillingStatus, string> = {
   none: "not activated",
@@ -103,7 +104,7 @@ export function BillingPage() {
       ) : data.isPilot ? (
         <p className="notice" data-testid="pilot-notice">
           Pilot account — free of charge
-          {data.pilotUntil ? ` until ${new Date(data.pilotUntil).toLocaleDateString()}` : ""}. No
+          {data.pilotUntil ? ` until ${formatDate(data.pilotUntil)}` : ""}. No
           payment needed; we will contact you before billing starts.
         </p>
       ) : data.billingStatus === "none" ? (
@@ -121,7 +122,7 @@ export function BillingPage() {
       )}
       {data.billingStatus === "past_due" && data.graceUntil && (
         <p className="notice danger">
-          Payment past due — activation by {new Date(data.graceUntil).toLocaleString()}.
+          Payment past due — activation by {formatDateTime(data.graceUntil)}.
         </p>
       )}
       {(data.billingStatus === "unpaid" || data.billingStatus === "canceled") && (

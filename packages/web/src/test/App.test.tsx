@@ -177,7 +177,7 @@ describe("App widget", () => {
     expect(noon).not.toHaveTextContent("PM");
     await userEvent.setup().click(noon);
     expect(screen.getByTestId("frame-open").querySelector(".frame-osd")).toHaveTextContent(
-      "September 18, 2026 · 12:00",
+      "18/09/2026 · 12:00",
     );
   });
 
@@ -208,7 +208,7 @@ describe("App widget", () => {
     await user.click(await screen.findByTestId("frame-img-1"));
 
     const open = screen.getByTestId("frame-open");
-    expect(open.querySelector(".frame-osd")).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(open.querySelector(".frame-osd")).toHaveTextContent("18/09/2026 · 9 AM");
     expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/090000.jpg",
@@ -277,16 +277,16 @@ describe("App widget", () => {
     render(<App />);
     await user.click(await screen.findByTestId("frame-d1"));
 
-    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("18/09/2026 · 9 AM");
     expect(screen.queryByLabelText("Previous capture")).not.toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Next capture"));
     const open = screen.getByTestId("frame-open");
     expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(open).toHaveTextContent("18/09/2026 · 12 PM");
 
     await user.click(screen.getByLabelText("Previous capture"));
-    expect(screen.getByTestId("frame-open")).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("18/09/2026 · 9 AM");
   });
 
   it("keeps the open frame when activating an arrow with the keyboard", async () => {
@@ -305,7 +305,7 @@ describe("App widget", () => {
 
     const open = screen.getByTestId("frame-open");
     expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/d2.jpg");
-    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(open).toHaveTextContent("18/09/2026 · 12 PM");
   });
 
   it("navigates the open frame with ArrowLeft and ArrowRight", async () => {
@@ -360,7 +360,7 @@ describe("App widget", () => {
     await user.click(screen.getByTestId("share-open"));
 
     const popup = await screen.findByTestId("share-popup");
-    expect(popup).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(popup).toHaveTextContent("18/09/2026 · 12 PM");
     expect(popup.querySelector("img")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
@@ -435,7 +435,7 @@ describe("App widget", () => {
     await user.click(other);
     await waitFor(() =>
       expect(share).toHaveBeenCalledWith({
-        title: "September 18, 2026 · 12 PM",
+        title: "18/09/2026 · 12 PM",
         url: `${window.location.origin}/widget/acme/cam-1?date=2026-09-18&hour=12`,
       }),
     );
@@ -462,11 +462,11 @@ describe("App widget", () => {
     render(<App />);
 
     const open = await screen.findByTestId("frame-e1");
-    expect(open.querySelector(".frame-osd")).toHaveTextContent("October 17, 2026 · 6 PM");
+    expect(open.querySelector(".frame-osd")).toHaveTextContent("17/10/2026 · 6 PM");
     expect(open.querySelector("img")).toHaveAttribute("src", "/e1.jpg");
 
     await user.click(screen.getByTestId("share-open"));
-    expect(screen.getByTestId("share-popup")).toHaveTextContent("October 17, 2026 · 6 PM");
+    expect(screen.getByTestId("share-popup")).toHaveTextContent("17/10/2026 · 6 PM");
     const shareUrl = new URL((screen.getByLabelText("Share URL") as HTMLInputElement).value);
     expect(shareUrl.searchParams.get("date")).toBe("2026-10-17");
     expect(shareUrl.searchParams.get("hour")).toBe("18");
@@ -603,7 +603,7 @@ describe("App widget", () => {
     window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=12");
     render(<App />);
     const open = await screen.findByTestId("frame-open");
-    expect(open).toHaveTextContent("September 18, 2026 · 12 PM");
+    expect(open).toHaveTextContent("18/09/2026 · 12 PM");
     expect(open.querySelector("img:not(.frame-img-previous)")).toHaveAttribute(
       "src",
       "/api/v1/cameras/cam-1/2026-09-18/120000.jpg",
@@ -721,7 +721,7 @@ describe("App widget", () => {
     await waitFor(() =>
       expect(screen.getByTestId("frame-open").querySelector("img:not(.frame-img-previous)")).toHaveAttribute("src", "/e1.jpg"),
     );
-    expect(screen.getByTestId("frame-open")).toHaveTextContent("October 17, 2026 · 6 PM");
+    expect(screen.getByTestId("frame-open")).toHaveTextContent("17/10/2026 · 6 PM");
   });
 
   it("opens nothing when the ?hour deep link has no matching capture", async () => {
@@ -987,7 +987,7 @@ describe("App widget", () => {
     render(<App />);
 
     const frame = await screen.findByTestId("frame-only");
-    expect(frame.querySelector(".frame-osd")).toHaveTextContent("September 18, 2026 · 9 AM");
+    expect(frame.querySelector(".frame-osd")).toHaveTextContent("18/09/2026 · 9 AM");
     expect(frame).not.toHaveAttribute("role", "button");
     expect(frame).not.toHaveAttribute("tabindex");
     expect(screen.queryByTestId("frame-open")).not.toBeInTheDocument();
@@ -1195,16 +1195,16 @@ describe("App group widget", () => {
     render(<App />);
 
     const alphaFrame = await screen.findByTestId("frame-e1");
-    expect(alphaFrame.querySelector(".frame-osd")).toHaveTextContent("October 18, 2026 · 12 AM");
+    expect(alphaFrame.querySelector(".frame-osd")).toHaveTextContent("18/10/2026 · 12 AM");
 
     await chooseCamera("cam-b");
     await waitFor(() =>
       expect(screen.getByTestId("frame-e1").querySelector(".frame-osd")).toHaveTextContent(
-        "October 17, 2026 · 6 PM",
+        "17/10/2026 · 6 PM",
       ),
     );
     await user.click(screen.getByTestId("share-open"));
-    expect(screen.getByTestId("share-popup")).toHaveTextContent("October 17, 2026 · 6 PM");
+    expect(screen.getByTestId("share-popup")).toHaveTextContent("17/10/2026 · 6 PM");
     const url = new URL((screen.getByLabelText("Share URL") as HTMLInputElement).value);
     expect(url.searchParams.get("hour")).toBe("18");
   });
@@ -1238,6 +1238,46 @@ describe("App group widget", () => {
 
     await chooseCamera("cam-a");
     expect(await screen.findByTestId("frame-cam-a-2026-10-10-n")).toBeInTheDocument();
+  });
+
+  it("falls back to the latest capture for a single camera on first load", async () => {
+    const todayKey = cameraDate(new Date(), "UTC");
+    vi.mocked(getCameraLatest).mockResolvedValue("2026-09-17");
+    vi.mocked(getImages).mockImplementation(async (_cameraId, date) =>
+      date === todayKey
+        ? []
+        : [makeImage("latest", `${date}T09:00:00Z`, "/api/v1/latest.jpg")],
+    );
+
+    window.history.pushState({}, "", "/widget/acme/cam-1");
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-latest")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2026-09-17")).toBeInTheDocument();
+    expect(vi.mocked(getCameraLatest)).toHaveBeenCalledWith("cam-1");
+  });
+
+  it("offers the latest capture when a manually chosen day is empty", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCameraLatest).mockResolvedValue("2026-09-17");
+    vi.mocked(getImages).mockImplementation(async (_cameraId, date) =>
+      date === "2026-09-17"
+        ? [makeImage("latest", "2026-09-17T09:00:00Z", "/api/v1/latest.jpg")]
+        : date === "2026-09-18"
+          ? defaultImages
+          : [],
+    );
+
+    render(<App />);
+    expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-05" } });
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "View latest capture" }));
+
+    expect(await screen.findByTestId("frame-latest")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2026-09-17")).toBeInTheDocument();
   });
 
   it("falls back to the latest date once when the camera has no images", async () => {

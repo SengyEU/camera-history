@@ -17,6 +17,8 @@ describe("landing page", () => {
 
     expect(html).toContain('href="#hero-demo"');
     expect(hero).toMatch(/src="\/group\/alpine-summit\/summit[^"]*"/);
+    expect(hero).toContain("theme=midnight");
+    expect(hero).not.toContain("date=2026-11-13");
     expect(hero).toContain('id="hero-demo"');
     expect(hero).not.toMatch(/href="\/group\/alpine-summit\/summit/);
   });

@@ -314,9 +314,7 @@ describe("App camera CRUD", () => {
     await screen.findByText("Beach cam");
 
     await userEvent.click(screen.getByTestId("add-camera"));
-    const interval = screen.getByTestId("form-interval") as HTMLInputElement;
-    expect(interval.value).toBe("Every hour");
-    expect(interval.readOnly).toBe(true);
+    expect(screen.queryByTestId("form-interval")).not.toBeInTheDocument();
     await userEvent.type(screen.getByTestId("form-name"), "New cam");
     await userEvent.click(screen.getByTestId("form-submit"));
 
@@ -338,7 +336,7 @@ describe("App camera CRUD", () => {
     await screen.findByText("Beach cam");
 
     await userEvent.click(screen.getByTestId("add-camera"));
-    await userEvent.selectOptions(screen.getByTestId("form-theme"), "forest");
+    await userEvent.click(screen.getByTestId("form-theme-forest"));
     await userEvent.type(screen.getByTestId("form-name"), "Forest cam");
     await userEvent.click(screen.getByTestId("form-submit"));
 
@@ -438,6 +436,36 @@ describe("App camera CRUD", () => {
     expect(screen.queryByTestId("camera-editor")).not.toBeInTheDocument();
   });
 
+  it("groups the camera editor into clear sections and drops the hourly field", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+
+    expect(screen.getByText("Basics")).toBeInTheDocument();
+    expect(screen.getByText("Schedule")).toBeInTheDocument();
+    expect(screen.getByText("Location & daylight")).toBeInTheDocument();
+    expect(screen.getByText("Theme")).toBeInTheDocument();
+    expect(screen.queryByTestId("form-interval")).not.toBeInTheDocument();
+    expect(screen.getByTestId("form-theme-light")).toBeInTheDocument();
+    expect(screen.getByTestId("form-theme-custom")).toBeInTheDocument();
+  });
+
+  it("marks unsaved camera edits in the editor header", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    expect(screen.getByText("Not saved yet")).toBeInTheDocument();
+
+    await userEvent.type(screen.getByTestId("form-name"), "New cam");
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+  });
+
   it("configures a custom theme and warns about low contrast", async () => {
     const { fn, calls } = listServer();
     vi.stubGlobal("fetch", fn);
@@ -445,7 +473,7 @@ describe("App camera CRUD", () => {
     await screen.findByText("Beach cam");
 
     await userEvent.click(screen.getByTestId("add-camera"));
-    await userEvent.selectOptions(screen.getByTestId("form-theme"), "custom");
+    await userEvent.click(screen.getByTestId("form-theme-custom"));
     expect(screen.getByTestId("custom-theme-fields")).toBeInTheDocument();
     expect(screen.getByTestId("form-color-bg")).toHaveValue("#f8fafb");
 
@@ -475,7 +503,7 @@ describe("App camera CRUD", () => {
     await screen.findByText("Beach cam");
 
     await userEvent.click(screen.getByTestId("edit-cam-1"));
-    await userEvent.selectOptions(screen.getByTestId("form-theme"), "custom");
+    await userEvent.click(screen.getByTestId("form-theme-custom"));
 
     await waitFor(
       () =>
@@ -561,7 +589,7 @@ describe("App camera CRUD", () => {
     expect(preview.getAttribute("src")).toContain("/widget/acme/cam-1");
     expect(preview.getAttribute("src")).toContain("theme=light");
 
-    await userEvent.selectOptions(screen.getByTestId("form-theme"), "forest");
+    await userEvent.click(screen.getByTestId("form-theme-forest"));
     await waitFor(() =>
       expect(screen.getByTestId("camera-preview").getAttribute("src")).toContain("theme=forest"),
     );

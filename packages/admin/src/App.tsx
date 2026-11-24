@@ -3,7 +3,7 @@ import { api, ApiError, FEED_LABELS, FEED_TYPES, THEMES, THEME_LABELS, type Admi
 import { BillingPage } from "./Billing";
 import { EmbedCodePanel } from "./EmbedCodePanel";
 import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
-import { formatAge } from "./format";
+import { formatAge, formatDate, formatDateTime } from "./format";
 import { GroupEditor, GroupsView, type GroupInput } from "./Groups";
 import { PageHeader } from "./PageHeader";
 import { SLUG_RE, slugify } from "./slug";
@@ -312,6 +312,12 @@ function CameraForm({
   const [latitudeText, setLatitudeText] = useState(initial.latitude === null ? "" : String(initial.latitude));
   const [longitudeText, setLongitudeText] = useState(initial.longitude === null ? "" : String(initial.longitude));
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{
+    latitude?: string;
+    longitude?: string;
+    daylight?: string;
+  }>({});
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [groupMemberships, setGroupMemberships] = useState<Record<string, boolean>>({});
   const [initialMemberships, setInitialMemberships] = useState<Record<string, boolean>>({});
@@ -320,7 +326,10 @@ function CameraForm({
   const savedThemeRef = useRef(
     JSON.stringify({ theme: initial.theme, colors: initial.themeColors ?? null }),
   );
-  const set = (k: keyof CameraInput, v: string | number) => setInput((s) => ({ ...s, [k]: v }));
+  const set = (k: keyof CameraInput, v: string | number) => {
+    setDirty(true);
+    setInput((s) => ({ ...s, [k]: v }));
+  };
 
   const postPreviewTheme = useCallback(() => {
     const frame = previewRef.current;
@@ -398,28 +407,58 @@ function CameraForm({
     setError(null);
     const latitude = parseCoordinateInput(latitudeText);
     const longitude = parseCoordinateInput(longitudeText);
+    const nextErrors: typeof fieldErrors = {};
     if (latitude === "invalid" || (latitude !== null && (latitude < -90 || latitude > 90))) {
-      setError("Latitude must be between -90 and 90.");
-      return;
+      nextErrors.latitude = "Latitude must be between -90 and 90.";
     }
     if (longitude === "invalid" || (longitude !== null && (longitude < -180 || longitude > 180))) {
-      setError("Longitude must be between -180 and 180.");
-      return;
+      nextErrors.longitude = "Longitude must be between -180 and 180.";
     }
     if (input.daylightOnly && (latitude === null || longitude === null)) {
-      setError("Latitude and longitude are required to capture only during daylight.");
+      nextErrors.daylight = "Latitude and longitude are required to capture only during daylight.";
+    }
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      window.setTimeout(() => {
+        document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      }, 0);
       return;
     }
-    const payload: CameraInput = { ...input, latitude, longitude };
+    const payload: CameraInput = {
+      ...input,
+      latitude: typeof latitude === "number" ? latitude : null,
+      longitude: typeof longitude === "number" ? longitude : null,
+    };
     try {
       const updates = groups
         .filter((g) => (groupMemberships[g.id] || false) !== (initialMemberships[g.id] || false))
         .map((g) => ({ groupId: g.id, selected: groupMemberships[g.id] || false, cameraIds: g.cameraIds }));
       await onSave(payload, updates.length > 0 ? updates : undefined);
+      setDirty(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     }
   };
+
+  const requestCancel = () => {
+    if (dirty && !window.confirm("Discard unsaved changes?")) return;
+    onCancel();
+  };
+
+  useEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const embedId = cameraId && tenantSlug ? cameraEmbedId(tenantSlug, cameraId) : "";
   const embedCode =
@@ -433,224 +472,330 @@ function CameraForm({
 
   return (
     <section className="panel camera-editor" data-testid="camera-editor">
-      <div className="panel-head">
-        <h2>{initial.name ? "Edit camera" : "New camera"}</h2>
-        <button type="button" className="secondary" onClick={onCancel} data-testid="form-back">
+      <header className="editor-head">
+        <button
+          type="button"
+          className="link editor-back"
+          onClick={requestCancel}
+          data-testid="form-back"
+        >
           ← Back to cameras
         </button>
-      </div>
+        <div className="editor-head-row">
+          <div>
+            <p className="page-kicker">Cameras</p>
+            <h1>{initial.name ? "Edit camera" : "New camera"}</h1>
+          </div>
+          <span className={`editor-save-state${dirty ? " is-dirty" : ""}`}>
+            {dirty ? "Unsaved changes" : cameraId ? "Saved" : "Not saved yet"}
+          </span>
+        </div>
+      </header>
       <div className="camera-editor-body">
         <form className="camera-form" onSubmit={submit} data-testid="camera-form">
           {error && (
-          <p className="error" data-testid="form-error">
-            {error}
-          </p>
-        )}
-        <label>
-          Name
-          <input value={input.name} onChange={(e) => set("name", e.target.value)} data-testid="form-name" required />
-        </label>
-        <label>
-          Type
-          <select value={input.feedType} onChange={(e) => set("feedType", e.target.value)} data-testid="form-feed-type">
-            {FEED_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {FEED_LABELS[t]}
-              </option>
-            ))}
-          </select>
-          <span className="field-hint">
-            Static image fetches a JPEG URL. MJPEG is a motion-JPEG stream. HLS/RTSP use ffmpeg. Custom is a
-            WebSocket that sends JPEG frames.
-          </span>
-        </label>
-        <label>
-          Feed URL
-          <input value={input.feedUrl} onChange={(e) => set("feedUrl", e.target.value)} data-testid="form-feed-url" />
-        </label>
-        <label>
-          Theme
-          <select
-            value={input.theme}
-            onChange={(e) => {
-              const next = e.target.value;
-              setInput((state) => ({
-                ...state,
-                theme: next,
-                themeColors:
-                  next === "custom" ? (state.themeColors ?? DEFAULT_THEME_COLORS) : state.themeColors,
-              }));
-            }}
-            data-testid="form-theme"
-          >
-            {THEMES.map((t) => (
-              <option key={t} value={t}>
-                {THEME_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </label>
-        {input.theme === "custom" && (
-          <div className="form-section" data-testid="custom-theme-fields">
-            <h4>Custom theme colors</h4>
-            <div className="color-grid">
-              {THEME_COLOR_FIELDS.map(({ key, label }) => {
-                const colors = input.themeColors ?? DEFAULT_THEME_COLORS;
-                return (
-                  <label key={key} className="color-field">
-                    <span>{label}</span>
-                    <span className="color-input">
-                      <input
-                        type="color"
-                        value={colors[key]}
-                        onChange={(e) =>
-                          setInput((state) => ({
-                            ...state,
-                            themeColors: {
-                              ...(state.themeColors ?? DEFAULT_THEME_COLORS),
-                              [key]: e.target.value,
-                            },
-                          }))
-                        }
-                        data-testid={`form-color-${key}`}
-                        aria-label={label}
-                      />
-                      <code>{colors[key]}</code>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-            <div className="cell-actions">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() =>
-                  setInput((state) => ({ ...state, themeColors: { ...DEFAULT_THEME_COLORS } }))
-                }
-                data-testid="form-color-reset"
+            <p className="error" data-testid="form-error">
+              {error}
+            </p>
+          )}
+
+          <section className="form-section">
+            <h4>Basics</h4>
+            <label>
+              Name
+              <input
+                value={input.name}
+                onChange={(e) => set("name", e.target.value)}
+                data-testid="form-name"
+                required
+              />
+            </label>
+            <label>
+              Type
+              <select
+                value={input.feedType}
+                onChange={(e) => set("feedType", e.target.value)}
+                data-testid="form-feed-type"
               >
-                Reset to light
-              </button>
-            </div>
-            {contrastWarnings(input.themeColors ?? DEFAULT_THEME_COLORS).length > 0 && (
-              <p className="notice danger" data-testid="contrast-warnings">
-                Low contrast:{" "}
-                {contrastWarnings(input.themeColors ?? DEFAULT_THEME_COLORS).join(", ")}. Text may be
-                hard to read.
-              </p>
-            )}
-            <span className="field-hint">Custom colors apply in the widget after saving.</span>
-          </div>
-        )}
-        <label>
-          Interval
-          <input value="Every hour" readOnly data-testid="form-interval" />
-          <span className="field-hint">One capture per hour, around the clock.</span>
-        </label>
-        <div className="form-row">
-          <label>
-            Active from
-            <input type="time" value={input.activeFrom} onChange={(e) => set("activeFrom", e.target.value)} />
-          </label>
-          <label>
-            Active to
-            <input type="time" value={input.activeTo} onChange={(e) => set("activeTo", e.target.value)} />
-          </label>
-        </div>
-        <label>
-          Timezone
-          <input value={input.timezone} onChange={(e) => set("timezone", e.target.value)} data-testid="form-timezone" />
-          <span className="field-hint">IANA timezone, e.g. Europe/Zurich.</span>
-        </label>
-        <label>
-          Time format
-          <select
-            value={input.timeFormat}
-            onChange={(e) => setInput((state) => ({ ...state, timeFormat: e.target.value as "12h" | "24h" }))}
-            data-testid="form-time-format"
-          >
-            <option value="12h">12-hour (AM/PM)</option>
-            <option value="24h">24-hour</option>
-          </select>
-          <span className="field-hint">How capture times appear in the widget.</span>
-        </label>
-        <div className="form-section">
-          <h4>Location &amp; schedule</h4>
-          <div className="form-row">
-            <label>
-              Latitude
-              <input
-                type="number"
-                step="0.001"
-                value={latitudeText}
-                onChange={(e) => setLatitudeText(e.target.value)}
-                data-testid="form-latitude"
-              />
+                {FEED_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {FEED_LABELS[t]}
+                  </option>
+                ))}
+              </select>
+              <span className="field-hint">
+                Static image fetches a JPEG URL. MJPEG is a motion-JPEG stream. HLS/RTSP use ffmpeg.
+                Custom is a WebSocket that sends JPEG frames.
+              </span>
             </label>
             <label>
-              Longitude
+              Feed URL
               <input
-                type="number"
-                step="0.001"
-                value={longitudeText}
-                onChange={(e) => setLongitudeText(e.target.value)}
-                data-testid="form-longitude"
+                value={input.feedUrl}
+                onChange={(e) => set("feedUrl", e.target.value)}
+                data-testid="form-feed-url"
               />
             </label>
-          </div>
-          <span className="field-hint">Used to filter day/night images</span>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={input.daylightOnly}
-              onChange={(e) => setInput((s) => ({ ...s, daylightOnly: e.target.checked }))}
-              data-testid="form-daylight-only"
-            />
-            Capture only during daylight
-          </label>
-          <span className="field-hint" data-testid="form-daylight-state">
-            {input.daylightOnly
-              ? "Current: daylight-only capture."
-              : "Current: 24-hour capture. Night images stay hidden in the widget unless enabled below."}
-          </span>
-          <span className="field-hint">
-            Requires latitude and longitude. The camera's active window is ignored while enabled.
-          </span>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={input.showNight}
-              onChange={(e) => setInput((s) => ({ ...s, showNight: e.target.checked }))}
-              data-testid="form-show-night"
-            />
-            Show night images
-          </label>
-          <span className="field-hint">Night images are shown in the widget only when this is enabled.</span>
-        </div>
-        {groups.length > 0 && (
-          <div className="groups-section">
-            <h4>Groups</h4>
-            {groups.map((g) => (
-              <label key={g.id} className="checkbox-label">
+          </section>
+
+          <section className="form-section">
+            <h4>Schedule</h4>
+            <div className="form-row">
+              <label>
+                Active from
                 <input
-                  type="checkbox"
-                  data-testid={`group-checkbox-${g.id}`}
-                  checked={groupMemberships[g.id] || false}
-                  onChange={(e) =>
-                    setGroupMemberships((s) => ({ ...s, [g.id]: e.target.checked }))
-                  }
+                  type="time"
+                  value={input.activeFrom}
+                  onChange={(e) => set("activeFrom", e.target.value)}
                 />
-                {g.name}
               </label>
-            ))}
-          </div>
-        )}
-          <div className="form-actions">
+              <label>
+                Active to
+                <input
+                  type="time"
+                  value={input.activeTo}
+                  onChange={(e) => set("activeTo", e.target.value)}
+                />
+              </label>
+            </div>
+            <label>
+              Timezone
+              <input
+                value={input.timezone}
+                onChange={(e) => set("timezone", e.target.value)}
+                data-testid="form-timezone"
+              />
+              <span className="field-hint">IANA timezone, e.g. Europe/Zurich.</span>
+            </label>
+            <label>
+              Time format
+              <select
+                value={input.timeFormat}
+                onChange={(e) => set("timeFormat", e.target.value)}
+                data-testid="form-time-format"
+              >
+                <option value="12h">12-hour (AM/PM)</option>
+                <option value="24h">24-hour</option>
+              </select>
+              <span className="field-hint">How capture times appear in the widget.</span>
+            </label>
+          </section>
+
+          <section className="form-section">
+            <h4>Location &amp; daylight</h4>
+            <div className="form-row">
+              <label>
+                Latitude
+                <input
+                  type="number"
+                  step="0.001"
+                  value={latitudeText}
+                  onChange={(e) => {
+                    setLatitudeText(e.target.value);
+                    setDirty(true);
+                    setFieldErrors((current) => ({
+                      ...current,
+                      latitude: undefined,
+                      daylight: undefined,
+                    }));
+                  }}
+                  data-testid="form-latitude"
+                  aria-invalid={Boolean(fieldErrors.latitude)}
+                  aria-describedby={fieldErrors.latitude ? "latitude-error" : undefined}
+                />
+                {fieldErrors.latitude && (
+                  <span className="field-error" id="latitude-error">
+                    {fieldErrors.latitude}
+                  </span>
+                )}
+              </label>
+              <label>
+                Longitude
+                <input
+                  type="number"
+                  step="0.001"
+                  value={longitudeText}
+                  onChange={(e) => {
+                    setLongitudeText(e.target.value);
+                    setDirty(true);
+                    setFieldErrors((current) => ({
+                      ...current,
+                      longitude: undefined,
+                      daylight: undefined,
+                    }));
+                  }}
+                  data-testid="form-longitude"
+                  aria-invalid={Boolean(fieldErrors.longitude)}
+                  aria-describedby={fieldErrors.longitude ? "longitude-error" : undefined}
+                />
+                {fieldErrors.longitude && (
+                  <span className="field-error" id="longitude-error">
+                    {fieldErrors.longitude}
+                  </span>
+                )}
+              </label>
+            </div>
+            <span className="field-hint">Used to filter day/night images</span>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={input.daylightOnly}
+                onChange={(e) => {
+                  setDirty(true);
+                  setFieldErrors((current) => ({ ...current, daylight: undefined }));
+                  setInput((s) => ({ ...s, daylightOnly: e.target.checked }));
+                }}
+                data-testid="form-daylight-only"
+                aria-invalid={Boolean(fieldErrors.daylight)}
+                aria-describedby={fieldErrors.daylight ? "daylight-error" : undefined}
+              />
+              Capture only during daylight
+            </label>
+            {fieldErrors.daylight && (
+              <span className="field-error" id="daylight-error" role="alert">
+                {fieldErrors.daylight}
+              </span>
+            )}
+            <span className="field-hint" data-testid="form-daylight-state">
+              {input.daylightOnly
+                ? "Current: daylight-only capture."
+                : "Current: 24-hour capture. Night images stay hidden in the widget unless enabled below."}
+            </span>
+            <span className="field-hint">
+              Requires latitude and longitude. The camera&apos;s active window is ignored while enabled.
+            </span>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={input.showNight}
+                onChange={(e) => {
+                  setDirty(true);
+                  setInput((s) => ({ ...s, showNight: e.target.checked }));
+                }}
+                data-testid="form-show-night"
+              />
+              Show night images
+            </label>
+            <span className="field-hint">
+              Night images are shown in the widget only when this is enabled.
+            </span>
+          </section>
+
+          {groups.length > 0 && (
+            <section className="form-section">
+              <h4>Groups</h4>
+              {groups.map((g) => (
+                <label key={g.id} className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    data-testid={`group-checkbox-${g.id}`}
+                    checked={groupMemberships[g.id] || false}
+                    onChange={(e) => {
+                      setDirty(true);
+                      setGroupMemberships((s) => ({ ...s, [g.id]: e.target.checked }));
+                    }}
+                  />
+                  {g.name}
+                </label>
+              ))}
+            </section>
+          )}
+
+          <section className="form-section">
+            <h4>Theme</h4>
+            <div className="theme-options" role="group" aria-label="Theme">
+              {THEMES.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`theme-option${input.theme === t ? " is-selected" : ""}`}
+                  aria-pressed={input.theme === t}
+                  data-testid={`form-theme-${t}`}
+                  onClick={() => {
+                    setInput((state) => ({
+                      ...state,
+                      theme: t,
+                      themeColors:
+                        t === "custom"
+                          ? (state.themeColors ?? DEFAULT_THEME_COLORS)
+                          : state.themeColors,
+                    }));
+                  }}
+                >
+                  {THEME_LABELS[t]}
+                </button>
+              ))}
+            </div>
+            {input.theme === "custom" && (
+              <div className="form-subsection" data-testid="custom-theme-fields">
+                <h4>Custom theme colors</h4>
+                <div className="color-grid">
+                  {THEME_COLOR_FIELDS.map(({ key, label }) => {
+                    const colors = input.themeColors ?? DEFAULT_THEME_COLORS;
+                    return (
+                      <label key={key} className="color-field">
+                        <span>{label}</span>
+                        <span className="color-input">
+                          <input
+                            type="color"
+                            value={colors[key]}
+                            onChange={(e) =>
+                              setInput((state) => ({
+                                ...state,
+                                themeColors: {
+                                  ...(state.themeColors ?? DEFAULT_THEME_COLORS),
+                                  [key]: e.target.value,
+                                },
+                              }))
+                            }
+                            data-testid={`form-color-${key}`}
+                            aria-label={label}
+                          />
+                          <code>{colors[key]}</code>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="cell-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() =>
+                      setInput((state) => ({
+                        ...state,
+                        themeColors: { ...DEFAULT_THEME_COLORS },
+                      }))
+                    }
+                    data-testid="form-color-reset"
+                  >
+                    Reset to light
+                  </button>
+                </div>
+                {contrastWarnings(input.themeColors ?? DEFAULT_THEME_COLORS).length > 0 && (
+                  <p className="notice danger" data-testid="contrast-warnings">
+                    Low contrast:{" "}
+                    {contrastWarnings(input.themeColors ?? DEFAULT_THEME_COLORS).join(", ")}. Text may
+                    be hard to read.
+                  </p>
+                )}
+                <span className="field-hint">
+                  Custom colors apply in the widget after saving.
+                </span>
+              </div>
+            )}
+          </section>
+
+          <div className="form-actions editor-actions">
             <button type="submit" data-testid="form-submit">
               Save
             </button>
-            <button type="button" className="secondary" onClick={onCancel} data-testid="form-cancel">
+            <button
+              type="button"
+              className="secondary"
+              onClick={requestCancel}
+              data-testid="form-cancel"
+            >
               Cancel
             </button>
           </div>
@@ -671,11 +816,14 @@ function CameraForm({
               title="Camera preview"
               loading="lazy"
               data-camera-history-preview="1"
-              style={{ width: "100%", height: 640, border: 0, borderRadius: 8 }}
+              style={{ width: "100%", height: 520, border: 0, borderRadius: 8 }}
             />
           ) : (
             <p className="field-hint">Save the camera to see its live preview.</p>
           )}
+          <p className="field-hint" data-testid="preview-fallback-hint">
+            If today has no captures, the preview shows the latest available day.
+          </p>
           {cameraId && themeSaveState !== "idle" && (
             <p className="field-hint" data-testid="theme-save-state">
               {themeSaveState === "saving"
@@ -708,6 +856,7 @@ function CameraForm({
     </section>
   );
 }
+
 
 function CameraSummary({
   cameras,
@@ -742,7 +891,7 @@ function CameraSummary({
       <div className="camera-summary-stat">
         <span>Collecting since</span>
         <strong data-testid="summary-since">
-          {oldest ? new Date(oldest).toLocaleDateString() : "—"}
+          {formatDate(oldest)}
         </strong>
       </div>
       <div className="camera-summary-stat camera-summary-plan">
@@ -857,12 +1006,12 @@ function CameraCard({
           </div>
           <div>
             <dt>Last capture</dt>
-            <dd>{cam.lastCaptureAt ? new Date(cam.lastCaptureAt).toLocaleString() : "—"}</dd>
+            <dd>{formatDateTime(cam.lastCaptureAt, cam.timezone, cam.timeFormat)}</dd>
           </div>
         </dl>
         {cam.firstCaptureAt && (
           <p className="camera-since">
-            Since {new Date(cam.firstCaptureAt).toLocaleDateString()}
+            Since {formatDate(cam.firstCaptureAt)}
           </p>
         )}
         <p
@@ -1202,7 +1351,7 @@ export function App() {
     tenantBilling?.pilotUntil !== undefined &&
     new Date(tenantBilling.pilotUntil).getTime() <= Date.now();
   const pilotUntilLabel = tenantBilling?.pilotUntil
-    ? new Date(tenantBilling.pilotUntil).toLocaleDateString()
+    ? formatDate(tenantBilling.pilotUntil)
     : "further notice";
   const pilotActive = Boolean(tenantBilling?.isPilot) && !pilotEnded;
 
