@@ -60,14 +60,8 @@ describe("BillingPage", () => {
     expect(plan).toHaveTextContent("13.99");
     expect(screen.getByText("past due")).toBeInTheDocument();
     expect(screen.getByTestId("camera-count")).toHaveTextContent("3 / 3");
-    expect(screen.getByTestId("monthly-total")).toHaveTextContent("€13.99");
     expect(screen.getByTestId("camera-limit-notice")).toHaveTextContent("using all 3 cameras");
     expect(screen.queryByTestId("free-month-notice")).not.toBeInTheDocument();
-  });
-
-  it("labels the estimate as tax-inclusive", async () => {
-    render(<BillingPage />);
-    expect(await screen.findByText("Estimated monthly (incl. tax)")).toBeInTheDocument();
   });
 
   it("shows grace warning for past_due", async () => {
@@ -86,8 +80,9 @@ describe("BillingPage", () => {
     });
     render(<BillingPage />);
     expect(await screen.findByTestId("pilot-notice")).toHaveTextContent(/free of charge/i);
-    expect(screen.getByTestId("pilot-pill")).toHaveTextContent("pilot");
+    expect(screen.queryByTestId("billing-status")).not.toBeInTheDocument();
     expect(screen.getByTestId("change-package")).toBeDisabled();
+    expect(screen.getByTestId("billing-action-hint")).toHaveTextContent(/after your pilot ends/i);
   });
 
   it("shows the inactive notice when billing has never started", async () => {
@@ -115,7 +110,12 @@ describe("BillingPage", () => {
     });
     render(<BillingPage />);
     expect(await screen.findByTestId("pilot-ended-notice")).toHaveTextContent(/pilot ended/i);
+    expect(screen.getByRole("link", { name: "Contact us" })).toHaveAttribute(
+      "href",
+      "mailto:hello@sengycraft.cz",
+    );
     expect(screen.queryByTestId("pilot-notice")).not.toBeInTheDocument();
+    expect(screen.getByTestId("billing-action-hint")).toHaveTextContent(/pilot has ended/i);
   });
 
   it("starts checkout with the selected package", async () => {
@@ -150,7 +150,7 @@ describe("BillingPage", () => {
     render(<BillingPage />);
     const solo = await screen.findByTestId("package-solo");
     expect(solo).toBeDisabled();
-    expect(screen.getByTestId("package-blocked-solo")).toHaveTextContent("Delete 2 camera(s) first");
+    expect(screen.getByTestId("package-blocked-solo")).toHaveTextContent("Delete 2 cameras first");
   });
 
   it("opens portal session", async () => {

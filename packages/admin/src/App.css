@@ -650,6 +650,7 @@ button.link:hover {
 }
 
 .plan-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -672,10 +673,14 @@ button.link:hover {
 }
 
 .plan-card input {
+  position: absolute;
+  top: 12px;
+  right: 12px;
   accent-color: var(--glacier);
 }
 
 .plan-card strong {
+  padding-right: 24px;
   font-weight: 700;
 }
 
@@ -1594,6 +1599,16 @@ button.link:hover {
   }
   .editor-actions button {
     flex: 1;
+  }
+  .plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .plan-card {
+    padding: 10px;
+  }
+  .billing-actions {
+    flex-wrap: wrap;
   }
 }
 
