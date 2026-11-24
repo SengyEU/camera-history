@@ -382,8 +382,44 @@ describe("App camera CRUD", () => {
     expect(screen.getByTestId("camera-running-cam-1")).not.toHaveTextContent("—");
     expect(screen.getByTestId("summary-images")).toHaveTextContent("120");
     expect(screen.getByTestId("summary-since")).toHaveTextContent(/2026/);
+    expect(screen.getByTestId("summary-plan")).toHaveTextContent("Starter");
+    expect(screen.getByTestId("last-error-cam-1")).toHaveTextContent("No errors");
     expect(screen.queryByTestId("camera-bytes-cam-1")).not.toBeInTheDocument();
     expect(screen.queryByTestId("summary-bytes")).not.toBeInTheDocument();
+  });
+
+  it("explains the camera limit when the package is full", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ cameras: [camera()] });
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({
+            tenant: {
+              id: "t1",
+              name: "Acme",
+              slug: "acme",
+              packageCode: "solo",
+              cameraLimit: 1,
+              billingStatus: "active",
+              isPilot: false,
+              pilotUntil: null,
+            },
+          });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    expect(screen.getByTestId("add-camera")).toBeDisabled();
+    expect(screen.getByText(/1 \/ 1 cameras/)).toBeInTheDocument();
+    expect(screen.getByTestId("summary-plan")).toHaveTextContent("Solo");
+    expect(screen.getByRole("link", { name: "Upgrade" })).toHaveAttribute("href", "#/billing");
   });
 
   it("opens the camera editor as a separate page with a back link", async () => {

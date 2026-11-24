@@ -434,7 +434,18 @@ button.link:hover {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: 1.5rem 1rem;
+  padding: 3rem 1rem;
+}
+
+.empty-state > p:not(.empty-title) {
+  max-width: 42ch;
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty-state button {
+  margin-top: 8px;
 }
 
 .empty-title {
@@ -857,32 +868,74 @@ button.link:hover {
 /* Camera fleet summary */
 .camera-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.camera-summary div {
-  background: var(--snow);
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(150px, 0.9fr);
+  gap: 0;
+  margin-bottom: 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 8px 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.camera-summary-stat {
+  min-width: 0;
+  padding: 12px 14px;
+  border-right: 1px solid var(--line);
+}
+
+.camera-summary-stat:last-child {
+  border-right: 0;
 }
 
 .camera-summary span {
   display: block;
   color: var(--muted);
   font-size: 0.72rem;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .camera-summary strong {
   display: block;
   margin-top: 3px;
-  font-family: var(--font-technical); font-variant-numeric: tabular-nums;
-  font-size: 0.95rem;
+  font-family: var(--font-technical);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
   font-weight: 500;
+}
+
+.camera-summary .summary-limit {
+  display: inline;
+  color: var(--muted);
+  font-size: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.camera-summary-plan a {
+  display: inline-block;
+  margin-top: 3px;
+  color: var(--glacier-deep);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.page-action-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.page-action-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.page-action-hint a {
+  color: var(--glacier-deep);
 }
 
 /* Camera cards */
@@ -903,7 +956,8 @@ button.link:hover {
 
 .camera-media {
   position: relative;
-  height: 150px;
+  aspect-ratio: 16 / 9;
+  min-height: 150px;
   background: var(--night);
 }
 
@@ -964,10 +1018,10 @@ button.link:hover {
 }
 
 .camera-stats div {
-  background: var(--snow);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 6px 8px;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
 }
 
 .camera-stats dt {
@@ -992,8 +1046,18 @@ button.link:hover {
 .camera-error {
   margin: 0;
   max-width: none;
-  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.78rem;
+}
+
+.camera-error-clear {
+  color: var(--muted);
+}
+
+.camera-error-active {
+  color: var(--red);
 }
 
 .camera-actions {
@@ -1003,6 +1067,10 @@ button.link:hover {
   gap: 0.4rem;
   margin-top: auto;
   padding-top: 4px;
+}
+
+.camera-actions .camera-delete {
+  margin-left: auto;
 }
 
 .camera-copied {
@@ -1168,6 +1236,35 @@ button.link:hover {
   }
   .page-actions button {
     width: 100%;
+  }
+  .page-action-stack {
+    align-items: stretch;
+    width: 100%;
+  }
+  .page-action-hint {
+    text-align: center;
+  }
+  .camera-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .camera-summary-stat:nth-child(2n) {
+    border-right: 0;
+  }
+  .camera-summary-stat:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+  .camera-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .camera-actions > button:first-child {
+    grid-column: 1 / -1;
+  }
+  .camera-actions .camera-delete {
+    margin-left: 0;
+  }
+  .camera-copied {
+    grid-column: 1 / -1;
   }
 }
 

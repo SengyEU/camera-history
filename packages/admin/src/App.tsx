@@ -16,6 +16,14 @@ const STATUS_LABELS: Record<AdminCamera["status"], string> = {
   offline: "Offline",
 };
 
+const PACKAGE_LABELS: Record<string, string> = {
+  solo: "Solo",
+  starter: "Starter",
+  plus: "Plus",
+  pro: "Pro",
+  network: "Network",
+};
+
 const emptyInput = (): CameraInput => ({
   name: "",
   feedType: "static_url",
@@ -701,31 +709,50 @@ function CameraForm({
   );
 }
 
-function CameraSummary({ cameras, limit }: { cameras: AdminCamera[]; limit: number }) {
+function CameraSummary({
+  cameras,
+  limit,
+  packageCode,
+}: {
+  cameras: AdminCamera[];
+  limit: number;
+  packageCode: string | null;
+}) {
   const images = cameras.reduce((total, cam) => total + (cam.imageCount ?? 0), 0);
   const oldest =
     cameras
       .map((cam) => cam.firstCaptureAt)
       .filter((value): value is string => Boolean(value))
       .sort()[0] ?? null;
+  const planName = packageCode ? (PACKAGE_LABELS[packageCode] ?? packageCode) : "—";
+  const atLimit = cameras.length >= limit;
 
   return (
     <div className="camera-summary" data-testid="camera-summary">
-      <div>
+      <div className="camera-summary-stat">
         <span>Cameras</span>
         <strong>
-          {cameras.length} / {limit}
+          {cameras.length} <span className="summary-limit">/ {limit}</span>
         </strong>
       </div>
-      <div>
+      <div className="camera-summary-stat">
         <span>Images collected</span>
         <strong data-testid="summary-images">{images.toLocaleString()}</strong>
       </div>
-      <div>
+      <div className="camera-summary-stat">
         <span>Collecting since</span>
         <strong data-testid="summary-since">
           {oldest ? new Date(oldest).toLocaleDateString() : "—"}
         </strong>
+      </div>
+      <div className="camera-summary-stat camera-summary-plan">
+        <span>Plan</span>
+        <strong data-testid="summary-plan">{planName}</strong>
+        {atLimit && (
+          <a href="#/billing" title="Upgrade in Billing">
+            Upgrade in Billing
+          </a>
+        )}
       </div>
     </div>
   );
@@ -838,12 +865,20 @@ function CameraCard({
             Since {new Date(cam.firstCaptureAt).toLocaleDateString()}
           </p>
         )}
-        <p className="cell-error camera-error" data-testid={`last-error-${cam.id}`}>
-          {cam.lastError ? <span className="cell-error-text">{cam.lastError}</span> : <span className="dash">—</span>}
+        <p
+          className={`cell-error camera-error ${cam.lastError ? "camera-error-active" : "camera-error-clear"}`}
+          data-testid={`last-error-${cam.id}`}
+        >
+          {cam.lastError ? (
+            <span className="cell-error-text" title={cam.lastError}>
+              Last error: {cam.lastError}
+            </span>
+          ) : (
+            <span>No errors</span>
+          )}
         </p>
         <div className="camera-actions">
           <button
-            className="secondary"
             onClick={copyEmbed}
             data-testid={`embed-${cam.id}`}
             disabled={!tenantSlug}
@@ -853,7 +888,11 @@ function CameraCard({
           <button className="secondary" onClick={onEdit} data-testid={`edit-${cam.id}`}>
             Edit
           </button>
-          <button className="danger" onClick={onDelete} data-testid={`delete-${cam.id}`}>
+          <button
+            className="danger camera-delete"
+            onClick={onDelete}
+            data-testid={`delete-${cam.id}`}
+          >
             Delete
           </button>
           {copied && (
@@ -883,6 +922,7 @@ export function App() {
     billingStatus: BillingStatus;
     isPilot: boolean;
     pilotUntil: string | null;
+    packageCode: string;
   } | null>(null);
   const [view, setView] = useState<"cameras" | "groups" | "billing">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
@@ -960,6 +1000,7 @@ export function App() {
           billingStatus: t.billingStatus,
           isPilot: t.isPilot,
           pilotUntil: t.pilotUntil,
+          packageCode: t.packageCode,
         });
       })
       .catch(() => {
@@ -1199,13 +1240,6 @@ export function App() {
         </p>
       );
     }
-    if (cameras.length >= tenantCameraLimit) {
-      return (
-        <p className="notice" data-testid="account-notice">
-          All {tenantCameraLimit} cameras are in use. <a href="#/billing">Upgrade in Billing</a>.
-        </p>
-      );
-    }
     return null;
   })();
 
@@ -1342,18 +1376,26 @@ export function App() {
             title="Cameras"
             description="Add feeds, watch their status and grab the embed code for your site."
           >
-            <button
-              onClick={openNewCamera}
-              data-testid="add-camera"
-              disabled={cameras.length >= tenantCameraLimit}
-              title={
-                cameras.length >= tenantCameraLimit
-                  ? "Camera limit reached. Upgrade in Billing."
-                  : undefined
-              }
-            >
-              + New camera
-            </button>
+            <div className="page-action-stack">
+              <button
+                onClick={openNewCamera}
+                data-testid="add-camera"
+                className={cameras.length >= tenantCameraLimit ? "secondary" : undefined}
+                disabled={cameras.length >= tenantCameraLimit}
+                title={
+                  cameras.length >= tenantCameraLimit
+                    ? "Camera limit reached. Upgrade in Billing."
+                    : undefined
+                }
+              >
+                + New camera
+              </button>
+              {cameras.length >= tenantCameraLimit && (
+                <span className="page-action-hint">
+                  {cameras.length} / {tenantCameraLimit} cameras · <a href="#/billing">Upgrade</a>
+                </span>
+              )}
+            </div>
           </PageHeader>
           <section className="panel">
             {camerasLoading && cameras.length === 0 ? (
@@ -1368,7 +1410,11 @@ export function App() {
               </div>
             ) : (
               <>
-                <CameraSummary cameras={cameras} limit={tenantCameraLimit} />
+                <CameraSummary
+                  cameras={cameras}
+                  limit={tenantCameraLimit}
+                  packageCode={tenantBilling?.packageCode ?? null}
+                />
                 <div className="camera-grid">
                   {cameras.map((cam) => (
                     <CameraCard
