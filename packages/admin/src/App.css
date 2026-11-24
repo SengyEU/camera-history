@@ -1127,9 +1127,11 @@ button.link:hover {
     align-self: center;
   }
   .topbar-account {
-    grid-column: 2;
-    grid-row: 1;
+    grid-column: 1 / -1;
+    grid-row: 2;
     align-self: center;
+    justify-content: space-between;
+    width: 100%;
     margin-left: 0;
     gap: 8px;
   }
@@ -1139,9 +1141,6 @@ button.link:hover {
   .topbar-pilot {
     padding: 2px 8px;
     font-size: 10px;
-  }
-  .topbar-pilot-date {
-    display: none;
   }
   .topbar-signout {
     padding: 5px 8px;

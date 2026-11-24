@@ -234,7 +234,7 @@ describe("App dashboard", () => {
 
     render(<App />);
 
-    expect(await screen.findByTestId("pilot-badge")).toHaveTextContent("Pilot");
+    expect(await screen.findByTestId("pilot-badge")).toHaveTextContent("Pilot · free until");
     expect(screen.queryByText(/Pilot account — free until/i)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Cameras" })).toBeInTheDocument();
     expect(screen.getByTestId("add-camera")).toBeInTheDocument();

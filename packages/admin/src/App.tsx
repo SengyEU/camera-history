@@ -1232,7 +1232,7 @@ export function App() {
               data-testid="pilot-badge"
             >
               Pilot
-              <span className="topbar-pilot-date"> · {pilotUntilLabel}</span>
+              <span className="topbar-pilot-date"> · free until {pilotUntilLabel}</span>
             </span>
           )}
           <span className="topbar-user" title={email}>
