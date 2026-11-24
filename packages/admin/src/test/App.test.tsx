@@ -1033,6 +1033,53 @@ describe("App groups", () => {
     expect(screen.queryByTestId("group-form")).not.toBeInTheDocument();
   });
 
+  it("clears the unsaved state when group edits are reverted", async () => {
+    const { fn } = groupServer([seedGroup({ cameraIds: ["cam-1"] })]);
+    vi.stubGlobal("fetch", fn);
+    await openGroups();
+
+    await userEvent.click(screen.getByTestId("group-edit-grp-1"));
+    await screen.findByTestId("group-editor");
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+
+    const name = screen.getByTestId("group-name") as HTMLInputElement;
+    await userEvent.clear(name);
+    await userEvent.type(name, "Summit Ridge");
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    await userEvent.clear(name);
+    await userEvent.type(name, "Summit");
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("group-camera-remove-cam-1"));
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("group-camera-add-cam-1"));
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+  });
+
+  it("validates the group name and slug inline", async () => {
+    const { fn, calls } = groupServer([], "acme");
+    vi.stubGlobal("fetch", fn);
+    await openGroups();
+
+    await userEvent.click(screen.getByTestId("add-group"));
+    await screen.findByTestId("group-editor");
+    await userEvent.click(screen.getByTestId("group-save"));
+
+    expect(await screen.findByText("Name is required.")).toBeInTheDocument();
+    expect(calls.some((c) => c.u.endsWith("/api/v1/admin/groups") && c.init?.method === "POST")).toBe(false);
+
+    await userEvent.type(screen.getByTestId("group-name"), "Summit Ridge");
+    const slug = screen.getByTestId("group-slug") as HTMLInputElement;
+    await userEvent.clear(slug);
+    await userEvent.type(slug, "Bad Slug");
+    await userEvent.click(screen.getByTestId("group-save"));
+
+    expect(
+      await screen.findByText("Slug can only contain lowercase letters, numbers and hyphens."),
+    ).toBeInTheDocument();
+    expect(calls.some((c) => c.u.endsWith("/api/v1/admin/groups") && c.init?.method === "POST")).toBe(false);
+  });
+
   it("creates a group in the two-column editor with ordered cameras", async () => {
     const { fn, calls } = groupServer([], "acme");
     vi.stubGlobal("fetch", fn);
@@ -1125,6 +1172,10 @@ describe("App groups", () => {
     await screen.findByTestId("group-editor");
 
     expect(screen.getByTestId("group-embed-code")).toHaveTextContent("/group/acme/summit");
+    expect(screen.getByTestId("group-preview")).toHaveAttribute(
+      "src",
+      expect.stringContaining("noembed=1"),
+    );
     expect(screen.getByTestId("group-embed-code")).toHaveTextContent(
       'id="camera-history-group-acme-summit"',
     );

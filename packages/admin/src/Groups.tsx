@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -226,6 +226,12 @@ export function GroupEditor({
   const [slugTouched, setSlugTouched] = useState(Boolean(group));
   const [cameraIds, setCameraIds] = useState<string[]>(group?.cameraIds ?? []);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; slug?: string }>({});
+  const initialSnapshot = useRef({
+    name: group?.name ?? "",
+    slug: group?.slug ?? "",
+    cameraIds: [...(group?.cameraIds ?? [])],
+  });
   const [orderSaveState, setOrderSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [previewVersion, setPreviewVersion] = useState(0);
 
@@ -237,6 +243,45 @@ export function GroupEditor({
     [cameraIds, cameras],
   );
   const available = cameras.filter((camera) => !cameraIds.includes(camera.id));
+
+  const dirty = useMemo(() => {
+    const initialValues = initialSnapshot.current;
+    const sameMembers = (() => {
+      if (cameraIds.length !== initialValues.cameraIds.length) return false;
+      const current = [...cameraIds].sort();
+      const initial = [...initialValues.cameraIds].sort();
+      return current.every((id, index) => id === initial[index]);
+    })();
+    const sameOrder =
+      cameraIds.length === initialValues.cameraIds.length &&
+      cameraIds.every((id, index) => id === initialValues.cameraIds[index]);
+    return (
+      name !== initialValues.name ||
+      slug !== initialValues.slug ||
+      !sameMembers ||
+      (!group && !sameOrder)
+    );
+  }, [name, slug, cameraIds, group]);
+
+  useEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  const requestCancel = () => {
+    if (dirty && !window.confirm("Discard unsaved changes?")) return;
+    onCancel();
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -271,12 +316,18 @@ export function GroupEditor({
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    const nextErrors: typeof fieldErrors = {};
     if (!name.trim()) {
-      setError("Name is required.");
-      return;
+      nextErrors.name = "Name is required.";
     }
     if (!SLUG_RE.test(slug)) {
-      setError("Slug can only contain lowercase letters, numbers and hyphens.");
+      nextErrors.slug = "Slug can only contain lowercase letters, numbers and hyphens.";
+    }
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      window.setTimeout(() => {
+        document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      }, 0);
       return;
     }
     try {
@@ -298,48 +349,86 @@ export function GroupEditor({
 
   return (
     <section className="panel camera-editor group-editor" data-testid="group-editor">
-      <div className="panel-head">
-        <h2>{group ? "Edit group" : "New group"}</h2>
-        <button type="button" className="secondary" onClick={onCancel} data-testid="group-back">
+      <header className="editor-head">
+        <button
+          type="button"
+          className="link editor-back"
+          onClick={requestCancel}
+          data-testid="group-back"
+        >
           ← Back to groups
         </button>
-      </div>
+        <div className="editor-head-row">
+          <div>
+            <p className="page-kicker">Groups</p>
+            <h1>{group ? "Edit group" : "New group"}</h1>
+          </div>
+          <span className={`editor-save-state${dirty ? " is-dirty" : ""}`}>
+            {dirty ? "Unsaved changes" : group ? "Saved" : "Not saved yet"}
+          </span>
+        </div>
+      </header>
       <div className="camera-editor-body">
-        <form className="camera-form" onSubmit={submit} data-testid="group-form">
+        <form className="camera-form" onSubmit={submit} data-testid="group-form" noValidate>
           {error && (
             <p className="error" data-testid="group-form-error">
               {error}
             </p>
           )}
-          <label>
-            Name
-            <input
-              value={name}
-              onChange={(event) => {
-                const next = event.target.value;
-                setName(next);
-                if (!slugTouched) setSlug(slugify(next));
-              }}
-              data-testid="group-name"
-              required
-            />
-          </label>
-          <label>
-            Slug
-            <input
-              value={slug}
-              onChange={(event) => {
-                setSlugTouched(true);
-                setSlug(event.target.value);
-              }}
-              data-testid="group-slug"
-              required
-            />
-            <span className="field-hint">Used in the group embed URL. Changes apply after saving.</span>
-          </label>
-          <div className="form-section">
-            <h4>Cameras in this group</h4>
-            <span className="field-hint">Drag the handle to change the camera order.</span>
+
+          <section className="form-section">
+            <h4>Basics</h4>
+            <label>
+              Name
+              <input
+                value={name}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setName(next);
+                  setFieldErrors((current) => ({ ...current, name: undefined }));
+                  if (!slugTouched) setSlug(slugify(next));
+                }}
+                data-testid="group-name"
+                aria-invalid={Boolean(fieldErrors.name)}
+                aria-describedby={fieldErrors.name ? "group-name-error" : undefined}
+                required
+              />
+              {fieldErrors.name && (
+                <span className="field-error" id="group-name-error">
+                  {fieldErrors.name}
+                </span>
+              )}
+            </label>
+            <label>
+              Slug
+              <input
+                value={slug}
+                onChange={(event) => {
+                  setSlugTouched(true);
+                  setSlug(event.target.value);
+                  setFieldErrors((current) => ({ ...current, slug: undefined }));
+                }}
+                data-testid="group-slug"
+                aria-invalid={Boolean(fieldErrors.slug)}
+                aria-describedby={fieldErrors.slug ? "group-slug-error" : undefined}
+                required
+              />
+              {fieldErrors.slug && (
+                <span className="field-error" id="group-slug-error">
+                  {fieldErrors.slug}
+                </span>
+              )}
+              <span className="field-hint">
+                Used in the group embed URL. Changes apply after saving.
+              </span>
+            </label>
+          </section>
+
+          <section className="form-section">
+            <h4>Cameras</h4>
+            <span className="field-hint">
+              Drag the handle to change the camera order. Order saves automatically.
+            </span>
             {selected.length === 0 ? (
               <p className="empty">No cameras yet. Add one below.</p>
             ) : (
@@ -368,8 +457,9 @@ export function GroupEditor({
                     : "Order save failed"}
               </span>
             )}
-          </div>
-          <div className="form-section">
+          </section>
+
+          <section className="form-section">
             <h4>Add cameras</h4>
             {available.length === 0 ? (
               <p className="field-hint">All cameras are in this group.</p>
@@ -390,12 +480,18 @@ export function GroupEditor({
                 ))}
               </div>
             )}
-          </div>
-          <div className="form-actions">
+          </section>
+
+          <div className="form-actions editor-actions">
             <button type="submit" data-testid="group-save">
               Save
             </button>
-            <button type="button" className="secondary" onClick={onCancel} data-testid="group-cancel">
+            <button
+              type="button"
+              className="secondary"
+              onClick={requestCancel}
+              data-testid="group-cancel"
+            >
               Cancel
             </button>
           </div>
@@ -409,7 +505,7 @@ export function GroupEditor({
             <iframe
               key={`${group.id}-${previewVersion}`}
               data-testid="group-preview"
-              src={groupEmbedSrc(tenantSlug, group.slug)}
+              src={`${groupEmbedSrc(tenantSlug, group.slug)}?noembed=1`}
               title={`${group.name} preview`}
               loading="lazy"
               data-camera-history-preview="1"
@@ -418,6 +514,12 @@ export function GroupEditor({
           ) : (
             <p className="field-hint">Save the group to see its live preview.</p>
           )}
+          <p className="field-hint" data-testid="group-preview-hint">
+            If today has no captures, the preview shows the latest available day.
+          </p>
+          <p className="field-hint">
+            Reordering cameras saves automatically. Other changes apply after saving.
+          </p>
           {group && tenantSlug ? (
             <EmbedCodePanel
               code={embedCode}
