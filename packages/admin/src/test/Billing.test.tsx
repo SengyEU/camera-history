@@ -161,6 +161,7 @@ describe("BillingPage", () => {
     });
     render(<BillingPage />);
     await screen.findByTestId("current-plan");
+    expect(screen.getByTestId("billing-portal-hint")).toHaveTextContent(/cancel or resume/i);
     await userEvent.click(screen.getByTestId("open-portal"));
     await waitFor(() => expect(api.billingPortal).toHaveBeenCalled());
     expect(assign).toHaveBeenCalledWith("https://billing.stripe.com/x");

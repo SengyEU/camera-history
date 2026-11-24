@@ -304,11 +304,11 @@ export function BillingPage() {
             {disabledReason}
           </p>
         )}
-        {!data.stripeCustomerId && (
-          <p className="field-hint" data-testid="billing-portal-hint">
-            Invoices open in Stripe after your first payment.
-          </p>
-        )}
+        <p className="field-hint" data-testid="billing-portal-hint">
+          {data.stripeCustomerId
+            ? "Cancel or resume your plan and download invoices in Stripe."
+            : "Invoices open in Stripe after your first payment."}
+        </p>
       </section>
     </>
   );
