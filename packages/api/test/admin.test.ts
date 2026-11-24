@@ -90,6 +90,47 @@ describe("admin cameras", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("generates a camera slug from the name and updates it", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Glacier Bowl",
+        feedType: "static_url",
+        feedUrl: "https://example.com/cam.jpg",
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().camera).toMatchObject({ slug: "glacier-bowl" });
+
+    const id = created.json().camera.id as string;
+    const updated = await app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/cameras/${id}`,
+      headers: { cookie },
+      payload: { slug: "glacier" },
+    });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json().camera).toMatchObject({ slug: "glacier" });
+
+    const duplicate = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Another",
+        slug: "glacier",
+        feedType: "static_url",
+        feedUrl: "https://example.com/other.jpg",
+      },
+    });
+    expect(duplicate.statusCode).toBe(409);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("updates a non-custom camera with null themeColors", async () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);

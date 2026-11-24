@@ -6,3 +6,4 @@ export * from "./errors.js";
 export * from "./billing.js";
 export * from "./themes.js";
 export * from "./sun.js";
+export * from "./slug.js";

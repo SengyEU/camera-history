@@ -64,6 +64,7 @@ export const cameras = pgTable("cameras", {
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  slug: text("slug").notNull(),
   feedType: feedTypeEnum("feed_type").notNull(),
   feedUrl: text("feed_url").notNull(),
   feedConfig: jsonb("feed_config").$type<Record<string, unknown>>().notNull().default({}),
@@ -85,6 +86,7 @@ export const cameras = pgTable("cameras", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
+  uniqueIndex("cameras_tenant_slug_unique").on(t.tenantId, t.slug),
   index("cameras_tenant_idx").on(t.tenantId),
   index("cameras_enabled_idx").on(t.enabled),
 ]);

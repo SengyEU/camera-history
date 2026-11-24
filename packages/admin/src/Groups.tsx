@@ -320,8 +320,8 @@ export function GroupEditor({
     if (!name.trim()) {
       nextErrors.name = "Name is required.";
     }
-    if (!SLUG_RE.test(slug)) {
-      nextErrors.slug = "Slug can only contain lowercase letters, numbers and hyphens.";
+    if (!SLUG_RE.test(slug) || slug.length > 40) {
+      nextErrors.slug = "Slug must be 1–40 lowercase letters, numbers and dashes.";
     }
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
@@ -391,6 +391,7 @@ export function GroupEditor({
                 data-testid="group-name"
                 aria-invalid={Boolean(fieldErrors.name)}
                 aria-describedby={fieldErrors.name ? "group-name-error" : undefined}
+                maxLength={80}
                 required
               />
               {fieldErrors.name && (
@@ -411,6 +412,7 @@ export function GroupEditor({
                 data-testid="group-slug"
                 aria-invalid={Boolean(fieldErrors.slug)}
                 aria-describedby={fieldErrors.slug ? "group-slug-error" : undefined}
+                maxLength={40}
                 required
               />
               {fieldErrors.slug && (
@@ -421,6 +423,18 @@ export function GroupEditor({
               <span className="field-hint">
                 Used in the group embed URL. Changes apply after saving.
               </span>
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  setSlugTouched(false);
+                  setSlug(slugify(name));
+                  setFieldErrors((current) => ({ ...current, slug: undefined }));
+                }}
+                data-testid="group-slug-regenerate"
+              >
+                Regenerate from name
+              </button>
             </label>
           </section>
 

@@ -71,6 +71,20 @@ describe("public routes", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("returns camera info by tenant and slug", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCamera(repos);
+    const res = await app.inject({ url: "/api/v1/public/cameras/acme/main" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().camera).toMatchObject({
+      id: camera.id,
+      name: "Main",
+      slug: "main",
+      retentionMonths: 12,
+    });
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("hides camera and group when billing is canceled or unpaid", async () => {
     const { app, repos } = makeApp();
     const camera = await seedCamera(repos);

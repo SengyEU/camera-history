@@ -40,6 +40,7 @@ export interface Camera {
   id: string;
   tenantId: string;
   name: string;
+  slug: string;
   feedType: FeedType;
   feedUrl: string;
   feedConfig: Record<string, unknown>;
@@ -71,6 +72,7 @@ export interface ImageRecord {
 export interface PublicCamera {
   id: string;
   name: string;
+  slug: string;
   theme: string;
   themeColors: ThemeColors | null;
   timezone: string;
@@ -100,6 +102,7 @@ export interface NewUser {
 
 export interface NewCamera {
   name: string;
+  slug?: string;
   feedType: FeedType;
   feedUrl: string;
   feedConfig?: Record<string, unknown>;
@@ -119,6 +122,7 @@ export interface NewCamera {
 
 export interface CameraPatch {
   name?: string;
+  slug?: string;
   feedType?: FeedType;
   feedUrl?: string;
   feedConfig?: Record<string, unknown>;

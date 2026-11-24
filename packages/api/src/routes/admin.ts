@@ -1,11 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import {
   CAPTURE_INTERVAL_MINUTES,
+  NAME_MAX_LENGTH,
+  SLUG_MAX_LENGTH,
+  SLUG_RE,
   THEMES,
   cameraLimitForPackage,
   isValidTheme,
   normalizeThemeColors,
   packageForCode,
+  slugify,
   HttpError,
   rfc7807,
 } from "@ch/core";
@@ -27,6 +31,27 @@ function schemeMatches(feedType: string, feedUrl: string): boolean {
     default:
       return feedUrl.startsWith("http://") || feedUrl.startsWith("https://");
   }
+}
+
+function normalizeName(value: unknown, label = "name"): string {
+  const name = typeof value === "string" ? value.trim() : "";
+  if (!name) throw new HttpError(400, "bad_request", `${label} is required`);
+  if (name.length > NAME_MAX_LENGTH) {
+    throw new HttpError(400, "bad_request", `${label} must be at most ${NAME_MAX_LENGTH} characters`);
+  }
+  return name;
+}
+
+function normalizeSlug(value: unknown, fallback: string): string {
+  const slug = typeof value === "string" && value.trim() ? value.trim() : fallback;
+  if (slug.length > SLUG_MAX_LENGTH || !SLUG_RE.test(slug)) {
+    throw new HttpError(
+      400,
+      "bad_request",
+      `slug must be at most ${SLUG_MAX_LENGTH} lowercase letters, numbers and dashes`,
+    );
+  }
+  return slug;
 }
 
 function publicImageUrl(baseUrl: string, cameraId: string, storageKey: string): string {
@@ -80,11 +105,10 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
 
   app.post("/api/v1/admin/cameras", { preHandler: pre, config: { rateLimit: RATE_LIMIT } }, async (req, reply) => {
     const body = req.body as Record<string, unknown>;
-    const name = typeof body.name === "string" ? body.name : "";
+    const name = normalizeName(body.name);
     const feedType = String(body.feedType ?? "");
     const feedUrl = typeof body.feedUrl === "string" ? body.feedUrl : "";
 
-    if (!name) throw new HttpError(400, "bad_request", "name is required");
     if (!FEED_TYPES.includes(feedType)) {
       throw new HttpError(400, "bad_request", `feedType must be one of ${FEED_TYPES.join(", ")}`);
     }
@@ -131,12 +155,19 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       showNight = body.showNight;
     }
 
+    const slug = normalizeSlug(body.slug, slugify(name));
+    const existingCameras = await deps.repos.listCameras(req.user!.tenantId);
+    if (existingCameras.some((camera) => camera.slug === slug)) {
+      throw new HttpError(409, "conflict", "camera slug already taken");
+    }
+
     const tenant = await deps.repos.getTenantById(req.user!.tenantId);
     if (!tenant) throw new HttpError(404, "not_found", "tenant not found");
     const tier = packageForCode(tenant.packageCode);
     const limit = cameraLimitForPackage(tenant.packageCode);
     const result = await deps.repos.createCameraWithLimit(req.user!.tenantId, {
       name,
+      slug,
       feedType: feedType as never,
       feedUrl,
       intervalMinutes: CAPTURE_INTERVAL_MINUTES,
@@ -191,6 +222,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
       Object.entries(body).filter(([k]) =>
         [
           "name",
+          "slug",
           "feedType",
           "feedUrl",
           "activeFrom",
@@ -209,6 +241,16 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     );
     const effectiveType = patch.feedType !== undefined ? String(patch.feedType) : camera.feedType;
     const effectiveUrl = patch.feedUrl !== undefined ? String(patch.feedUrl) : camera.feedUrl;
+    if (patch.name !== undefined) {
+      patch.name = normalizeName(patch.name);
+    }
+    if (patch.slug !== undefined) {
+      patch.slug = normalizeSlug(patch.slug, camera.slug);
+      const existingCameras = await deps.repos.listCameras(req.user!.tenantId);
+      if (existingCameras.some((item) => item.slug === patch.slug && item.id !== camera.id)) {
+        throw new HttpError(409, "conflict", "camera slug already taken");
+      }
+    }
     if (!schemeMatches(effectiveType, effectiveUrl)) {
       throw new HttpError(400, "bad_request", `feedUrl scheme does not match feedType "${effectiveType}"`);
     }
@@ -300,21 +342,17 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     };
   });
 
-  const GROUP_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
   app.get("/api/v1/admin/groups", { preHandler: pre }, async (req) => {
     return { groups: await deps.repos.listGroups(req.user!.tenantId) };
   });
 
   app.post("/api/v1/admin/groups", { preHandler: pre, config: { rateLimit: RATE_LIMIT } }, async (req, reply) => {
     const body = (req.body ?? {}) as { name?: unknown; slug?: unknown };
-    if (typeof body.name !== "string" || body.name.length === 0 || typeof body.slug !== "string") {
-      throw new HttpError(400, "bad_request", "name and slug are required");
-    }
-    if (!GROUP_SLUG.test(body.slug)) throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
+    const name = normalizeName(body.name);
+    const slug = normalizeSlug(body.slug, "");
     const all = await deps.repos.listGroups(req.user!.tenantId);
-    if (all.some((g) => g.slug === body.slug)) throw new HttpError(409, "conflict", "group slug already taken");
-    const group = await deps.repos.createGroup(req.user!.tenantId, { name: body.name, slug: body.slug });
+    if (all.some((g) => g.slug === slug)) throw new HttpError(409, "conflict", "group slug already taken");
+    const group = await deps.repos.createGroup(req.user!.tenantId, { name, slug });
     return reply.code(201).send({ group: { id: group.id, name: group.name, slug: group.slug, cameraIds: [] } });
   });
 
@@ -335,20 +373,15 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
     const body = (req.body ?? {}) as { name?: unknown; slug?: unknown };
     const patch: { name?: string; slug?: string } = {};
     if (body.name !== undefined) {
-      if (typeof body.name !== "string" || body.name.length === 0) {
-        throw new HttpError(400, "bad_request", "name must be a non-empty string");
-      }
-      patch.name = body.name;
+      patch.name = normalizeName(body.name);
     }
     if (body.slug !== undefined) {
-      if (typeof body.slug !== "string" || !GROUP_SLUG.test(body.slug)) {
-        throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
-      }
+      const slug = normalizeSlug(body.slug, "");
       const all = await deps.repos.listGroups(req.user!.tenantId);
-      if (all.some((g) => g.slug === body.slug && g.id !== group.id)) {
+      if (all.some((g) => g.slug === slug && g.id !== group.id)) {
         throw new HttpError(409, "conflict", "group slug already taken");
       }
-      patch.slug = body.slug;
+      patch.slug = slug;
     }
     if (patch.name === undefined && patch.slug === undefined) {
       throw new HttpError(400, "bad_request", "name or slug is required");

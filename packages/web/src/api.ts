@@ -15,6 +15,7 @@ export interface ThemeColors {
 export interface PublicCamera {
   id: string;
   name: string;
+  slug: string;
   theme: string;
   themeColors?: ThemeColors | null;
   retentionMonths?: number;
@@ -30,8 +31,15 @@ export interface ImageDto {
   isDaylight: boolean;
 }
 
-export async function getCamera(cameraId: string): Promise<PublicCamera> {
-  const res = await fetch(`/api/v1/cameras/${cameraId}`);
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getCamera(ref: string, tenant?: string): Promise<PublicCamera> {
+  const path =
+    tenant && !UUID_RE.test(ref)
+      ? `/api/v1/public/cameras/${encodeURIComponent(tenant)}/${encodeURIComponent(ref)}`
+      : `/api/v1/cameras/${encodeURIComponent(ref)}`;
+  const res = await fetch(path);
   if (!res.ok) throw new Error(`camera fetch failed: ${res.status}`);
   const body: { camera: PublicCamera } = await res.json();
   return body.camera;

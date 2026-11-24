@@ -53,6 +53,15 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
     return { camera: cam };
   });
 
+  app.get<{ Params: { tenantSlug: string; cameraSlug: string } }>(
+    "/api/v1/public/cameras/:tenantSlug/:cameraSlug",
+    async (req, reply) => {
+      const cam = await repos.getPublicCameraBySlug(req.params.tenantSlug, req.params.cameraSlug);
+      if (!cam) return reply.code(404).type("application/problem+json").send(notFound());
+      return { camera: cam };
+    },
+  );
+
   app.get<{ Params: { id: string }; Querystring: { date?: string } }>(
     "/api/v1/cameras/:id/images",
     async (req, reply) => {

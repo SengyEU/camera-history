@@ -31,12 +31,15 @@ const makeImage = (id: string, timestamp: string, url: string, isDaylight = true
 const makeCamera = (overrides: Partial<PublicCamera> = {}): PublicCamera => ({
   id: "cam-1",
   name: "Pláž",
+  slug: "cam-1",
   theme: "light",
   retentionMonths: 12,
   showNight: false,
   timezone: "UTC",
   ...overrides,
 });
+
+const CAMERA_REF = "00000000-0000-4000-8000-000000000001";
 
 const defaultImages: ImageDto[] = [
   makeImage("img-1", "2026-09-18T09:00:00Z", "/api/v1/cameras/cam-1/2026-09-18/090000.jpg"),
@@ -167,6 +170,16 @@ describe("App widget", () => {
     expect(screen.queryByText("Pláž")).not.toBeInTheDocument();
     expect(document.querySelector(".widget-title")).toBeNull();
     expect(document.querySelector(".widget-header")).toBeNull();
+  });
+
+  it("loads a camera by slug and uses its id for images", async () => {
+    vi.mocked(getCamera).mockResolvedValue(makeCamera({ slug: "glacier-bowl" }));
+    window.history.pushState({}, "", "/widget/acme/glacier-bowl?date=2026-09-18");
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
+    expect(vi.mocked(getCamera)).toHaveBeenCalledWith("glacier-bowl", "acme");
+    expect(vi.mocked(getImages)).toHaveBeenCalledWith("cam-1", "2026-09-18");
   });
 
   it("uses the camera's 24-hour time format", async () => {
@@ -513,7 +526,7 @@ describe("App widget", () => {
         }),
     );
     vi.mocked(getImages).mockResolvedValue([makeImage("e1", timestamp, "/e1.jpg")]);
-    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-10-17");
+    window.history.pushState({}, "", `/widget/acme/${CAMERA_REF}?date=2026-10-17`);
     render(<App />);
 
     const before = await screen.findByTestId("frame-e1");
@@ -669,7 +682,7 @@ describe("App widget", () => {
           resolveCamera = resolve;
         }),
     );
-    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-09-18&hour=9");
+    window.history.pushState({}, "", `/widget/acme/${CAMERA_REF}?date=2026-09-18&hour=9`);
     render(<App />);
 
     const before = await screen.findByTestId("frame-d1");
@@ -699,7 +712,7 @@ describe("App widget", () => {
           resolveCamera = resolve;
         }),
     );
-    window.history.pushState({}, "", "/widget/acme/cam-1?date=2026-10-17&hour=18");
+    window.history.pushState({}, "", `/widget/acme/${CAMERA_REF}?date=2026-10-17&hour=18`);
     render(<App />);
 
     await screen.findByTestId("frame-e1");
@@ -766,6 +779,7 @@ describe("App widget", () => {
     render(<App />);
 
     expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenCalled());
 
     await act(async () => {
       pending[0]!(defaultImages);
@@ -796,6 +810,7 @@ describe("App widget", () => {
     );
     render(<App />);
 
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenCalled());
     await act(async () => {
       pending[0]!([]);
     });
@@ -824,6 +839,7 @@ describe("App widget", () => {
     );
     render(<App />);
 
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenCalled());
     await act(async () => {
       pending[0]!(defaultImages);
     });
@@ -883,7 +899,7 @@ describe("App widget", () => {
           resolveCamera = resolve;
         }),
     );
-    window.history.pushState({}, "", "/widget/acme/cam-1");
+    window.history.pushState({}, "", `/widget/acme/${CAMERA_REF}`);
     render(<App />);
 
     expect(screen.getAllByTestId("film-skeleton")).toHaveLength(8);
@@ -905,13 +921,13 @@ describe("App widget", () => {
   it("settles on the viewer-timezone date when camera metadata fails", async () => {
     vi.mocked(getCamera).mockRejectedValue(new Error("meta down"));
     vi.mocked(getImages).mockResolvedValue([]);
-    window.history.pushState({}, "", "/widget/acme/cam-1");
+    window.history.pushState({}, "", `/widget/acme/${CAMERA_REF}`);
     render(<App />);
 
     await waitFor(() => expect(screen.queryAllByTestId("film-skeleton")).toHaveLength(0));
     expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
     expect(vi.mocked(getImages)).toHaveBeenCalledWith(
-      "cam-1",
+      CAMERA_REF,
       cameraDate(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"),
     );
   });

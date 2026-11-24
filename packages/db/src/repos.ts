@@ -17,7 +17,7 @@ import type {
   Tenant,
   User,
 } from "@ch/core";
-import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable } from "@ch/core";
+import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable, slugify } from "@ch/core";
 import type { Db } from "./db.js";
 import { cameraGroupMembers, cameraGroups, cameras, images, tenants, users } from "./schema.js";
 import type { Repos } from "./repos.types.js";
@@ -49,6 +49,7 @@ function cameraValues(tenantId: string, input: NewCamera) {
   return {
     tenantId,
     name: input.name,
+    slug: input.slug ?? slugify(input.name),
     feedType: input.feedType,
     feedUrl: input.feedUrl,
     feedConfig: input.feedConfig ?? {},
@@ -159,6 +160,7 @@ export function createRepos(db: Db): Repos {
         .select({
           id: cameras.id,
           name: cameras.name,
+          slug: cameras.slug,
           theme: cameras.theme,
           themeColors: cameras.themeColors,
           timezone: cameras.timezone,
@@ -181,6 +183,51 @@ export function createRepos(db: Db): Repos {
         ? {
             id: row.id,
             name: row.name,
+            slug: row.slug,
+            theme: row.theme,
+            themeColors: row.themeColors ?? null,
+            timezone: row.timezone,
+            timeFormat: row.timeFormat as "12h" | "24h",
+            retentionMonths: RETENTION_MONTHS,
+            latitude: row.latitude,
+            longitude: row.longitude,
+            showNight: row.showNight,
+          }
+        : null;
+    },
+    async getPublicCameraBySlug(
+      tenantSlug: string,
+      cameraSlug: string,
+    ): Promise<PublicCamera | null> {
+      const rows = await db
+        .select({
+          id: cameras.id,
+          name: cameras.name,
+          slug: cameras.slug,
+          theme: cameras.theme,
+          themeColors: cameras.themeColors,
+          timezone: cameras.timezone,
+          timeFormat: cameras.timeFormat,
+          latitude: cameras.latitude,
+          longitude: cameras.longitude,
+          showNight: cameras.showNight,
+        })
+        .from(cameras)
+        .innerJoin(tenants, eq(cameras.tenantId, tenants.id))
+        .where(
+          and(
+            eq(tenants.slug, tenantSlug),
+            eq(cameras.slug, cameraSlug),
+            eq(cameras.enabled, true),
+            notInArray(tenants.billingStatus, ["unpaid", "canceled"]),
+          ),
+        );
+      const row = rows[0];
+      return row
+        ? {
+            id: row.id,
+            name: row.name,
+            slug: row.slug,
             theme: row.theme,
             themeColors: row.themeColors ?? null,
             timezone: row.timezone,

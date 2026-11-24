@@ -235,7 +235,7 @@ interface WidgetBodyProps {
   children?: ReactNode;
   contentKey: string;
   showEmbedNotice: boolean;
-  errorKind: "group" | "images" | null;
+  errorKind: "group" | "camera" | "images" | null;
 }
 
 function WidgetBody({
@@ -269,7 +269,12 @@ function WidgetBody({
           title: "This group couldn't be loaded.",
           hint: "Check the link or try again in a moment.",
         }
-      : errorKind === "images"
+      : errorKind === "camera"
+        ? {
+            title: "This camera couldn't be loaded.",
+            hint: "Check the link or try again in a moment.",
+          }
+        : errorKind === "images"
         ? {
             title: "Captures couldn't be loaded.",
             hint: "Refresh the page or try again in a moment.",
@@ -405,16 +410,23 @@ function WidgetBody({
   );
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function App() {
   const widgetRoute = useMemo(() => parseWidgetPath(window.location.pathname), []);
   const groupRoute = useMemo(() => parseGroupPath(window.location.pathname), []);
 
   const [camera, setCamera] = useState<PublicCamera | null>(null);
+  const [resolvedCameraId, setResolvedCameraId] = useState<string | null>(() =>
+    widgetRoute && UUID_RE.test(widgetRoute.cameraId) ? widgetRoute.cameraId : null,
+  );
   const [group, setGroup] = useState<PublicGroup | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [images, setImages] = useState<ImageDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [groupError, setGroupError] = useState(false);
+  const [cameraMetaError, setCameraMetaError] = useState(false);
   const [imagesError, setImagesError] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shareImage, setShareImage] = useState<ImageDto | null>(null);
@@ -438,7 +450,8 @@ export function App() {
   const dateTouchedRef = useRef(false);
   const loadedCameraRef = useRef<string | null>(null);
 
-  const cameraId = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
+  const cameraRef = groupRoute ? (selectedCameraId ?? "") : (widgetRoute?.cameraId ?? "");
+  const cameraId = groupRoute ? cameraRef : (resolvedCameraId ?? "");
   const hasLoadedOnce = loadedCameraRef.current !== null;
   const selectedCamera =
     groupRoute && group ? (group.cameras.find((c) => c.id === selectedCameraId) ?? null) : null;
@@ -507,17 +520,23 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (groupRoute || !cameraId) return;
-    getCamera(cameraId)
-      .then((c) => setCamera(c))
+    if (groupRoute || !cameraRef) return;
+    setCameraMetaError(false);
+    getCamera(cameraRef, widgetRoute?.tenant)
+      .then((c) => {
+        setCamera(c);
+        setResolvedCameraId(c.id);
+      })
       .catch(() => {
+        setCameraMetaError(true);
+        setLoading(false);
         defaultDateAppliedRef.current = true;
         setDateReady(true);
         if (!initialDateRef.current && !dateTouchedRef.current) {
           setDate(localDateInZone(new Date(), VIEWER_TIMEZONE));
         }
       });
-  }, [cameraId, groupRoute]);
+  }, [cameraRef, groupRoute, widgetRoute]);
 
   useEffect(() => {
     if (!groupRoute) return;
@@ -570,16 +589,18 @@ export function App() {
     () => (showNight ? images : images.filter((image) => image.isDaylight !== false)),
     [images, showNight],
   );
-  const errorKind: "group" | "images" | null = imagesError
+  const errorKind: "group" | "camera" | "images" | null = imagesError
     ? "images"
     : groupError && images.length === 0
       ? "group"
-      : null;
+      : cameraMetaError && !groupRoute && !resolvedCameraId && images.length === 0
+        ? "camera"
+        : null;
   const contentKey = `${images[0]?.id ?? ""}|${images.length}`;
 
   useEffect(() => {
     if (!cameraId) {
-      if (!groupRoute) setLoading(false);
+      if (!groupRoute && !widgetRoute) setLoading(false);
       return;
     }
     if (!dateReady) return;

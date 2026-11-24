@@ -143,6 +143,7 @@ describe("App dashboard", () => {
   const camera = (over: Partial<Record<string, unknown>> = {}) => ({
     id: "cam-1",
     name: "Beach cam",
+    slug: "cam-1",
     feedType: "static_url",
     feedUrl: "https://placehold.co/600x400.jpg",
     intervalMinutes: 60,
@@ -262,6 +263,7 @@ describe("App camera CRUD", () => {
   const camera = (over: Partial<Record<string, unknown>> = {}) => ({
     id: "cam-1",
     name: "Beach cam",
+    slug: "cam-1",
     feedType: "static_url",
     feedUrl: "https://placehold.co/600x400.jpg",
     intervalMinutes: 60,
@@ -327,6 +329,28 @@ describe("App camera CRUD", () => {
     expect(await screen.findByTestId("camera-saved")).toHaveTextContent("Saved");
     expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
     expect(window.location.hash).toBe("#/cameras/cam-new");
+  });
+
+  it("generates a camera slug and can regenerate it from the name", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("add-camera"));
+    const name = screen.getByTestId("form-name") as HTMLInputElement;
+    const slug = screen.getByTestId("form-slug") as HTMLInputElement;
+
+    await userEvent.type(name, "Glacier Bowl");
+    expect(slug.value).toBe("glacier-bowl");
+
+    await userEvent.clear(slug);
+    await userEvent.type(slug, "glacier");
+    await userEvent.type(name, " 2");
+    expect(slug.value).toBe("glacier");
+
+    await userEvent.click(screen.getByTestId("form-slug-regenerate"));
+    expect(slug.value).toBe("glacier-bowl-2");
   });
 
   it("creates a camera with a selected theme", async () => {
@@ -936,6 +960,7 @@ describe("App groups", () => {
   const camera = (over: Partial<Record<string, unknown>> = {}) => ({
     id: "cam-1",
     name: "Beach cam",
+    slug: "cam-1",
     feedType: "static_url",
     feedUrl: "https://placehold.co/600x400.jpg",
     intervalMinutes: 60,
@@ -1075,9 +1100,27 @@ describe("App groups", () => {
     await userEvent.click(screen.getByTestId("group-save"));
 
     expect(
-      await screen.findByText("Slug can only contain lowercase letters, numbers and hyphens."),
+      await screen.findByText("Slug must be 1–40 lowercase letters, numbers and dashes."),
     ).toBeInTheDocument();
     expect(calls.some((c) => c.u.endsWith("/api/v1/admin/groups") && c.init?.method === "POST")).toBe(false);
+  });
+
+  it("regenerates a group slug from the name", async () => {
+    const { fn } = groupServer([], "acme");
+    vi.stubGlobal("fetch", fn);
+    await openGroups();
+
+    await userEvent.click(screen.getByTestId("add-group"));
+    await screen.findByTestId("group-editor");
+    const name = screen.getByTestId("group-name") as HTMLInputElement;
+    const slug = screen.getByTestId("group-slug") as HTMLInputElement;
+
+    await userEvent.type(name, "Summit Ridge");
+    await userEvent.clear(slug);
+    await userEvent.type(slug, "custom");
+    await userEvent.click(screen.getByTestId("group-slug-regenerate"));
+
+    expect(slug.value).toBe("summit-ridge");
   });
 
   it("creates a group in the two-column editor with ordered cameras", async () => {

@@ -26,6 +26,7 @@ const PACKAGE_LABELS: Record<string, string> = {
 
 const emptyInput = (): CameraInput => ({
   name: "",
+  slug: "",
   feedType: "static_url",
   feedUrl: "",
   intervalMinutes: 60,
@@ -312,8 +313,10 @@ function CameraForm({
   const [latitudeText, setLatitudeText] = useState(initial.latitude === null ? "" : String(initial.latitude));
   const [longitudeText, setLongitudeText] = useState(initial.longitude === null ? "" : String(initial.longitude));
   const [error, setError] = useState<string | null>(null);
+  const [slugTouched, setSlugTouched] = useState(Boolean(initial.slug));
   const initialSnapshot = useRef({
     name: initial.name,
+    slug: initial.slug,
     feedType: initial.feedType,
     feedUrl: initial.feedUrl,
     activeFrom: initial.activeFrom,
@@ -326,6 +329,7 @@ function CameraForm({
     longitude: initial.longitude,
   });
   const [fieldErrors, setFieldErrors] = useState<{
+    slug?: string;
     latitude?: string;
     longitude?: string;
     daylight?: string;
@@ -356,6 +360,7 @@ function CameraForm({
 
     return (
       input.name !== initialValues.name ||
+      input.slug !== initialValues.slug ||
       input.feedType !== initialValues.feedType ||
       input.feedUrl !== initialValues.feedUrl ||
       input.activeFrom !== initialValues.activeFrom ||
@@ -446,6 +451,9 @@ function CameraForm({
     const latitude = parseCoordinateInput(latitudeText);
     const longitude = parseCoordinateInput(longitudeText);
     const nextErrors: typeof fieldErrors = {};
+    if (!input.slug || input.slug.length > 40 || !SLUG_RE.test(input.slug)) {
+      nextErrors.slug = "Slug must be 1–40 lowercase letters, numbers and dashes.";
+    }
     if (latitude === "invalid" || (latitude !== null && (latitude < -90 || latitude > 90))) {
       nextErrors.latitude = "Latitude must be between -90 and 90.";
     }
@@ -501,7 +509,7 @@ function CameraForm({
   const embedCode =
     cameraId && tenantSlug
       ? embedSnippet(
-          cameraEmbedSrc(tenantSlug, cameraId),
+          cameraEmbedSrc(tenantSlug, input.slug || cameraId),
           embedId,
           `${initial.name || "Camera"} — Camera History`,
         )
@@ -542,10 +550,53 @@ function CameraForm({
               Name
               <input
                 value={input.name}
-                onChange={(e) => set("name", e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  set("name", next);
+                  if (!slugTouched) {
+                    setInput((state) => ({ ...state, slug: slugify(next) }));
+                  }
+                }}
                 data-testid="form-name"
+                maxLength={80}
                 required
               />
+            </label>
+            <label>
+              Slug
+              <input
+                value={input.slug}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  set("slug", e.target.value);
+                  setFieldErrors((current) => ({ ...current, slug: undefined }));
+                }}
+                data-testid="form-slug"
+                aria-invalid={Boolean(fieldErrors.slug)}
+                aria-describedby={fieldErrors.slug ? "camera-slug-error" : undefined}
+                maxLength={40}
+                required
+              />
+              {fieldErrors.slug && (
+                <span className="field-error" id="camera-slug-error">
+                  {fieldErrors.slug}
+                </span>
+              )}
+              <span className="field-hint">
+                Used in the camera embed URL. Changes apply after saving.
+              </span>
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  setSlugTouched(false);
+                  setInput((state) => ({ ...state, slug: slugify(state.name) }));
+                  setFieldErrors((current) => ({ ...current, slug: undefined }));
+                }}
+                data-testid="form-slug-regenerate"
+              >
+                Regenerate from name
+              </button>
             </label>
             <label>
               Type
@@ -984,7 +1035,7 @@ function CameraCard({
     if (!tenantSlug) return;
     const id = cameraEmbedId(tenantSlug, cam.id);
     const snippet = embedSnippet(
-      cameraEmbedSrc(tenantSlug, cam.id),
+      cameraEmbedSrc(tenantSlug, cam.slug || cam.id),
       id,
       `${cam.name} — Camera History`,
     );
@@ -1026,7 +1077,10 @@ function CameraCard({
       </div>
       <div className="camera-card-body">
         <div className="camera-card-head">
-          <h3 className="cell-name">{cam.name}</h3>
+          <div className="camera-card-name">
+            <h3 className="cell-name">{cam.name}</h3>
+            <span className="camera-slug">{cam.slug}</span>
+          </div>
           <span className={`pill ${cam.enabled ? "pill-operational" : "pill-neutral"}`}>
             {cam.enabled ? "Enabled" : "Disabled"}
           </span>
@@ -1221,6 +1275,7 @@ export function App() {
 
   const toInput = (cam: AdminCamera): CameraInput => ({
     name: cam.name,
+    slug: cam.slug,
     feedType: cam.feedType,
     feedUrl: cam.feedUrl,
     intervalMinutes: 60,

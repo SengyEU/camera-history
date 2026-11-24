@@ -17,7 +17,7 @@ import type {
   Tenant,
   User,
 } from "@ch/core";
-import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable } from "@ch/core";
+import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable, slugify } from "@ch/core";
 import type { Repos } from "../repos.types.js";
 
 export interface FakeDb {
@@ -81,6 +81,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         id: randomUUID(),
         tenantId,
         name: input.name,
+        slug: input.slug ?? slugify(input.name),
         feedType: input.feedType,
         feedUrl: input.feedUrl,
         feedConfig: input.feedConfig ?? {},
@@ -139,6 +140,31 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       return {
         id: cam.id,
         name: cam.name,
+        slug: cam.slug,
+        theme: cam.theme,
+        themeColors: cam.themeColors ?? null,
+        timezone: cam.timezone,
+        timeFormat: cam.timeFormat,
+        retentionMonths: RETENTION_MONTHS,
+        latitude: cam.latitude,
+        longitude: cam.longitude,
+        showNight: cam.showNight,
+      };
+    },
+    async getPublicCameraBySlug(
+      tenantSlug: string,
+      cameraSlug: string,
+    ): Promise<PublicCamera | null> {
+      const tenant = db.tenants.find((t) => t.slug === tenantSlug);
+      if (!tenant || ["unpaid", "canceled"].includes(tenant.billingStatus)) return null;
+      const cam = db.cameras.find(
+        (c) => c.tenantId === tenant.id && c.slug === cameraSlug && c.enabled,
+      );
+      if (!cam) return null;
+      return {
+        id: cam.id,
+        name: cam.name,
+        slug: cam.slug,
         theme: cam.theme,
         themeColors: cam.themeColors ?? null,
         timezone: cam.timezone,

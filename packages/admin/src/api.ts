@@ -16,6 +16,7 @@ export interface ThemeColors {
 export interface AdminCamera {
   id: string;
   name: string;
+  slug: string;
   feedType: FeedType;
   feedUrl: string;
   intervalMinutes: number;
@@ -40,6 +41,7 @@ export interface AdminCamera {
 
 export interface CameraInput {
   name: string;
+  slug: string;
   feedType: FeedType;
   feedUrl: string;
   intervalMinutes: number;

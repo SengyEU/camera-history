@@ -1017,6 +1017,22 @@ button.link:hover {
   gap: 8px;
 }
 
+.camera-card-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.camera-slug {
+  color: var(--muted);
+  font-family: var(--font-technical);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
 .camera-card-head h3 {
   margin: 0;
   font-size: 1rem;
