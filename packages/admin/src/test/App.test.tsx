@@ -636,7 +636,7 @@ describe("App camera CRUD", () => {
     expect(snippet).toContain('id="camera-history-widget-acme-cam-1"');
     expect(snippet).toContain('title="Beach cam — Camera History"');
     expect(snippet).toContain('loading="lazy"');
-    expect(await screen.findByTestId("embed-copied-cam-1")).toHaveTextContent("Copied");
+    await waitFor(() => expect(screen.getByTestId("embed-cam-1")).toHaveTextContent("Copied"));
   });
 
   it("shows and copies the camera embed code in the editor", async () => {
@@ -650,6 +650,10 @@ describe("App camera CRUD", () => {
     await userEvent.click(screen.getByTestId("edit-cam-1"));
 
     expect(await screen.findByTestId("camera-embed")).toHaveTextContent("/widget/acme/cam-1");
+    expect(screen.getByTestId("camera-preview")).toHaveAttribute(
+      "src",
+      expect.stringContaining("noembed=1"),
+    );
     expect(screen.getByTestId("camera-embed-hint")).toHaveTextContent(
       "#camera-history-widget-acme-cam-1",
     );
@@ -658,7 +662,7 @@ describe("App camera CRUD", () => {
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining('id="camera-history-widget-acme-cam-1"'),
     );
-    expect(await screen.findByTestId("camera-embed-copied")).toHaveTextContent("Copied");
+    await waitFor(() => expect(screen.getByTestId("camera-embed-copy")).toHaveTextContent("Copied"));
   });
 
   it("deletes a camera", async () => {
@@ -1135,7 +1139,7 @@ describe("App groups", () => {
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining('id="camera-history-group-acme-summit"'),
     );
-    expect(await screen.findByTestId("group-embed-code-copied")).toHaveTextContent("Copied");
+    await waitFor(() => expect(screen.getByTestId("group-embed-code-copy")).toHaveTextContent("Copied"));
   });
 
   it("does not render embed code when the tenant fails to load", async () => {

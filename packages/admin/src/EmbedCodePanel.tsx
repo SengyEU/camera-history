@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function EmbedCodePanel({
   code,
@@ -14,13 +14,25 @@ export function EmbedCodePanel({
   testId?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<number | undefined>(undefined);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(copyTimer.current);
+    },
+    [],
+  );
 
   const copy = () => {
     const clip = navigator.clipboard;
     if (!clip?.writeText) return;
     void clip
       .writeText(code)
-      .then(() => setCopied(true))
+      .then(() => {
+        setCopied(true);
+        window.clearTimeout(copyTimer.current);
+        copyTimer.current = window.setTimeout(() => setCopied(false), 2500);
+      })
       .catch(() => setCopied(false));
   };
 
@@ -34,10 +46,15 @@ export function EmbedCodePanel({
         <code>{code}</code>
       </pre>
       <div className="group-embed-actions">
-        <button type="button" className="secondary" onClick={copy} data-testid={`${testId}-copy`}>
-          Copy embed code
+        <button
+          type="button"
+          className={copied ? "secondary is-copied" : "secondary"}
+          aria-live="polite"
+          onClick={copy}
+          data-testid={`${testId}-copy`}
+        >
+          {copied ? "Copied" : "Copy embed code"}
         </button>
-        {copied && <span data-testid={`${testId}-copied`}>Copied</span>}
       </div>
       <p className="field-hint" data-testid={`${testId}-hint`}>
         {hint} <code>#{id}</code>{suffix ? ` ${suffix}` : ""}

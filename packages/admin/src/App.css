@@ -72,6 +72,18 @@ button.danger:hover {
   background: var(--color-red-weak);
 }
 
+button.is-copied {
+  border-color: var(--pine);
+  background: var(--pine);
+  color: var(--color-white);
+}
+
+button.secondary.is-copied {
+  border-color: var(--pine);
+  background: var(--color-pine-weak);
+  color: var(--pine);
+}
+
 button.link {
   background: none;
   border: none;
@@ -359,6 +371,7 @@ button.link:hover {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin: 12px 0 16px;
 }
 
 .notice-stack:empty {
@@ -1073,12 +1086,6 @@ button.link:hover {
   margin-left: auto;
 }
 
-.camera-copied {
-  color: var(--pine);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
 /* Custom theme color fields */
 .color-grid {
   display: grid;
@@ -1321,9 +1328,6 @@ button.link:hover {
   }
   .camera-actions .camera-delete {
     margin-left: 0;
-  }
-  .camera-copied {
-    grid-column: 1 / -1;
   }
 }
 

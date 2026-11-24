@@ -841,9 +841,9 @@ function CameraForm({
             <iframe
               ref={previewRef}
               data-testid="camera-preview"
-              src={`${window.location.origin}/widget/${tenantSlug}/${cameraId}${
-                input.theme === "custom" ? "" : `?theme=${encodeURIComponent(input.theme)}`
-              }`}
+              src={`${window.location.origin}/widget/${tenantSlug}/${cameraId}?${
+                input.theme === "custom" ? "" : `theme=${encodeURIComponent(input.theme)}&`
+              }noembed=1`}
               onLoad={postPreviewTheme}
               title="Camera preview"
               loading="lazy"
@@ -954,6 +954,14 @@ function CameraCard({
   const [thumbLoaded, setThumbLoaded] = useState(false);
   const [thumbError, setThumbError] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<number | undefined>(undefined);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(copyTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     let active = true;
@@ -984,7 +992,11 @@ function CameraCard({
     if (!clip?.writeText) return;
     void clip
       .writeText(snippet)
-      .then(() => setCopied(true))
+      .then(() => {
+        setCopied(true);
+        window.clearTimeout(copyTimer.current);
+        copyTimer.current = window.setTimeout(() => setCopied(false), 2500);
+      })
       .catch(() => setCopied(false));
   };
 
@@ -1062,9 +1074,11 @@ function CameraCard({
           <button
             onClick={copyEmbed}
             data-testid={`embed-${cam.id}`}
+            className={copied ? "is-copied" : undefined}
+            aria-live="polite"
             disabled={!tenantSlug}
           >
-            Copy embed
+            {copied ? "Copied" : "Copy embed"}
           </button>
           <button className="secondary" onClick={onEdit} data-testid={`edit-${cam.id}`}>
             Edit
@@ -1076,11 +1090,6 @@ function CameraCard({
           >
             Delete
           </button>
-          {copied && (
-            <span className="camera-copied" data-testid={`embed-copied-${cam.id}`}>
-              Copied
-            </span>
-          )}
         </div>
       </div>
     </article>

@@ -68,6 +68,15 @@ body { margin: 0; font-family: var(--widget-font, var(--font-ui)); background: v
   max-width: 1000px;
   margin: 0 auto;
   padding: 16px;
+  container-type: inline-size;
+}
+
+@container (max-width: 520px) {
+  .empty { font-size: 14px; }
+  .empty-hint { padding: 0 12px; font-size: 11px; }
+  .empty-action { font-size: 12px; }
+  .date-nav input[type="date"] { font-size: 12px; }
+  .camera-switcher-button { font-size: 13px; }
 }
 
 /* Header */
