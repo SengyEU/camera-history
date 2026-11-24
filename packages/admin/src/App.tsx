@@ -5,6 +5,7 @@ import { EmbedCodePanel } from "./EmbedCodePanel";
 import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
 import { formatAge } from "./format";
 import { GroupEditor, GroupsView, type GroupInput } from "./Groups";
+import { PageHeader } from "./PageHeader";
 import { SLUG_RE, slugify } from "./slug";
 import { DEFAULT_THEME_COLORS, THEME_COLOR_FIELDS, contrastWarnings } from "./theme";
 import "./App.css";
@@ -1154,12 +1155,18 @@ export function App() {
     );
   }
 
+  const pilotEnded =
+    Boolean(tenantBilling?.isPilot) &&
+    tenantBilling?.pilotUntil !== null &&
+    tenantBilling?.pilotUntil !== undefined &&
+    new Date(tenantBilling.pilotUntil).getTime() <= Date.now();
+  const pilotUntilLabel = tenantBilling?.pilotUntil
+    ? new Date(tenantBilling.pilotUntil).toLocaleDateString()
+    : "further notice";
+  const pilotActive = Boolean(tenantBilling?.isPilot) && !pilotEnded;
+
   const accountNotice = (() => {
     if (!tenantBilling) return null;
-    const pilotEnded =
-      tenantBilling.isPilot &&
-      tenantBilling.pilotUntil !== null &&
-      new Date(tenantBilling.pilotUntil).getTime() <= Date.now();
 
     if (pilotEnded) {
       return (
@@ -1169,12 +1176,7 @@ export function App() {
       );
     }
     if (tenantBilling.isPilot) {
-      return (
-        <p className="notice" data-testid="account-notice">
-          Pilot account — free until{" "}
-          {tenantBilling.pilotUntil ? new Date(tenantBilling.pilotUntil).toLocaleDateString() : "further notice"}.
-        </p>
-      );
+      return null;
     }
     if (tenantBilling.billingStatus === "none") {
       return (
@@ -1222,26 +1224,43 @@ export function App() {
             Billing
           </a>
         </nav>
-        <span className="topbar-user">{email}</span>
-        <button className="secondary" onClick={logout} data-testid="logout">
-          Sign out
-        </button>
+        <div className="topbar-account">
+          {pilotActive && (
+            <span
+              className="topbar-pilot"
+              title={`Pilot account — free until ${pilotUntilLabel}`}
+              data-testid="pilot-badge"
+            >
+              Pilot
+              <span className="topbar-pilot-date"> · {pilotUntilLabel}</span>
+            </span>
+          )}
+          <span className="topbar-user" title={email}>
+            {email}
+          </span>
+          <button className="secondary topbar-signout" onClick={logout} data-testid="logout">
+            Sign out
+          </button>
+        </div>
       </header>
-       {groupNotice && (
-         <p className="error" data-testid="group-notice">
-           {groupNotice}
-         </p>
-       )}
-       {cameraRoute !== null && cameraSavedNotice && (
-         <p className="notice" data-testid="camera-saved">
-           {cameraSavedNotice}
-         </p>
-       )}
-       {groupRoute !== null && groupSavedNotice && (
-         <p className="notice" data-testid="group-saved">
-           {groupSavedNotice}
-         </p>
-       )}
+      <div className="notice-stack">
+        {view !== "billing" && accountNotice}
+        {groupNotice && (
+          <p className="error" data-testid="group-notice">
+            {groupNotice}
+          </p>
+        )}
+        {cameraRoute !== null && cameraSavedNotice && (
+          <p className="notice" data-testid="camera-saved">
+            {cameraSavedNotice}
+          </p>
+        )}
+        {groupRoute !== null && groupSavedNotice && (
+          <p className="notice" data-testid="group-saved">
+            {groupSavedNotice}
+          </p>
+        )}
+      </div>
        {view === "billing" ? (
          <BillingPage />
        ) : view === "groups" ? (
@@ -1319,10 +1338,10 @@ export function App() {
          )
        ) : (
         <>
-          {accountNotice}
-          <section className="panel">
-            <div className="panel-head">
-              <h2>Cameras</h2>
+          <PageHeader
+            title="Cameras"
+            description="Add feeds, watch their status and grab the embed code for your site."
+          >
             <button
               onClick={openNewCamera}
               data-testid="add-camera"
@@ -1335,33 +1354,34 @@ export function App() {
             >
               + New camera
             </button>
-          </div>
-          {camerasLoading && cameras.length === 0 ? (
-            <p className="loading">Loading…</p>
-          ) : cameras.length === 0 ? (
-            <div className="empty-state" data-testid="empty-state">
-              <p className="empty-title">No cameras yet</p>
-              <p>Add your first camera to start building its history.</p>
-              <button onClick={openNewCamera} data-testid="empty-add-camera">
-                Add your first camera
-              </button>
-            </div>
-          ) : (
-            <>
-              <CameraSummary cameras={cameras} limit={tenantCameraLimit} />
-              <div className="camera-grid">
-                {cameras.map((cam) => (
-                  <CameraCard
-                    key={cam.id}
-                    cam={cam}
-                    tenantSlug={tenantSlug}
-                    onEdit={() => openCamera(cam.id)}
-                    onDelete={() => setConfirming(cam)}
-                  />
-                ))}
+          </PageHeader>
+          <section className="panel">
+            {camerasLoading && cameras.length === 0 ? (
+              <p className="loading">Loading…</p>
+            ) : cameras.length === 0 ? (
+              <div className="empty-state" data-testid="empty-state">
+                <p className="empty-title">No cameras yet</p>
+                <p>Add your first camera to start building its history.</p>
+                <button onClick={openNewCamera} data-testid="empty-add-camera">
+                  Add your first camera
+                </button>
               </div>
-            </>
-          )}
+            ) : (
+              <>
+                <CameraSummary cameras={cameras} limit={tenantCameraLimit} />
+                <div className="camera-grid">
+                  {cameras.map((cam) => (
+                    <CameraCard
+                      key={cam.id}
+                      cam={cam}
+                      tenantSlug={tenantSlug}
+                      onEdit={() => openCamera(cam.id)}
+                      onDelete={() => setConfirming(cam)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </section>
         </>
       )}

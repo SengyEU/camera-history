@@ -234,36 +234,73 @@ button.link:hover {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 18px;
   background: var(--surface);
-  padding: 0.7rem 1rem;
+  padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  margin-bottom: 1rem;
+  margin-bottom: 8px;
 }
 
 .topbar-brand {
   font-weight: 700;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.topbar-account {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .topbar-user {
-  margin-left: auto;
+  max-width: 220px;
+  overflow: hidden;
   color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-pilot {
+  flex: none;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--glacier) 30%, var(--line));
+  border-radius: 999px;
+  background: var(--glacier-weak);
+  color: var(--glacier-deep);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.topbar-signout {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 13px;
 }
 
 .topbar-nav {
   display: flex;
-  gap: 16px;
-  margin-left: 24px;
+  gap: 2px;
+  margin-left: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--snow);
 }
 
 .topbar-nav a {
+  padding: 6px 12px;
+  border-radius: 7px;
   color: var(--muted);
+  font-size: 14px;
   text-decoration: none;
-  padding: 4px 2px;
-  border-bottom: 2px solid transparent;
 }
 
 .topbar-nav a:hover {
@@ -271,9 +308,72 @@ button.link:hover {
 }
 
 .topbar-nav a.active {
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
   color: var(--ink);
   font-weight: 600;
-  border-bottom-color: var(--glacier);
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 24px 0 14px;
+}
+
+.page-head-copy {
+  max-width: 640px;
+}
+
+.page-kicker {
+  margin: 0 0 5px;
+  color: var(--glacier-deep);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: clamp(24px, 2.6vw, 32px);
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.page-head-copy > p:not(.page-kicker) {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.page-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  align-items: center;
+}
+
+.notice-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notice-stack:empty {
+  display: none;
+}
+
+.notice-stack .notice {
+  margin: 0;
+}
+
+.notice-stack > .error {
+  padding: 10px 12px;
+  border: 1px solid var(--color-red-border);
+  border-radius: var(--radius);
+  background: var(--color-red-weak);
 }
 
 .panel {
@@ -1016,28 +1116,59 @@ button.link:hover {
 
 @media (max-width: 720px) {
   .topbar {
-    flex-wrap: wrap;
-    gap: 0.5rem 1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 10px 12px;
   }
   .topbar-brand {
-    order: 1;
-    flex: 1 1 auto;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
   }
-  .topbar > button {
-    order: 2;
-  }
-  .topbar-nav {
-    order: 3;
-    width: 100%;
+  .topbar-account {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
     margin-left: 0;
-    gap: 20px;
+    gap: 8px;
   }
   .topbar-user {
-    order: 4;
+    display: none;
+  }
+  .topbar-pilot {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+  .topbar-pilot-date {
+    display: none;
+  }
+  .topbar-signout {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .topbar-nav {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
     margin-left: 0;
-    font-size: 0.8rem;
-    overflow-wrap: anywhere;
+  }
+  .topbar-nav a {
+    padding: 7px 6px;
+    text-align: center;
+  }
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .page-actions {
+    width: 100%;
+  }
+  .page-actions button {
+    width: 100%;
   }
 }
 

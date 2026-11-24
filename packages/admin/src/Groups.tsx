@@ -18,6 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { api, type AdminCamera, type AdminGroup } from "./api";
 import { EmbedCodePanel } from "./EmbedCodePanel";
+import { PageHeader } from "./PageHeader";
 import { embedSnippet, groupEmbedId, groupEmbedSrc } from "./embed";
 import { SLUG_RE, slugify } from "./slug";
 
@@ -63,95 +64,99 @@ export function GroupsView({
   };
 
   return (
-    <section className="panel" data-testid="groups-view">
-      <div className="panel-head">
-        <h2>Groups</h2>
+    <>
+      <PageHeader
+        title="Groups"
+        description="Bundle cameras into one widget with a switcher your visitors can use."
+      >
         <button onClick={onNew} data-testid="add-group">
           + New group
         </button>
-      </div>
-      {error && (
-        <p className="error" data-testid="group-error">
-          {error}
-        </p>
-      )}
-      {groups.length === 0 ? (
-        loading ? (
-          <p className="loading">Loading…</p>
-        ) : (
-          <div className="empty-state" data-testid="groups-empty">
-            <p className="empty-title">No groups yet</p>
-            <p>Group cameras into one embeddable widget with a switcher.</p>
-            <button onClick={onNew} data-testid="empty-add-group">
-              Create your first group
-            </button>
-          </div>
-        )
-      ) : (
-        <ul className="group-list">
-          {groups.map((group) => (
-            <li key={group.id} className="group-card" data-testid={`group-${group.id}`}>
-              <div className="group-head">
-                <div className="group-meta">
-                  <strong>{group.name}</strong>
-                  <span className="group-slug">{group.slug}</span>
-                  <span className="group-count" data-testid={`group-count-${group.id}`}>
-                    {group.cameraIds.length === 1
-                      ? "1 camera"
-                      : `${group.cameraIds.length} cameras`}
-                  </span>
-                </div>
-                <div className="cell-actions">
-                  <button
-                    className="secondary"
-                    onClick={() => onEdit(group)}
-                    data-testid={`group-edit-${group.id}`}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="danger"
-                    onClick={() => setDeleting(group)}
-                    data-testid={`group-delete-${group.id}`}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-              <div className="group-camera-chips" data-testid={`group-cameras-${group.id}`}>
-                {group.cameraIds.length === 0 ? (
-                  <span className="field-hint">No cameras yet.</span>
-                ) : (
-                  group.cameraIds.map((id, index) => (
-                    <span className="camera-chip" key={id}>
-                      <span className="camera-chip-index">{index + 1}</span>
-                      {cameraLabel(cameras, id)}
-                    </span>
-                  ))
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      {deleting !== null && (
-        <div className="modal">
-          <div className="modal-body">
-            <p>
-              Delete group &quot;{deleting.name}&quot;? Cameras stay — only the group goes away.
-            </p>
-            <div className="form-actions">
-              <button className="danger" onClick={() => void remove()} data-testid="confirm-delete-group">
-                Delete
-              </button>
-              <button className="secondary" onClick={() => setDeleting(null)}>
-                Cancel
+      </PageHeader>
+      <section className="panel" data-testid="groups-view">
+        {error && (
+          <p className="error" data-testid="group-error">
+            {error}
+          </p>
+        )}
+        {groups.length === 0 ? (
+          loading ? (
+            <p className="loading">Loading…</p>
+          ) : (
+            <div className="empty-state" data-testid="groups-empty">
+              <p className="empty-title">No groups yet</p>
+              <p>Group cameras into one embeddable widget with a switcher.</p>
+              <button onClick={onNew} data-testid="empty-add-group">
+                Create your first group
               </button>
             </div>
+          )
+        ) : (
+          <ul className="group-list">
+            {groups.map((group) => (
+              <li key={group.id} className="group-card" data-testid={`group-${group.id}`}>
+                <div className="group-head">
+                  <div className="group-meta">
+                    <strong>{group.name}</strong>
+                    <span className="group-slug">{group.slug}</span>
+                    <span className="group-count" data-testid={`group-count-${group.id}`}>
+                      {group.cameraIds.length === 1
+                        ? "1 camera"
+                        : `${group.cameraIds.length} cameras`}
+                    </span>
+                  </div>
+                  <div className="cell-actions">
+                    <button
+                      className="secondary"
+                      onClick={() => onEdit(group)}
+                      data-testid={`group-edit-${group.id}`}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="danger"
+                      onClick={() => setDeleting(group)}
+                      data-testid={`group-delete-${group.id}`}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <div className="group-camera-chips" data-testid={`group-cameras-${group.id}`}>
+                  {group.cameraIds.length === 0 ? (
+                    <span className="field-hint">No cameras yet.</span>
+                  ) : (
+                    group.cameraIds.map((id, index) => (
+                      <span className="camera-chip" key={id}>
+                        <span className="camera-chip-index">{index + 1}</span>
+                        {cameraLabel(cameras, id)}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {deleting !== null && (
+          <div className="modal">
+            <div className="modal-body">
+              <p>
+                Delete group &quot;{deleting.name}&quot;? Cameras stay — only the group goes away.
+              </p>
+              <div className="form-actions">
+                <button className="danger" onClick={() => void remove()} data-testid="confirm-delete-group">
+                  Delete
+                </button>
+                <button className="secondary" onClick={() => setDeleting(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-    </section>
+        )}
+      </section>
+    </>
   );
 }
 

@@ -207,6 +207,39 @@ describe("App dashboard", () => {
     expect(await screen.findByTestId("account-notice")).toHaveTextContent(/account not activated/i);
   });
 
+  it("shows a pilot badge and page header instead of a pilot banner", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ cameras: [] });
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({
+            tenant: {
+              id: "t1",
+              name: "Acme",
+              slug: "acme",
+              packageCode: "starter",
+              cameraLimit: 3,
+              billingStatus: "active",
+              isPilot: true,
+              pilotUntil: "2027-12-31T23:59:59Z",
+            },
+          });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByTestId("pilot-badge")).toHaveTextContent("Pilot");
+    expect(screen.queryByText(/Pilot account — free until/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Cameras" })).toBeInTheDocument();
+    expect(screen.getByTestId("add-camera")).toBeInTheDocument();
+  });
+
   it("logs out back to the login screen", async () => {
     vi.stubGlobal(
       "fetch",
