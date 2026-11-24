@@ -453,6 +453,30 @@ describe("App camera CRUD", () => {
     expect(screen.getByTestId("form-theme-custom")).toBeInTheDocument();
   });
 
+  it("clears the unsaved state when edits return to the original values", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("edit-cam-1"));
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+
+    const name = screen.getByTestId("form-name") as HTMLInputElement;
+    await userEvent.clear(name);
+    await userEvent.type(name, "Beach cam 2");
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+
+    await userEvent.clear(name);
+    await userEvent.type(name, "Beach cam");
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("form-show-night"));
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("form-show-night"));
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+  });
+
   it("marks unsaved camera edits in the editor header", async () => {
     const { fn } = listServer();
     vi.stubGlobal("fetch", fn);

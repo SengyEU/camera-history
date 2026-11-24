@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, FEED_LABELS, FEED_TYPES, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
 import { BillingPage } from "./Billing";
 import { EmbedCodePanel } from "./EmbedCodePanel";
@@ -312,7 +312,19 @@ function CameraForm({
   const [latitudeText, setLatitudeText] = useState(initial.latitude === null ? "" : String(initial.latitude));
   const [longitudeText, setLongitudeText] = useState(initial.longitude === null ? "" : String(initial.longitude));
   const [error, setError] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
+  const initialSnapshot = useRef({
+    name: initial.name,
+    feedType: initial.feedType,
+    feedUrl: initial.feedUrl,
+    activeFrom: initial.activeFrom,
+    activeTo: initial.activeTo,
+    timezone: initial.timezone,
+    timeFormat: initial.timeFormat,
+    daylightOnly: initial.daylightOnly,
+    showNight: initial.showNight,
+    latitude: initial.latitude,
+    longitude: initial.longitude,
+  });
   const [fieldErrors, setFieldErrors] = useState<{
     latitude?: string;
     longitude?: string;
@@ -327,9 +339,35 @@ function CameraForm({
     JSON.stringify({ theme: initial.theme, colors: initial.themeColors ?? null }),
   );
   const set = (k: keyof CameraInput, v: string | number) => {
-    setDirty(true);
     setInput((s) => ({ ...s, [k]: v }));
   };
+
+  const dirty = useMemo(() => {
+    const initialValues = initialSnapshot.current;
+    const latitude = parseCoordinateInput(latitudeText);
+    const longitude = parseCoordinateInput(longitudeText);
+    const coordinatesChanged =
+      (latitude === "invalid" ? latitudeText.trim() !== "" : latitude !== initialValues.latitude) ||
+      (longitude === "invalid" ? longitudeText.trim() !== "" : longitude !== initialValues.longitude);
+    const membershipsChanged = groups.some(
+      (group) =>
+        Boolean(groupMemberships[group.id]) !== Boolean(initialMemberships[group.id]),
+    );
+
+    return (
+      input.name !== initialValues.name ||
+      input.feedType !== initialValues.feedType ||
+      input.feedUrl !== initialValues.feedUrl ||
+      input.activeFrom !== initialValues.activeFrom ||
+      input.activeTo !== initialValues.activeTo ||
+      input.timezone !== initialValues.timezone ||
+      input.timeFormat !== initialValues.timeFormat ||
+      input.daylightOnly !== initialValues.daylightOnly ||
+      input.showNight !== initialValues.showNight ||
+      coordinatesChanged ||
+      membershipsChanged
+    );
+  }, [input, latitudeText, longitudeText, groups, groupMemberships, initialMemberships]);
 
   const postPreviewTheme = useCallback(() => {
     const frame = previewRef.current;
@@ -434,7 +472,6 @@ function CameraForm({
         .filter((g) => (groupMemberships[g.id] || false) !== (initialMemberships[g.id] || false))
         .map((g) => ({ groupId: g.id, selected: groupMemberships[g.id] || false, cameraIds: g.cameraIds }));
       await onSave(payload, updates.length > 0 ? updates : undefined);
-      setDirty(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     }
@@ -592,7 +629,6 @@ function CameraForm({
                   value={latitudeText}
                   onChange={(e) => {
                     setLatitudeText(e.target.value);
-                    setDirty(true);
                     setFieldErrors((current) => ({
                       ...current,
                       latitude: undefined,
@@ -617,7 +653,6 @@ function CameraForm({
                   value={longitudeText}
                   onChange={(e) => {
                     setLongitudeText(e.target.value);
-                    setDirty(true);
                     setFieldErrors((current) => ({
                       ...current,
                       longitude: undefined,
@@ -641,7 +676,6 @@ function CameraForm({
                 type="checkbox"
                 checked={input.daylightOnly}
                 onChange={(e) => {
-                  setDirty(true);
                   setFieldErrors((current) => ({ ...current, daylight: undefined }));
                   setInput((s) => ({ ...s, daylightOnly: e.target.checked }));
                 }}
@@ -669,7 +703,6 @@ function CameraForm({
                 type="checkbox"
                 checked={input.showNight}
                 onChange={(e) => {
-                  setDirty(true);
                   setInput((s) => ({ ...s, showNight: e.target.checked }));
                 }}
                 data-testid="form-show-night"
@@ -691,7 +724,6 @@ function CameraForm({
                     data-testid={`group-checkbox-${g.id}`}
                     checked={groupMemberships[g.id] || false}
                     onChange={(e) => {
-                      setDirty(true);
                       setGroupMemberships((s) => ({ ...s, [g.id]: e.target.checked }));
                     }}
                   />
