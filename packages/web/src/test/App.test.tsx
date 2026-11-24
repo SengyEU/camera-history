@@ -172,6 +172,14 @@ describe("App widget", () => {
     expect(document.querySelector(".widget-header")).toBeNull();
   });
 
+  it("keeps old UUID widget links working", async () => {
+    window.history.pushState({}, "", `/widget/acme/${CAMERA_REF}?date=2026-09-18`);
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
+    expect(vi.mocked(getImages)).toHaveBeenCalledWith(CAMERA_REF, "2026-09-18");
+  });
+
   it("loads a camera by slug and uses its id for images", async () => {
     vi.mocked(getCamera).mockResolvedValue(makeCamera({ slug: "glacier-bowl" }));
     window.history.pushState({}, "", "/widget/acme/glacier-bowl?date=2026-09-18");

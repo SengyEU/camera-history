@@ -17,6 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { api, type AdminCamera, type AdminGroup } from "./api";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { EmbedCodePanel } from "./EmbedCodePanel";
 import { PageHeader } from "./PageHeader";
 import { embedSnippet, groupEmbedId, groupEmbedSrc } from "./embed";
@@ -36,6 +37,8 @@ export function GroupsView({
   groups,
   cameras,
   loading,
+  loadError,
+  onRetry,
   onNew,
   onEdit,
   onGroupsChange,
@@ -43,6 +46,8 @@ export function GroupsView({
   groups: AdminGroup[];
   cameras: AdminCamera[];
   loading: boolean;
+  loadError: string | null;
+  onRetry: () => void;
   onNew: () => void;
   onEdit: (group: AdminGroup) => void;
   onGroupsChange: () => void | Promise<unknown>;
@@ -81,7 +86,21 @@ export function GroupsView({
         )}
         {groups.length === 0 ? (
           loading ? (
-            <p className="loading">Loading…</p>
+            <div className="group-list" data-testid="groups-skeleton" aria-hidden="true">
+              {[0, 1].map((index) => (
+                <div className="group-card skeleton-card" key={index}>
+                  <span className="skeleton-line skeleton-line-title" />
+                  <span className="skeleton-line skeleton-line-short" />
+                  <span className="skeleton-line" />
+                </div>
+              ))}
+            </div>
+          ) : loadError ? (
+            <div className="empty-state" data-testid="groups-error">
+              <p className="empty-title">Groups couldn’t be loaded.</p>
+              <p>{loadError}</p>
+              <button onClick={onRetry}>Try again</button>
+            </div>
           ) : (
             <div className="empty-state" data-testid="groups-empty">
               <p className="empty-title">No groups yet</p>
@@ -139,21 +158,17 @@ export function GroupsView({
           </ul>
         )}
         {deleting !== null && (
-          <div className="modal">
-            <div className="modal-body">
-              <p>
-                Delete group &quot;{deleting.name}&quot;? Cameras stay — only the group goes away.
-              </p>
-              <div className="form-actions">
-                <button className="danger" onClick={() => void remove()} data-testid="confirm-delete-group">
-                  Delete
-                </button>
-                <button className="secondary" onClick={() => setDeleting(null)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmDialog
+            title="Delete group?"
+            confirmLabel="Delete"
+            confirmTestId="confirm-delete-group"
+            onConfirm={() => void remove()}
+            onCancel={() => setDeleting(null)}
+          >
+            <p>
+              Delete group &quot;{deleting.name}&quot;? Cameras stay — only the group goes away.
+            </p>
+          </ConfirmDialog>
         )}
       </section>
     </>
@@ -333,7 +348,14 @@ export function GroupEditor({
     try {
       await onSave({ name: name.trim(), slug, cameraIds });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      const message = err instanceof Error ? err.message : "Save failed";
+      if (/slug already taken/i.test(message)) {
+        setFieldErrors((current) => ({
+          ...current,
+          slug: "This slug is already used by another group.",
+        }));
+      }
+      setError(message);
     }
   };
 
@@ -363,7 +385,11 @@ export function GroupEditor({
             <p className="page-kicker">Groups</p>
             <h1>{group ? "Edit group" : "New group"}</h1>
           </div>
-          <span className={`editor-save-state${dirty ? " is-dirty" : ""}`}>
+          <span
+            className={`editor-save-state${dirty ? " is-dirty" : ""}`}
+            role="status"
+            aria-live="polite"
+          >
             {dirty ? "Unsaved changes" : group ? "Saved" : "Not saved yet"}
           </span>
         </div>

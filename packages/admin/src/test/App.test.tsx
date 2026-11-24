@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
@@ -444,6 +444,46 @@ describe("App camera CRUD", () => {
     expect(screen.getByRole("link", { name: "Upgrade" })).toHaveAttribute("href", "#/billing");
   });
 
+  it("shows a camera loading error and retries", async () => {
+    let camerasCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) {
+          camerasCalls += 1;
+          if (camerasCalls === 1) return jsonResponse({ cameras: [] });
+          if (camerasCalls === 2) return jsonResponse({ detail: "temporary" }, 503);
+          return jsonResponse({ cameras: [camera()] });
+        }
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({
+            tenant: {
+              id: "t1",
+              name: "Acme",
+              slug: "acme",
+              packageCode: "starter",
+              cameraLimit: 3,
+              billingStatus: "active",
+              isPilot: false,
+              pilotUntil: null,
+            },
+          });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    const error = await screen.findByTestId("cameras-error");
+    expect(error).toHaveTextContent("Cameras couldn’t be loaded.");
+
+    await userEvent.click(within(error).getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Beach cam")).toBeInTheDocument();
+    expect(screen.queryByTestId("cameras-error")).not.toBeInTheDocument();
+  });
+
   it("opens the camera editor as a separate page with a back link", async () => {
     const { fn } = listServer();
     vi.stubGlobal("fetch", fn);
@@ -882,17 +922,25 @@ describe("App camera CRUD", () => {
 });
 
 describe("App registration", () => {
-  const registerServer = (registerStatus = 201, detail = "tenant slug already taken") =>
-    vi.fn(async (url: RequestInfo | URL) => {
+  const registerServer = (registerStatus = 201, detail = "tenant slug already taken") => {
+    let registered = false;
+    return vi.fn(async (url: RequestInfo | URL) => {
       const u = String(url);
-      if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+      if (u.endsWith("/api/v1/admin/cameras")) {
+        return registered
+          ? jsonResponse({ cameras: [] })
+          : jsonResponse({ detail: "unauthorized" }, 401);
+      }
+      if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
       if (u.endsWith("/api/v1/auth/logout")) return jsonResponse({ status: "ok" });
       if (u.endsWith("/api/v1/auth/register")) {
         if (registerStatus !== 201) return jsonResponse({ detail }, registerStatus);
+        registered = true;
         return jsonResponse({ status: "created", tenantId: "t1", billing: { required: false } }, 201);
       }
       return jsonResponse({ detail: "not found" }, 404);
     });
+  };
 
   it("registers and lands on the empty camera list", async () => {
     vi.stubGlobal("fetch", registerServer());

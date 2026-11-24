@@ -505,6 +505,87 @@ button.link:hover {
   letter-spacing: -0.01em;
 }
 
+.confirm-dialog {
+  width: min(460px, 100%);
+  min-width: 0;
+}
+
+.confirm-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.confirm-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.confirm-copy strong {
+  color: var(--ink);
+}
+
+/* Loading skeletons */
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-media,
+.skeleton-line {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--snow) 25%,
+    color-mix(in srgb, var(--snow) 45%, var(--surface)) 50%,
+    var(--snow) 75%
+  );
+  background-size: 200% 100%;
+  animation: admin-skeleton 1.4s ease-in-out infinite;
+}
+
+.skeleton-media {
+  aspect-ratio: 16 / 9;
+  min-height: 150px;
+  border-bottom: 1px solid var(--line);
+}
+
+.skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.skeleton-line {
+  width: 100%;
+  height: 10px;
+  border-radius: 6px;
+}
+
+.skeleton-line-title {
+  width: 58%;
+  height: 15px;
+}
+
+.skeleton-line-short {
+  width: 36%;
+}
+
+.skeleton-line-button {
+  width: 104px;
+  height: 34px;
+  margin-top: 4px;
+  border-radius: 8px;
+}
+
+@keyframes admin-skeleton {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
 .modal-body label {
   display: flex;
   flex-direction: column;

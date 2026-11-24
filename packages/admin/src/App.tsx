@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, FEED_LABELS, FEED_TYPES, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
 import { BillingPage } from "./Billing";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { EmbedCodePanel } from "./EmbedCodePanel";
 import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
 import { formatAge, formatDate, formatDateTime } from "./format";
@@ -481,7 +482,14 @@ function CameraForm({
         .map((g) => ({ groupId: g.id, selected: groupMemberships[g.id] || false, cameraIds: g.cameraIds }));
       await onSave(payload, updates.length > 0 ? updates : undefined);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      const message = err instanceof Error ? err.message : "Save failed";
+      if (/slug already taken/i.test(message)) {
+        setFieldErrors((current) => ({
+          ...current,
+          slug: "This slug is already used by another camera.",
+        }));
+      }
+      setError(message);
     }
   };
 
@@ -531,7 +539,11 @@ function CameraForm({
             <p className="page-kicker">Cameras</p>
             <h1>{initial.name ? "Edit camera" : "New camera"}</h1>
           </div>
-          <span className={`editor-save-state${dirty ? " is-dirty" : ""}`}>
+          <span
+            className={`editor-save-state${dirty ? " is-dirty" : ""}`}
+            role="status"
+            aria-live="polite"
+          >
             {dirty ? "Unsaved changes" : cameraId ? "Saved" : "Not saved yet"}
           </span>
         </div>
@@ -1160,6 +1172,8 @@ export function App() {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [camerasLoading, setCamerasLoading] = useState(true);
   const [groupsLoading, setGroupsLoading] = useState(true);
+  const [camerasError, setCamerasError] = useState<string | null>(null);
+  const [groupsError, setGroupsError] = useState<string | null>(null);
   const [tenantSlug, setTenantSlug] = useState<string>("");
   const [tenantCameraLimit, setTenantCameraLimit] = useState<number>(3);
   const [tenantBilling, setTenantBilling] = useState<{
@@ -1219,15 +1233,17 @@ export function App() {
     };
   }, []);
 
-  const reloadGroups = useCallback(
-    () =>
-      api
-        .listGroups()
-        .then(setGroups)
-        .catch(() => undefined)
-        .finally(() => setGroupsLoading(false)),
-    [],
-  );
+  const reloadGroups = useCallback(async () => {
+    setGroupsLoading(true);
+    setGroupsError(null);
+    try {
+      setGroups(await api.listGroups());
+    } catch {
+      setGroupsError("Groups couldn’t be loaded. Check your connection and try again.");
+    } finally {
+      setGroupsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (view === "groups") reloadGroups();
@@ -1254,10 +1270,13 @@ export function App() {
   }, [email, view]);
 
   const refresh = useCallback(async () => {
+    setCamerasLoading(true);
+    setCamerasError(null);
     try {
       setCameras(await api.listCameras());
     } catch {
       setCameras([]);
+      setCamerasError("Cameras couldn’t be loaded. Check your connection and try again.");
     } finally {
       setCamerasLoading(false);
     }
@@ -1584,13 +1603,15 @@ export function App() {
            )
          ) : (
            <GroupsView
-             cameras={cameras}
-             groups={groups}
-             loading={groupsLoading}
-             onNew={openNewGroup}
-             onEdit={(group) => openGroup(group.id)}
-             onGroupsChange={reloadGroups}
-           />
+              cameras={cameras}
+              groups={groups}
+              loading={groupsLoading}
+              loadError={groupsError}
+              onRetry={() => void reloadGroups()}
+              onNew={openNewGroup}
+              onEdit={(group) => openGroup(group.id)}
+              onGroupsChange={reloadGroups}
+            />
          )
        ) : cameraRoute !== null ? (
          editing !== null ? (
@@ -1644,7 +1665,25 @@ export function App() {
           </PageHeader>
           <section className="panel">
             {camerasLoading && cameras.length === 0 ? (
-              <p className="loading">Loading…</p>
+              <div className="camera-grid" data-testid="cameras-skeleton" aria-hidden="true">
+                {[0, 1, 2].map((index) => (
+                  <div className="camera-card skeleton-card" key={index}>
+                    <div className="skeleton-media" />
+                    <div className="skeleton-body">
+                      <span className="skeleton-line skeleton-line-title" />
+                      <span className="skeleton-line" />
+                      <span className="skeleton-line skeleton-line-short" />
+                      <span className="skeleton-line skeleton-line-button" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : camerasError && cameras.length === 0 ? (
+              <div className="empty-state" data-testid="cameras-error">
+                <p className="empty-title">Cameras couldn’t be loaded.</p>
+                <p>{camerasError}</p>
+                <button onClick={() => void refresh()}>Try again</button>
+              </div>
             ) : cameras.length === 0 ? (
               <div className="empty-state" data-testid="empty-state">
                 <p className="empty-title">No cameras yet</p>
@@ -1677,21 +1716,17 @@ export function App() {
         </>
       )}
       {confirming !== null && (
-        <div className="modal">
-          <div className="modal-body">
-            <p>
-              Delete camera <strong>{confirming.name}</strong>? This also deletes all of its images.
-            </p>
-            <div className="form-actions">
-              <button className="danger" onClick={() => void removeCamera(confirming)} data-testid="confirm-delete">
-                Delete
-              </button>
-              <button className="secondary" onClick={() => setConfirming(null)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Delete camera?"
+          confirmLabel="Delete"
+          confirmTestId="confirm-delete"
+          onConfirm={() => void removeCamera(confirming)}
+          onCancel={() => setConfirming(null)}
+        >
+          <p>
+            Delete camera <strong>{confirming.name}</strong>? This also deletes all of its images.
+          </p>
+        </ConfirmDialog>
       )}
     </main>
   );
