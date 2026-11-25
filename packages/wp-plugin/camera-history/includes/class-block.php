@@ -17,6 +17,7 @@ class Ch_Block {
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register' ) );
 		add_action( 'enqueue_block_editor_assets', array( __CLASS__, 'enqueue' ) );
+		add_action( 'enqueue_block_assets', array( __CLASS__, 'enqueue_embed' ) );
 	}
 
 	/**
@@ -69,6 +70,19 @@ class Ch_Block {
 	}
 
 	/**
+	 * Load the resize helper inside the editor canvas iframe as well.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_embed() {
+		if ( ! is_admin() ) {
+			return;
+		}
+		$base = untrailingslashit( (string) get_option( Ch_Client::OPT_BASE_URL, Ch_Client::DEFAULT_BASE_URL ) );
+		wp_enqueue_script( 'camera-history-embed', $base . '/embed.js', array(), null, true );
+	}
+
+	/**
 	 * @return void
 	 */
 	public static function enqueue() {
@@ -92,6 +106,9 @@ class Ch_Block {
 			array(),
 			'3.0.0'
 		);
+
+		$base = untrailingslashit( (string) get_option( Ch_Client::OPT_BASE_URL, Ch_Client::DEFAULT_BASE_URL ) );
+		wp_enqueue_script( 'camera-history-embed', $base . '/embed.js', array(), null, true );
 
 		$client  = new Ch_Client();
 		$cameras = $client->list_cameras();
