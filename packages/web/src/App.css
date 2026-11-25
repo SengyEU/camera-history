@@ -2,6 +2,7 @@
 
 :root,
 :root[data-theme="light"] {
+  --bg: var(--theme-light-bg);
   --surface: var(--theme-light-surface);
   --ink: var(--theme-light-ink);
   --muted: var(--theme-light-muted);
@@ -13,6 +14,7 @@
 }
 
 :root[data-theme="dark"] {
+  --bg: var(--theme-dark-bg);
   --surface: var(--theme-dark-surface);
   --ink: var(--theme-dark-ink);
   --muted: var(--theme-dark-muted);
@@ -24,6 +26,7 @@
 }
 
 :root[data-theme="forest"] {
+  --bg: var(--theme-forest-bg);
   --surface: var(--theme-forest-surface);
   --ink: var(--theme-forest-ink);
   --muted: var(--theme-forest-muted);
@@ -35,6 +38,7 @@
 }
 
 :root[data-theme="midnight"] {
+  --bg: var(--theme-midnight-bg);
   --surface: var(--theme-midnight-surface);
   --ink: var(--theme-midnight-ink);
   --muted: var(--theme-midnight-muted);
@@ -57,7 +61,7 @@
 }
 
 html, body { overflow-x: hidden; }
-body { margin: 0; font-family: var(--widget-font, var(--font-ui)); background: transparent; color: var(--ink); }
+body { margin: 0; font-family: var(--widget-font, var(--font-ui)); background: var(--bg, transparent); color: var(--ink); }
 
 .widget {
   --font-technical: var(--widget-font, var(--font-ui));

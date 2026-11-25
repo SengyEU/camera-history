@@ -501,8 +501,8 @@ button:focus-visible {
   background: var(--color-night);
 }
 
-/* The widget body is transparent so it inherits its host page. On the landing
-   the host is this dark showcase, so paint the midnight preset behind it. */
+/* Backdrop for the iframe while the widget boots. Preset themes paint their
+   own background once loaded; custom themes stay transparent. */
 .cam-frame::before {
   content: "";
   position: absolute;
@@ -675,13 +675,6 @@ button:focus-visible {
 .why-list li {
   padding: var(--space-5) 0;
   border-bottom: 1px solid var(--color-line);
-}
-
-/* Drop the closing rule after the last item; it reads as a stray hairline,
-   especially when the next band starts with a zigzag cut. */
-.manifesto-list li:last-child,
-.why-list li:last-child {
-  border-bottom: 0;
 }
 
 .manifesto-list p {

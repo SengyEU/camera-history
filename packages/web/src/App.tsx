@@ -490,11 +490,13 @@ export function App() {
     const root = document.documentElement;
     if (!customTheme || root.dataset.themeOverride === "1") return;
     root.style.setProperty("--widget-custom-theme", "1");
+    root.style.setProperty("--bg", "transparent");
     for (const [key, cssVar] of Object.entries(CUSTOM_THEME_VARS)) {
       root.style.setProperty(cssVar, customTheme[key as keyof ThemeColors]);
     }
     return () => {
       for (const cssVar of Object.values(CUSTOM_THEME_VARS)) root.style.removeProperty(cssVar);
+      root.style.removeProperty("--bg");
       root.style.removeProperty("--widget-custom-theme");
     };
   }, [customTheme]);
