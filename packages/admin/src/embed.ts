@@ -2,16 +2,16 @@ export function groupEmbedSrc(tenantSlug: string, slug: string): string {
   return `${window.location.origin}/group/${tenantSlug}/${slug}`;
 }
 
-export function cameraEmbedSrc(tenantSlug: string, cameraId: string): string {
-  return `${window.location.origin}/widget/${tenantSlug}/${cameraId}`;
+export function cameraEmbedSrc(tenantSlug: string, cameraSlug: string): string {
+  return `${window.location.origin}/widget/${tenantSlug}/${cameraSlug}`;
 }
 
 export function groupEmbedId(tenantSlug: string, slug: string): string {
   return `camera-history-group-${tenantSlug}-${slug}`;
 }
 
-export function cameraEmbedId(tenantSlug: string, cameraId: string): string {
-  return `camera-history-widget-${tenantSlug}-${cameraId}`;
+export function cameraEmbedId(tenantSlug: string, cameraSlug: string): string {
+  return `camera-history-widget-${tenantSlug}-${cameraSlug}`;
 }
 
 function escapeHtmlAttribute(value: string): string {

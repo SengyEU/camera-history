@@ -128,24 +128,6 @@
       });
   }
 
-  function isOpaque(color) {
-    return Boolean(color) && color !== "rgba(0, 0, 0, 0)" && color !== "transparent";
-  }
-
-  function pageBackgroundColor(frame) {
-    var el = frame ? frame.parentElement : null;
-    while (el) {
-      var background = window.getComputedStyle(el).backgroundColor;
-      if (isOpaque(background)) return background;
-      el = el.parentElement;
-    }
-    var body = window.getComputedStyle(document.body).backgroundColor;
-    if (isOpaque(body)) return body;
-    var html = window.getComputedStyle(document.documentElement).backgroundColor;
-    if (isOpaque(html)) return html;
-    return "";
-  }
-
   function frameFor(source) {
     var frames = widgetFrames();
     for (var i = 0; i < frames.length; i += 1) {
@@ -185,7 +167,6 @@
         type: FONT,
         fontFamily: window.getComputedStyle(document.body).fontFamily,
         fontLinks: fontLinks(),
-        backgroundColor: pageBackgroundColor(target),
       },
       "*",
     );

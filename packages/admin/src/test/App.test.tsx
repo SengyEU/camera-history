@@ -950,10 +950,10 @@ describe("App camera CRUD", () => {
     await userEvent.click(screen.getByTestId("add-camera"));
     await userEvent.click(screen.getByTestId("form-theme-custom"));
     expect(screen.getByTestId("custom-theme-fields")).toBeInTheDocument();
-    expect(screen.getByTestId("form-color-bg")).toHaveValue("#f8fafb");
+    expect(screen.getByTestId("form-color-surface")).toHaveValue("#ffffff");
 
     fireEvent.change(screen.getByTestId("form-color-ink"), { target: { value: "#ffffff" } });
-    expect(screen.getByTestId("contrast-warnings")).toHaveTextContent("Text on background");
+    expect(screen.getByTestId("contrast-warnings")).toHaveTextContent("Text on surface");
 
     await userEvent.type(screen.getByTestId("form-name"), "Custom cam");
     await userEvent.click(screen.getByTestId("form-submit"));
@@ -968,7 +968,7 @@ describe("App camera CRUD", () => {
     };
     expect(body.theme).toBe("custom");
     expect(body.themeColors.ink).toBe("#ffffff");
-    expect(body.themeColors.bg).toBe("#f8fafb");
+    expect(body.themeColors.surface).toBe("#ffffff");
   });
 
   it("saves theme changes automatically without pressing save", async () => {
@@ -997,7 +997,7 @@ describe("App camera CRUD", () => {
       themeColors: Record<string, string>;
     };
     expect(body.theme).toBe("custom");
-    expect(body.themeColors.bg).toBe("#f8fafb");
+    expect(body.themeColors.surface).toBe("#ffffff");
     expect(await screen.findByTestId("theme-save-state")).toHaveTextContent("Theme saved");
   });
 
@@ -1071,7 +1071,7 @@ describe("App camera CRUD", () => {
   });
 
   it("copies an embed snippet for an individual camera", async () => {
-    const { fn } = listServer();
+    const { fn } = listServer({ slug: "glacier-bowl" });
     vi.stubGlobal("fetch", fn);
     const writeText = vi.fn(async (_text: string) => {});
     Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
@@ -1083,15 +1083,15 @@ describe("App camera CRUD", () => {
     expect(writeText).toHaveBeenCalledTimes(1);
     const snippet = writeText.mock.calls[0]![0];
     expect(snippet).toContain(`${window.location.origin}/embed.js`);
-    expect(snippet).toContain("/widget/acme/cam-1");
-    expect(snippet).toContain('id="camera-history-widget-acme-cam-1"');
+    expect(snippet).toContain("/widget/acme/glacier-bowl");
+    expect(snippet).toContain('id="camera-history-widget-acme-glacier-bowl"');
     expect(snippet).toContain('title="Beach cam — Camera History"');
     expect(snippet).toContain('loading="lazy"');
     await waitFor(() => expect(screen.getByTestId("embed-cam-1")).toHaveTextContent("Copied"));
   });
 
   it("shows and copies the camera embed code in the editor", async () => {
-    const { fn } = listServer();
+    const { fn } = listServer({ slug: "glacier-bowl" });
     vi.stubGlobal("fetch", fn);
     const writeText = vi.fn(async (_text: string) => {});
     Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
@@ -1100,18 +1100,18 @@ describe("App camera CRUD", () => {
 
     await userEvent.click(screen.getByTestId("edit-cam-1"));
 
-    expect(await screen.findByTestId("camera-embed")).toHaveTextContent("/widget/acme/cam-1");
+    expect(await screen.findByTestId("camera-embed")).toHaveTextContent("/widget/acme/glacier-bowl");
     expect(screen.getByTestId("camera-preview")).toHaveAttribute(
       "src",
       expect.stringContaining("noembed=1"),
     );
     expect(screen.getByTestId("camera-embed-hint")).toHaveTextContent(
-      "#camera-history-widget-acme-cam-1",
+      "#camera-history-widget-acme-glacier-bowl",
     );
 
     await userEvent.click(screen.getByTestId("camera-embed-copy"));
     expect(writeText).toHaveBeenCalledWith(
-      expect.stringContaining('id="camera-history-widget-acme-cam-1"'),
+      expect.stringContaining('id="camera-history-widget-acme-glacier-bowl"'),
     );
     await waitFor(() => expect(screen.getByTestId("camera-embed-copy")).toHaveTextContent("Copied"));
   });

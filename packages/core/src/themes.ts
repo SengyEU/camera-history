@@ -11,7 +11,6 @@ export function isValidTheme(theme: string): theme is Theme {
 }
 
 export const THEME_COLOR_KEYS = [
-  "bg",
   "surface",
   "ink",
   "muted",
@@ -44,7 +43,6 @@ export function normalizeThemeColors(input: unknown): ThemeColors | null {
 }
 
 export const DEFAULT_THEME_COLORS: ThemeColors = {
-  bg: "#f8fafb",
   surface: "#ffffff",
   ink: "#101828",
   muted: "#5b6b7c",

@@ -276,7 +276,6 @@ describe("admin cameras", () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);
     const colors = {
-      bg: "#101010",
       surface: "#1a1a1a",
       ink: "#f5f5f5",
       muted: "#b0b0b0",
@@ -326,7 +325,7 @@ describe("admin cameras", () => {
         feedUrl: "https://example.com/cam.jpg",
         intervalMinutes: 15,
         theme: "custom",
-        themeColors: { ...colors, bg: "red" },
+        themeColors: { ...colors, ink: "red" },
       },
     });
     expect(invalid.statusCode).toBe(400);

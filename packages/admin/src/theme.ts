@@ -1,7 +1,6 @@
 import type { ThemeColors } from "./api";
 
 export const THEME_COLOR_FIELDS: Array<{ key: keyof ThemeColors; label: string }> = [
-  { key: "bg", label: "Background" },
   { key: "surface", label: "Surface" },
   { key: "ink", label: "Text" },
   { key: "muted", label: "Muted text" },
@@ -13,7 +12,6 @@ export const THEME_COLOR_FIELDS: Array<{ key: keyof ThemeColors; label: string }
 ];
 
 export const DEFAULT_THEME_COLORS: ThemeColors = {
-  bg: "#f8fafb",
   surface: "#ffffff",
   ink: "#101828",
   muted: "#5b6b7c",
@@ -39,9 +37,7 @@ export function contrastRatio(a: string, b: string): number {
 }
 
 const CONTRAST_PAIRS: Array<{ label: string; foreground: keyof ThemeColors; background: keyof ThemeColors }> = [
-  { label: "Text on background", foreground: "ink", background: "bg" },
   { label: "Text on surface", foreground: "ink", background: "surface" },
-  { label: "Muted text on background", foreground: "muted", background: "bg" },
   { label: "Muted text on surface", foreground: "muted", background: "surface" },
   { label: "Text on accent", foreground: "onAccent", background: "accent" },
   { label: "Text on pine", foreground: "onPine", background: "pine" },

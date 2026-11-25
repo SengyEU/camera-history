@@ -21,7 +21,6 @@ interface FontMessage {
   type?: string;
   fontFamily?: string;
   fontLinks?: string[];
-  backgroundColor?: string;
 }
 
 interface ThemeMessage {
@@ -32,7 +31,6 @@ interface ThemeMessage {
 
 const PRESET_THEMES = ["light", "dark", "forest", "midnight"];
 const CUSTOM_THEME_VARS: Record<string, string> = {
-  bg: "--bg",
   surface: "--surface",
   ink: "--ink",
   muted: "--muted",
@@ -49,7 +47,6 @@ function applyThemeOverride(root: HTMLElement, data: ThemeMessage): void {
   for (const cssVar of Object.values(CUSTOM_THEME_VARS)) {
     root.style.removeProperty(cssVar);
   }
-  root.style.removeProperty("--widget-bg");
   root.style.removeProperty("--widget-custom-theme");
   root.dataset.themeOverride = "1";
 
@@ -63,7 +60,6 @@ function applyThemeOverride(root: HTMLElement, data: ThemeMessage): void {
     for (const [key, cssVar] of Object.entries(CUSTOM_THEME_VARS)) {
       root.style.setProperty(cssVar, colors[key]!);
     }
-    root.style.setProperty("--widget-bg", colors.bg!);
     root.style.setProperty("--widget-custom-theme", "1");
     return;
   }
@@ -170,15 +166,6 @@ export function setupEmbedResize(): void {
     if (typeof data.fontFamily === "string" && data.fontFamily.trim()) {
       const family = data.fontFamily.replace(/[;{}<>]/g, "").trim().slice(0, 300);
       document.documentElement.style.setProperty("--widget-font", family);
-    }
-    if (
-      typeof data.backgroundColor === "string" &&
-      document.documentElement.style.getPropertyValue("--widget-custom-theme") !== "1"
-    ) {
-      const background = data.backgroundColor.trim();
-      if (/^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([^)]*\))$/i.test(background)) {
-        document.documentElement.style.setProperty("--widget-bg", background);
-      }
     }
     // The parent script may load after the iframe; re-report our height even if
     // an earlier retry already sent the same value.

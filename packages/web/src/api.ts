@@ -1,7 +1,6 @@
 import type { TimeFormat } from "./time";
 
 export interface ThemeColors {
-  bg: string;
   surface: string;
   ink: string;
   muted: string;

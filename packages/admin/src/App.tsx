@@ -298,11 +298,12 @@ function CameraForm({
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
-  const embedId = cameraId && tenantSlug ? cameraEmbedId(tenantSlug, cameraId) : "";
+  const embedId =
+    cameraId && tenantSlug && input.slug ? cameraEmbedId(tenantSlug, input.slug) : "";
   const embedCode =
-    cameraId && tenantSlug
+    cameraId && tenantSlug && input.slug
       ? embedSnippet(
-          cameraEmbedSrc(tenantSlug, input.slug || cameraId),
+          cameraEmbedSrc(tenantSlug, input.slug),
           embedId,
           `${initial.name || "Camera"} — Camera History`,
         )
@@ -891,9 +892,9 @@ function CameraCard({
 
   const copyEmbed = () => {
     if (!tenantSlug) return;
-    const id = cameraEmbedId(tenantSlug, cam.id);
+    const id = cameraEmbedId(tenantSlug, cam.slug);
     const snippet = embedSnippet(
-      cameraEmbedSrc(tenantSlug, cam.slug || cam.id),
+      cameraEmbedSrc(tenantSlug, cam.slug),
       id,
       `${cam.name} — Camera History`,
     );

@@ -20,7 +20,6 @@ describe("themes", () => {
 
   it("normalizes complete custom color sets only", () => {
     const colors = {
-      bg: "#101010",
       surface: "#1a1a1a",
       ink: "#f5f5f5",
       muted: "#b0b0b0",
@@ -31,7 +30,7 @@ describe("themes", () => {
       onPine: "#06231a",
     };
     expect(normalizeThemeColors(colors)).toEqual(colors);
-    expect(normalizeThemeColors({ ...colors, bg: "red" })).toBeNull();
+    expect(normalizeThemeColors({ ...colors, ink: "red" })).toBeNull();
     expect(normalizeThemeColors({ ...colors, surface: undefined })).toBeNull();
   });
 });

@@ -2,7 +2,6 @@ export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
 export type CameraStatus = "operational" | "delayed" | "offline";
 
 export interface ThemeColors {
-  bg: string;
   surface: string;
   ink: string;
   muted: string;

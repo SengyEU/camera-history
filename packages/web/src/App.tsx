@@ -39,7 +39,6 @@ function resolveTheme(query: URLSearchParams, cameraTheme: string | undefined): 
 }
 
 const CUSTOM_THEME_VARS: Record<keyof ThemeColors, string> = {
-  bg: "--bg",
   surface: "--surface",
   ink: "--ink",
   muted: "--muted",
@@ -491,13 +490,11 @@ export function App() {
     const root = document.documentElement;
     if (!customTheme || root.dataset.themeOverride === "1") return;
     root.style.setProperty("--widget-custom-theme", "1");
-    root.style.setProperty("--widget-bg", customTheme.bg);
     for (const [key, cssVar] of Object.entries(CUSTOM_THEME_VARS)) {
       root.style.setProperty(cssVar, customTheme[key as keyof ThemeColors]);
     }
     return () => {
       for (const cssVar of Object.values(CUSTOM_THEME_VARS)) root.style.removeProperty(cssVar);
-      root.style.removeProperty("--widget-bg");
       root.style.removeProperty("--widget-custom-theme");
     };
   }, [customTheme]);
