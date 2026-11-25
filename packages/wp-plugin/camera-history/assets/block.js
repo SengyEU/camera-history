@@ -1,15 +1,14 @@
-(function (blocks, element, blockEditor, components, serverSideRender, i18n) {
+(function (blocks, element, blockEditor, components, i18n) {
 	"use strict";
 
 	var el = element.createElement;
 	var Fragment = element.Fragment;
 	var InspectorControls = blockEditor.InspectorControls;
+	var useBlockProps = blockEditor.useBlockProps;
 	var PanelBody = components.PanelBody;
 	var SelectControl = components.SelectControl;
 	var TextControl = components.TextControl;
 	var Notice = components.Notice;
-	var ServerSideRender =
-		serverSideRender && serverSideRender.default ? serverSideRender.default : serverSideRender;
 
 	function targetOptions(type, data) {
 		var items = type === "group" ? data.groups || [] : data.cameras || [];
@@ -26,8 +25,24 @@
 		return options;
 	}
 
+	function previewUrl(attributes, data) {
+		if (!data.tenantSlug || !attributes.slug) return "";
+		var type = attributes.type === "group" ? "group" : "camera";
+		var url =
+			(data.apiUrl || "https://camera.sengycraft.cz").replace(/\/+$/, "") +
+			(type === "group" ? "/group/" : "/widget/") +
+			encodeURIComponent(data.tenantSlug) +
+			"/" +
+			encodeURIComponent(attributes.slug);
+		if (attributes.theme) {
+			url += "?theme=" + encodeURIComponent(attributes.theme);
+		}
+		return url;
+	}
+
 	blocks.registerBlockType("camera-history/widget", {
 		apiVersion: 2,
+		supports: { layout: true },
 		title: i18n.__("Camera History", "camera-history"),
 		description: i18n.__("Embed a camera history or a group switcher.", "camera-history"),
 		icon: "camera",
@@ -41,10 +56,12 @@
 			theme: { type: "string", default: "" },
 		},
 		edit: function (props) {
-			var data = window.chBlockData || { cameras: [], groups: [] };
+			var data = window.chBlockData || { cameras: [], groups: [], tenantSlug: "", apiUrl: "" };
+			var blockProps = useBlockProps({ className: "ch-block-preview" });
 			var type = props.attributes.type || "camera";
 			var target = type === "group" ? "Group" : "Camera";
 			var hasTargets = (type === "group" ? data.groups : data.cameras || []).length > 0;
+			var src = previewUrl(props.attributes, data);
 
 			return el(
 				Fragment,
@@ -106,9 +123,14 @@
 				),
 				el(
 					"div",
-					{ className: "ch-block-preview" },
-					data.error
-						? el(Notice, { status: "warning", isDismissible: false }, data.error)
+					blockProps,
+					data.error ? el(Notice, { status: "warning", isDismissible: false }, data.error) : null,
+					!data.tenantSlug
+						? el(
+								Notice,
+								{ status: "warning", isDismissible: false },
+								i18n.__("Set your workspace slug in Camera History → Settings.", "camera-history")
+							)
 						: null,
 					!hasTargets
 						? el(
@@ -120,10 +142,14 @@
 								)
 							)
 						: null,
-					props.attributes.slug
-						? el(ServerSideRender, {
-								block: "camera-history/widget",
-								attributes: props.attributes,
+					src
+						? el("iframe", {
+								src: src,
+								width: "100%",
+								height: props.attributes.height || "720",
+								style: { border: 0 },
+								title: i18n.__("Camera History preview", "camera-history"),
+								loading: "lazy",
 							})
 						: el(
 								"p",
@@ -137,11 +163,4 @@
 			return null;
 		},
 	});
-})(
-	window.wp.blocks,
-	window.wp.element,
-	window.wp.blockEditor,
-	window.wp.components,
-	window.wp.serverSideRender,
-	window.wp.i18n
-);
+})(window.wp.blocks, window.wp.element, window.wp.blockEditor, window.wp.components, window.wp.i18n);

@@ -28,6 +28,7 @@ class Ch_Block {
 			self::NAME,
 			array(
 				'api_version'     => 2,
+				'supports'        => array( 'layout' => true ),
 				'attributes'      => array(
 					'type'   => array(
 						'type'    => 'string',
@@ -79,7 +80,7 @@ class Ch_Block {
 			return;
 		}
 		$base = untrailingslashit( CH_API_URL );
-		wp_enqueue_script( 'camera-history-embed', $base . '/embed.js', array(), null, true );
+		wp_enqueue_script( 'camera-history-embed', $base . '/embed.js?v=' . CH_VERSION, array(), null, true );
 	}
 
 	/**
@@ -94,7 +95,6 @@ class Ch_Block {
 				'wp-element',
 				'wp-block-editor',
 				'wp-components',
-				'wp-server-side-render',
 				'wp-i18n',
 			),
 			'3.0.0',
@@ -108,7 +108,7 @@ class Ch_Block {
 		);
 
 		$base = untrailingslashit( CH_API_URL );
-		wp_enqueue_script( 'camera-history-embed', $base . '/embed.js', array(), null, true );
+		wp_enqueue_script( 'camera-history-embed', $base . '/embed.js?v=' . CH_VERSION, array(), null, true );
 
 		$client  = new Ch_Client();
 		$cameras = $client->list_cameras();
@@ -119,9 +119,11 @@ class Ch_Block {
 			'camera-history-block',
 			'chBlockData',
 			array(
-				'cameras' => is_wp_error( $cameras ) ? array() : $cameras,
-				'groups'  => is_wp_error( $groups ) ? array() : $groups,
-				'error'   => $error,
+				'apiUrl'     => untrailingslashit( CH_API_URL ),
+				'tenantSlug' => (string) get_option( Ch_Client::OPT_SLUG, '' ),
+				'cameras'    => is_wp_error( $cameras ) ? array() : $cameras,
+				'groups'     => is_wp_error( $groups ) ? array() : $groups,
+				'error'      => $error,
 			)
 		);
 	}

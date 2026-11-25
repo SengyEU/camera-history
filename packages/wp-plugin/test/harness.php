@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 define( 'ABSPATH', 'unittest/' );
 define( 'CH_API_URL', 'https://camera.sengycraft.cz' );
+define( 'CH_VERSION', '3.1.0' );
 $GLOBALS['ch_options']   = array();
 $GLOBALS['ch_scripts']   = array();
 $GLOBALS['ch_http']      = null;
@@ -125,7 +126,7 @@ check( 'iframe builds camera source', strpos( $html, 'src="https://camera.sengyc
 check( 'iframe defaults width/height', strpos( $html, 'width="100%"' ) !== false && strpos( $html, 'height="720"' ) !== false );
 check( 'iframe includes attrs', strpos( $html, 'allowfullscreen' ) !== false && strpos( $html, 'loading="lazy"' ) !== false );
 check( 'embed helper enqueued', isset( $GLOBALS['ch_scripts']['camera-history-embed'] ) );
-check( 'embed helper follows API base', ( $GLOBALS['ch_scripts']['camera-history-embed']['src'] ?? '' ) === 'https://camera.sengycraft.cz/embed.js' );
+check( 'embed helper follows API base', ( $GLOBALS['ch_scripts']['camera-history-embed']['src'] ?? '' ) === 'https://camera.sengycraft.cz/embed.js?v=3.1.0' );
 
 $group_html = Ch_Renderer::iframe( 'group', 'summit', '80%', '600', 'dark' );
 check( 'group iframe uses group path and theme', strpos( $group_html, '/group/acme-basins/summit?theme=dark' ) !== false );

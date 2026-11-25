@@ -45,7 +45,7 @@ class Ch_Renderer {
 		}
 
 		$base      = untrailingslashit( CH_API_URL );
-		$embed_url = $base . '/embed.js';
+		$embed_url = $base . '/embed.js?v=' . CH_VERSION;
 
 		wp_enqueue_script( 'camera-history-embed', $embed_url, array(), null, true );
 
