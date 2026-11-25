@@ -476,7 +476,7 @@ button:focus-visible {
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--color-on-dark) 12%, transparent);
   border-radius: var(--radius-2xl);
-  background: var(--color-night);
+  background: var(--theme-midnight-bg);
   color: var(--color-on-dark);
   box-shadow: 0 28px 80px color-mix(in srgb, var(--color-night) 38%, transparent);
 }
@@ -498,16 +498,6 @@ button:focus-visible {
 .cam-frame {
   position: relative;
   padding: 8px;
-  background: var(--color-night);
-}
-
-/* The widget body is transparent so it inherits its host page. On the landing
-   the host is this dark showcase, so paint the midnight preset behind it. */
-.cam-frame::before {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border-radius: var(--radius-md);
   background: var(--theme-midnight-bg);
 }
 
