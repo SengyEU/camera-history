@@ -430,7 +430,8 @@ describe("App dashboard", () => {
     expect(await screen.findByTestId("pilot-badge")).toHaveTextContent("Pilot · free until");
     expect(screen.queryByText(/Pilot account — free until/i)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Cameras" })).toBeInTheDocument();
-    expect(screen.getByTestId("add-camera")).toBeInTheDocument();
+    expect(screen.getByTestId("empty-add-camera")).toBeInTheDocument();
+    expect(screen.queryByTestId("add-camera")).not.toBeInTheDocument();
   });
 
   it("logs out back to the login screen", async () => {
@@ -652,6 +653,7 @@ describe("App camera CRUD", () => {
       "Starter includes up to 3 cameras. You’re using 0 of 3.",
     );
     expect(screen.getByRole("heading", { name: "Your first camera" })).toBeInTheDocument();
+    expect(screen.queryByTestId("add-camera")).not.toBeInTheDocument();
     expect(screen.getByText("Add the camera")).toBeInTheDocument();
     expect(screen.getByText("Set its schedule")).toBeInTheDocument();
     expect(screen.getByText("Copy the embed")).toBeInTheDocument();

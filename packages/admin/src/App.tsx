@@ -1523,26 +1523,28 @@ export function App() {
             title="Cameras"
             description="Add feeds, watch their status and grab the embed code for your site."
           >
-            <div className="page-action-stack">
-              <button
-                onClick={openNewCamera}
-                data-testid="add-camera"
-                className={cameras.length >= tenantCameraLimit ? "secondary" : undefined}
-                disabled={cameras.length >= tenantCameraLimit}
-                title={
-                  cameras.length >= tenantCameraLimit
-                    ? "Camera limit reached. Upgrade in Billing."
-                    : undefined
-                }
-              >
-                + New camera
-              </button>
-              {cameras.length >= tenantCameraLimit && (
-                <span className="page-action-hint">
-                  {cameras.length} / {tenantCameraLimit} cameras · <a href="#/billing">Upgrade</a>
-                </span>
-              )}
-            </div>
+            {cameras.length > 0 && (
+              <div className="page-action-stack">
+                <button
+                  onClick={openNewCamera}
+                  data-testid="add-camera"
+                  className={cameras.length >= tenantCameraLimit ? "secondary" : undefined}
+                  disabled={cameras.length >= tenantCameraLimit}
+                  title={
+                    cameras.length >= tenantCameraLimit
+                      ? "Camera limit reached. Upgrade in Billing."
+                      : undefined
+                  }
+                >
+                  + New camera
+                </button>
+                {cameras.length >= tenantCameraLimit && (
+                  <span className="page-action-hint">
+                    {cameras.length} / {tenantCameraLimit} cameras · <a href="#/billing">Upgrade</a>
+                  </span>
+                )}
+              </div>
+            )}
           </PageHeader>
           <section className="panel">
             {camerasLoading && cameras.length === 0 ? (
