@@ -137,6 +137,55 @@ describe("App login", () => {
 
     await waitFor(() => expect(screen.getByTestId("login-error")).toHaveTextContent("wrong credentials"));
   });
+
+  it("signs out locally even when the logout request fails", async () => {
+    let signedIn = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) {
+          return signedIn
+            ? jsonResponse({ cameras: [] })
+            : jsonResponse({ detail: "unauthorized" }, 401);
+        }
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({
+            tenant: {
+              id: "t1",
+              name: "Acme",
+              slug: "acme",
+              packageCode: "starter",
+              cameraLimit: 3,
+              billingStatus: "active",
+              isPilot: false,
+              pilotUntil: null,
+            },
+          });
+        }
+        if (u.endsWith("/api/v1/auth/login")) {
+          signedIn = true;
+          return jsonResponse({ status: "ok" });
+        }
+        if (u.endsWith("/api/v1/auth/logout")) {
+          return jsonResponse({ detail: "unavailable" }, 500);
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("login-form");
+    await userEvent.type(screen.getByTestId("login-email"), "demo@example.dev");
+    await userEvent.type(screen.getByTestId("login-password"), "demo-pass-123");
+    await userEvent.click(screen.getByTestId("login-submit"));
+    await screen.findByTestId("logout");
+
+    await userEvent.click(screen.getByTestId("logout"));
+
+    expect(await screen.findByTestId("login-form")).toBeInTheDocument();
+  });
 });
 
 describe("App dashboard", () => {

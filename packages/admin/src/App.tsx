@@ -1287,7 +1287,11 @@ export function App() {
   }, [email, refresh]);
 
   const logout = async () => {
-    await api.logout();
+    try {
+      await api.logout();
+    } catch {
+      // Clear the local session even if the API is unavailable.
+    }
     window.location.hash = "";
     setEmail(null);
   };

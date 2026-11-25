@@ -142,12 +142,13 @@ async function refreshSession(): Promise<boolean> {
 }
 
 async function json<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const request = () =>
-    fetch(url, {
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      ...init,
-    });
+  const request = () => {
+    const headers = new Headers(init.headers);
+    if (init.body != null && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    return fetch(url, { credentials: "include", ...init, headers });
+  };
 
   let res = await request();
   if (res.status === 401 && !AUTH_PATHS.some((path) => url.startsWith(path))) {
