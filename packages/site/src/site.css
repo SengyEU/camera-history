@@ -677,6 +677,13 @@ button:focus-visible {
   border-bottom: 1px solid var(--color-line);
 }
 
+/* Drop the closing rule after the last item; it reads as a stray hairline,
+   especially when the next band starts with a zigzag cut. */
+.manifesto-list li:last-child,
+.why-list li:last-child {
+  border-bottom: 0;
+}
+
 .manifesto-list p {
   max-width: 52ch;
   margin: 0;
