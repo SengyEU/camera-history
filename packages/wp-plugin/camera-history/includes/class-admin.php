@@ -40,15 +40,6 @@ class Ch_Admin {
 	public static function register_settings() {
 		register_setting(
 			self::GROUP,
-			Ch_Client::OPT_BASE_URL,
-			array(
-				'type'              => 'string',
-				'default'           => Ch_Client::DEFAULT_BASE_URL,
-				'sanitize_callback' => array( __CLASS__, 'sanitize_url' ),
-			)
-		);
-		register_setting(
-			self::GROUP,
 			Ch_Client::OPT_SLUG,
 			array(
 				'type'              => 'string',
@@ -56,15 +47,6 @@ class Ch_Admin {
 				'sanitize_callback' => array( __CLASS__, 'sanitize_slug' ),
 			)
 		);
-	}
-
-	/**
-	 * @param mixed $value Raw value.
-	 * @return string
-	 */
-	public static function sanitize_url( $value ) {
-		$value = untrailingslashit( esc_url_raw( trim( (string) $value ) ) );
-		return ( strpos( $value, 'https://' ) === 0 ) ? $value : '';
 	}
 
 	/**
@@ -134,23 +116,13 @@ class Ch_Admin {
 					<input type="hidden" name="_wp_http_referer" value="<?php echo esc_attr( admin_url( 'admin.php?page=camera-history&tab=settings' ) ); ?>" />
 					<table class="form-table" role="presentation">
 						<tr>
-							<th scope="row"><label for="ch_api_base_url"><?php esc_html_e( 'API URL', 'camera-history' ); ?></label></th>
-							<td>
-								<input type="url" class="regular-text" id="ch_api_base_url"
-									name="<?php echo esc_attr( Ch_Client::OPT_BASE_URL ); ?>"
-									value="<?php echo esc_attr( (string) get_option( Ch_Client::OPT_BASE_URL, Ch_Client::DEFAULT_BASE_URL ) ); ?>"
-									placeholder="<?php echo esc_attr( Ch_Client::DEFAULT_BASE_URL ); ?>" />
-								<p class="description"><?php esc_html_e( 'Must start with https://.', 'camera-history' ); ?></p>
-							</td>
-						</tr>
-						<tr>
 							<th scope="row"><label for="ch_tenant_slug"><?php esc_html_e( 'Workspace slug', 'camera-history' ); ?></label></th>
 							<td>
 								<input type="text" class="regular-text" id="ch_tenant_slug"
 									name="<?php echo esc_attr( Ch_Client::OPT_SLUG ); ?>"
 									value="<?php echo esc_attr( $slug ); ?>"
 									placeholder="<?php esc_attr_e( 'e.g. alpine-summit', 'camera-history' ); ?>" />
-								<p class="description"><?php esc_html_e( 'The plugin never stores an account password.', 'camera-history' ); ?></p>
+								<p class="description"><?php esc_html_e( 'The plugin connects to Camera History automatically. It never stores an account password.', 'camera-history' ); ?></p>
 							</td>
 						</tr>
 					</table>

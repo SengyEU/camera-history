@@ -78,7 +78,7 @@ class Ch_Block {
 		if ( ! is_admin() ) {
 			return;
 		}
-		$base = untrailingslashit( (string) get_option( Ch_Client::OPT_BASE_URL, Ch_Client::DEFAULT_BASE_URL ) );
+		$base = untrailingslashit( CH_API_URL );
 		wp_enqueue_script( 'camera-history-embed', $base . '/embed.js', array(), null, true );
 	}
 
@@ -107,7 +107,7 @@ class Ch_Block {
 			'3.0.0'
 		);
 
-		$base = untrailingslashit( (string) get_option( Ch_Client::OPT_BASE_URL, Ch_Client::DEFAULT_BASE_URL ) );
+		$base = untrailingslashit( CH_API_URL );
 		wp_enqueue_script( 'camera-history-embed', $base . '/embed.js', array(), null, true );
 
 		$client  = new Ch_Client();

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import type { AdminCamera } from "./api";
 import { PageHeader } from "./PageHeader";
 
 function CopyButton({
@@ -30,19 +29,9 @@ function CopyButton({
   );
 }
 
-export function PluginsPage({
-  tenantSlug,
-  cameras,
-}: {
-  tenantSlug: string;
-  cameras: AdminCamera[];
-}) {
+export function PluginsPage({ tenantSlug }: { tenantSlug: string }) {
   const [copied, setCopied] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
-  const apiUrl = window.location.origin;
-  const cameraSlug = cameras[0]?.slug ?? "your-camera";
-  const exampleUrl = `${apiUrl}/widget/${tenantSlug || "your-workspace"}/${cameraSlug}`;
-
   useEffect(
     () => () => {
       window.clearTimeout(timer.current);
@@ -60,14 +49,12 @@ export function PluginsPage({
   };
 
   const values = [
-    { key: "api", label: "API URL", value: apiUrl, testId: "copy-api-url" },
     {
       key: "slug",
       label: "Workspace slug",
       value: tenantSlug,
       testId: "copy-workspace-slug",
     },
-    { key: "url", label: "Example camera URL", value: exampleUrl, testId: "copy-example-url" },
   ];
 
   return (
@@ -86,7 +73,7 @@ export function PluginsPage({
             </div>
             <a
               className="plugin-download"
-              href="/downloads/camera-history.zip?v=3.0.0"
+              href="/downloads/camera-history.zip?v=3.1.0"
               download
               data-testid="download-plugin"
             >
@@ -126,7 +113,7 @@ export function PluginsPage({
           </div>
 
           <p className="field-hint">
-            The plugin only needs the API URL and workspace slug. It never stores your Camera
+            The plugin picks up your cameras and groups automatically. It never stores your Camera
             History password.
           </p>
         </div>

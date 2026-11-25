@@ -4,6 +4,7 @@ declare(strict_types=1);
 /** Minimal WordPress stubs for the local plugin harness. */
 
 define( 'ABSPATH', 'unittest/' );
+define( 'CH_API_URL', 'https://camera.sengycraft.cz' );
 $GLOBALS['ch_options']   = array();
 $GLOBALS['ch_scripts']   = array();
 $GLOBALS['ch_http']      = null;
@@ -89,8 +90,7 @@ install_fake_api();
 
 // ---- client: cameras and groups ----
 $GLOBALS['ch_options'] = array(
-	Ch_Client::OPT_BASE_URL => 'https://camera.sengycraft.cz',
-	Ch_Client::OPT_SLUG     => 'acme-basins',
+	Ch_Client::OPT_SLUG => 'acme-basins',
 );
 $cameras = ( new Ch_Client() )->list_cameras();
 check( 'list_cameras returns an array', is_array( $cameras ) && count( $cameras ) === 2 );
@@ -102,21 +102,19 @@ $groups = ( new Ch_Client() )->list_groups();
 check( 'list_groups returns a group', is_array( $groups ) && count( $groups ) === 1 );
 check( 'list_groups keeps cameraCount', $groups[0]['cameraCount'] === 2 );
 
-$GLOBALS['ch_options'] = array( Ch_Client::OPT_BASE_URL => '', Ch_Client::OPT_SLUG => '' );
+$GLOBALS['ch_options'] = array( Ch_Client::OPT_SLUG => '' );
 $err = ( new Ch_Client() )->list_cameras();
 check( 'missing config returns WP_Error', is_wp_error( $err ) && $err->get_error_message() !== '' );
 
 $GLOBALS['ch_options'] = array(
-	Ch_Client::OPT_BASE_URL => 'https://camera.sengycraft.cz',
-	Ch_Client::OPT_SLUG     => 'missing',
+	Ch_Client::OPT_SLUG => 'missing',
 );
 $err = ( new Ch_Client() )->list_groups();
 check( 'unknown workspace returns WP_Error', is_wp_error( $err ) && $err->get_error_message() === 'Workspace not found' );
 
 // ---- renderer ----
 $GLOBALS['ch_options'] = array(
-	Ch_Client::OPT_BASE_URL => 'https://camera.sengycraft.cz',
-	Ch_Client::OPT_SLUG     => 'acme-basins',
+	Ch_Client::OPT_SLUG => 'acme-basins',
 );
 check( 'camera URL uses widget path', Ch_Renderer::url( 'camera', 'glacier-bowl' ) === 'https://camera.sengycraft.cz/widget/acme-basins/glacier-bowl' );
 check( 'group URL uses group path', Ch_Renderer::url( 'group', 'summit' ) === 'https://camera.sengycraft.cz/group/acme-basins/summit' );
@@ -136,7 +134,7 @@ check( 'group iframe honors dimensions', strpos( $group_html, 'width="80%"' ) !=
 $old_id = Ch_Renderer::iframe( 'camera', 'c28e31f9-96e5-4563-b137-32bc894abea1' );
 check( 'old camera ID still renders', strpos( $old_id, '/widget/acme-basins/c28e31f9-96e5-4563-b137-32bc894abea1' ) !== false );
 
-$GLOBALS['ch_options'] = array( Ch_Client::OPT_BASE_URL => '', Ch_Client::OPT_SLUG => '' );
+$GLOBALS['ch_options'] = array( Ch_Client::OPT_SLUG => '' );
 $nocfg = Ch_Renderer::iframe( 'camera', 'glacier-bowl' );
 check( 'missing config returns ch-error', strpos( $nocfg, 'ch-error' ) !== false && strpos( $nocfg, '<iframe' ) === false );
 

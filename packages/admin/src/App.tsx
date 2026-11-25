@@ -1447,7 +1447,7 @@ export function App() {
        {view === "billing" ? (
          <BillingPage />
        ) : view === "plugins" ? (
-         <PluginsPage tenantSlug={tenantSlug} cameras={cameras} />
+         <PluginsPage tenantSlug={tenantSlug} />
        ) : view === "account" ? (
          <AccountPage tenantName={tenantName} email={accountEmail} />
        ) : view === "groups" ? (

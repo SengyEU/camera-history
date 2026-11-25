@@ -2,8 +2,8 @@
 /**
  * HTTP client for the public Camera History API.
  *
- * The plugin only needs an API URL and a workspace slug. It never stores
- * an admin account password or session token.
+ * The API host is fixed by the plugin. It only needs a workspace slug and
+ * never stores an admin account password or session token.
  *
  * @package CameraHistory
  */
@@ -12,9 +12,8 @@ defined( 'ABSPATH' ) || exit;
 
 class Ch_Client {
 
-	const OPT_BASE_URL     = 'ch_api_base_url';
-	const OPT_SLUG         = 'ch_tenant_slug';
-	const DEFAULT_BASE_URL = 'https://camera.sengycraft.cz';
+	const OPT_SLUG        = 'ch_tenant_slug';
+	const DEFAULT_BASE_URL = CH_API_URL;
 	const REQUEST_TIMEOUT  = 15;
 
 	/**
@@ -36,13 +35,13 @@ class Ch_Client {
 	 * @return array|WP_Error
 	 */
 	private function list_items( $kind ) {
-		$base = untrailingslashit( (string) get_option( self::OPT_BASE_URL, self::DEFAULT_BASE_URL ) );
+		$base = untrailingslashit( CH_API_URL );
 		$slug = (string) get_option( self::OPT_SLUG, '' );
 
-		if ( $base === '' || $slug === '' ) {
+		if ( $slug === '' ) {
 			return new WP_Error(
 				'ch_missing_config',
-				__( 'Camera History: set the API URL and workspace slug in Camera History → Settings.', 'camera-history' )
+				__( 'Camera History: set the workspace slug in Camera History → Settings.', 'camera-history' )
 			);
 		}
 

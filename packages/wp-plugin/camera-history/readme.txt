@@ -4,7 +4,7 @@ Tags: camera, video, widget
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.0.0
+Stable tag: 3.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,8 +19,8 @@ This plugin gives you three ways to embed it:
 * **Camera History widget** in classic sidebars.
 * **Paste a Camera History URL** into a post or page.
 
-The plugin only needs your Camera History API URL and workspace slug. It does
-not store an admin email address, password or session token.
+The plugin only needs your workspace slug. It does not store an admin email
+address, password or session token.
 
 Features:
 
@@ -34,10 +34,10 @@ Features:
 
 1. In WordPress, go to **Plugins → Add New → Upload Plugin**.
 2. Upload `camera-history.zip`, click **Install Now**, then **Activate**.
-3. Open **Camera History → Settings** and enter the API URL and workspace slug.
+3. Open **Camera History → Settings** and enter the workspace slug.
 4. Add the **Camera History** block to a page, or use the widget/paste a URL.
 
-You can find the API URL and workspace slug in Camera History under **Plugins**.
+You can find the workspace slug in Camera History under **Plugins**.
 
 == Frequently Asked Questions ==
 
@@ -52,6 +52,9 @@ Yes. Camera History is an external service that stores and serves the camera
 history. The plugin is an interface to that service.
 
 == Changelog ==
+
+= 3.1.0 =
+* The API host is built into the plugin; only the workspace slug is configured.
 
 = 3.0.0 =
 * Added a Gutenberg block with camera/group selection and preview.

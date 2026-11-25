@@ -511,12 +511,12 @@ describe("App camera CRUD", () => {
     await userEvent.click(screen.getByTestId("nav-plugins"));
 
     expect(await screen.findByTestId("plugins-page")).toBeInTheDocument();
-    expect(screen.getByText(window.location.origin)).toBeInTheDocument();
+    expect(screen.queryByText("API URL")).not.toBeInTheDocument();
     expect(screen.getByText("acme")).toBeInTheDocument();
-    expect(screen.getByText(`${window.location.origin}/widget/acme/cam-1`)).toBeInTheDocument();
+    expect(screen.queryByText(/widget\/acme\/cam-1/)).not.toBeInTheDocument();
     expect(screen.getByTestId("download-plugin")).toHaveAttribute(
       "href",
-      "/downloads/camera-history.zip?v=3.0.0",
+      "/downloads/camera-history.zip?v=3.1.0",
     );
   });
 

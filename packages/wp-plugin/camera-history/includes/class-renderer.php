@@ -15,7 +15,7 @@ class Ch_Renderer {
 	 * @return string Empty when not configured.
 	 */
 	public static function url( $type, $target ) {
-		$base   = untrailingslashit( (string) get_option( Ch_Client::OPT_BASE_URL, Ch_Client::DEFAULT_BASE_URL ) );
+		$base   = untrailingslashit( CH_API_URL );
 		$tenant = (string) get_option( Ch_Client::OPT_SLUG, '' );
 		$target = trim( (string) $target );
 
@@ -44,7 +44,7 @@ class Ch_Renderer {
 			$url .= '?theme=' . rawurlencode( (string) $theme );
 		}
 
-		$base      = untrailingslashit( (string) get_option( Ch_Client::OPT_BASE_URL, Ch_Client::DEFAULT_BASE_URL ) );
+		$base      = untrailingslashit( CH_API_URL );
 		$embed_url = $base . '/embed.js';
 
 		wp_enqueue_script( 'camera-history-embed', $embed_url, array(), null, true );
