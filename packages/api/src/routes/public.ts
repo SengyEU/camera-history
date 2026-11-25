@@ -62,6 +62,22 @@ export const registerPublicRoutes: FastifyPluginAsync<PublicRouteDeps> = async (
     },
   );
 
+  app.get<{ Params: { tenantSlug: string } }>(
+    "/api/v1/public/tenants/:tenantSlug/cameras",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (req, reply) => {
+      const cameras = await repos.listPublicCamerasByTenantSlug(req.params.tenantSlug);
+      if (!cameras) {
+        return reply
+          .code(404)
+          .type("application/problem+json")
+          .send(rfc7807(404, "not_found", "Workspace not found"));
+      }
+      reply.header("Cache-Control", "public, max-age=60");
+      return { cameras };
+    },
+  );
+
   app.get<{ Params: { id: string }; Querystring: { date?: string } }>(
     "/api/v1/cameras/:id/images",
     async (req, reply) => {

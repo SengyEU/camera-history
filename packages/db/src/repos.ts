@@ -258,6 +258,15 @@ export function createRepos(db: Db): Repos {
           }
         : null;
     },
+    async listPublicCamerasByTenantSlug(tenantSlug: string) {
+      const tenant = await this.getTenantBySlug(tenantSlug);
+      if (!tenant || ["unpaid", "canceled"].includes(tenant.billingStatus)) return null;
+      return db
+        .select({ id: cameras.id, name: cameras.name, slug: cameras.slug })
+        .from(cameras)
+        .where(and(eq(cameras.tenantId, tenant.id), eq(cameras.enabled, true)))
+        .orderBy(cameras.name);
+    },
     async insertImage(input: NewImage): Promise<ImageRecord> {
       const [row] = await db.insert(images).values(input).returning();
       return row!;

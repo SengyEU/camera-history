@@ -41,6 +41,9 @@ export interface Repos {
   listEnabledCameras(now: Date): Promise<Camera[]>;
   getPublicCamera(cameraId: string): Promise<PublicCamera | null>;
   getPublicCameraBySlug(tenantSlug: string, cameraSlug: string): Promise<PublicCamera | null>;
+  listPublicCamerasByTenantSlug(
+    tenantSlug: string,
+  ): Promise<Array<{ id: string; name: string; slug: string }> | null>;
   insertImage(input: NewImage): Promise<ImageRecord>;
   imagesForCameraDay(cameraId: string, from: Date, to: Date): Promise<ImageRecord[]>;
   getImageById(id: string): Promise<ImageRecord | null>;

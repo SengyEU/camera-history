@@ -203,6 +203,14 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         showNight: cam.showNight,
       };
     },
+    async listPublicCamerasByTenantSlug(tenantSlug: string) {
+      const tenant = db.tenants.find((t) => t.slug === tenantSlug);
+      if (!tenant || ["unpaid", "canceled"].includes(tenant.billingStatus)) return null;
+      return db.cameras
+        .filter((c) => c.tenantId === tenant.id && c.enabled)
+        .map((c) => ({ id: c.id, name: c.name, slug: c.slug }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
     async insertImage(input: NewImage): Promise<ImageRecord> {
       const rec: ImageRecord = {
         id: randomUUID(),
