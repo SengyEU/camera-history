@@ -9,6 +9,7 @@ import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
 import { formatAge, formatDate, formatDateTime } from "./format";
 import { GroupEditor, GroupsView, type GroupInput } from "./Groups";
 import { PageHeader } from "./PageHeader";
+import { PluginsPage } from "./Plugins";
 import { SLUG_RE, slugify } from "./slug";
 import { DEFAULT_THEME_COLORS, THEME_COLOR_FIELDS, contrastWarnings } from "./theme";
 import "./App.css";
@@ -45,10 +46,11 @@ const emptyInput = (): CameraInput => ({
   showNight: false,
 });
 
-function currentView(): "cameras" | "groups" | "billing" | "account" {
+function currentView(): "cameras" | "groups" | "billing" | "account" | "plugins" {
   if (window.location.hash.startsWith("#/billing")) return "billing";
   if (window.location.hash.startsWith("#/groups")) return "groups";
   if (window.location.hash.startsWith("#/account")) return "account";
+  if (window.location.hash.startsWith("#/plugins")) return "plugins";
   return "cameras";
 }
 
@@ -782,7 +784,7 @@ function OnboardingPanel({
           </span>
           <div>
             <strong>Copy the embed</strong>
-            <p>Paste the iframe into your site, or use the WordPress plugin.</p>
+            <p>Paste the iframe into your site, or install the WordPress plugin.</p>
           </div>
         </li>
       </ol>
@@ -791,6 +793,7 @@ function OnboardingPanel({
           Add your first camera
         </button>
         <a href="#/billing">Compare packages</a>
+        <a href="#/plugins">WordPress plugin</a>
       </div>
     </section>
   );
@@ -1029,7 +1032,7 @@ export function App() {
     pilotUntil: string | null;
     packageCode: string;
   } | null>(null);
-  const [view, setView] = useState<"cameras" | "groups" | "billing" | "account">(currentView);
+  const [view, setView] = useState<"cameras" | "groups" | "billing" | "account" | "plugins">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
   const [cameraSavedNotice, setCameraSavedNotice] = useState<string | null>(null);
@@ -1397,6 +1400,9 @@ export function App() {
           <a href="#/billing" className={view === "billing" ? "active" : undefined} data-testid="nav-billing">
             Billing
           </a>
+          <a href="#/plugins" className={view === "plugins" ? "active" : undefined} data-testid="nav-plugins">
+            Plugins
+          </a>
           <a href="#/account" className={view === "account" ? "active" : undefined} data-testid="nav-account">
             Account
           </a>
@@ -1440,6 +1446,8 @@ export function App() {
       </div>
        {view === "billing" ? (
          <BillingPage />
+       ) : view === "plugins" ? (
+         <PluginsPage tenantSlug={tenantSlug} cameras={cameras} />
        ) : view === "account" ? (
          <AccountPage tenantName={tenantName} email={accountEmail} />
        ) : view === "groups" ? (

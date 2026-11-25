@@ -1,6 +1,6 @@
 <?php
 /**
- * Správcovská stránka Camera History (Settings → Camera History).
+ * Settings page: Settings → Camera History.
  *
  * @package CameraHistory
  */
@@ -39,22 +39,20 @@ class Ch_Settings {
 		register_setting(
 			self::GROUP,
 			Ch_Client::OPT_BASE_URL,
-			array( 'type' => 'string', 'sanitize_callback' => array( __CLASS__, 'sanitize_url' ) )
-		);
-		register_setting(
-			self::GROUP,
-			Ch_Client::OPT_EMAIL,
-			array( 'type' => 'string', 'sanitize_callback' => array( __CLASS__, 'sanitize_email' ) )
-		);
-		register_setting(
-			self::GROUP,
-			Ch_Client::OPT_PASSWORD,
-			array( 'type' => 'string', 'sanitize_callback' => array( __CLASS__, 'sanitize_password' ) )
+			array(
+				'type'              => 'string',
+				'default'           => Ch_Client::DEFAULT_BASE_URL,
+				'sanitize_callback' => array( __CLASS__, 'sanitize_url' ),
+			)
 		);
 		register_setting(
 			self::GROUP,
 			Ch_Client::OPT_SLUG,
-			array( 'type' => 'string', 'sanitize_callback' => array( __CLASS__, 'sanitize_slug' ) )
+			array(
+				'type'              => 'string',
+				'default'           => '',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_slug' ),
+			)
 		);
 	}
 
@@ -65,28 +63,6 @@ class Ch_Settings {
 	public static function sanitize_url( $value ) {
 		$value = untrailingslashit( esc_url_raw( trim( (string) $value ) ) );
 		return ( strpos( $value, 'https://' ) === 0 ) ? $value : '';
-	}
-
-	/**
-	 * @param mixed $value
-	 * @return string
-	 */
-	public static function sanitize_email( $value ) {
-		return sanitize_email( trim( (string) $value ) );
-	}
-
-	/**
-	 * Prázdná hodnota = ponechat uložené heslo. Nikdy se nezobrazuje.
-	 *
-	 * @param mixed $value
-	 * @return string
-	 */
-	public static function sanitize_password( $value ) {
-		$value = (string) $value;
-		if ( $value === '' ) {
-			return (string) get_option( Ch_Client::OPT_PASSWORD, '' );
-		}
-		return $value;
 	}
 
 	/**
@@ -107,6 +83,8 @@ class Ch_Settings {
 
 		$cameras = ( new Ch_Client() )->list_cameras();
 		$error   = is_wp_error( $cameras ) ? $cameras->get_error_message() : '';
+		$base    = (string) get_option( Ch_Client::OPT_BASE_URL, Ch_Client::DEFAULT_BASE_URL );
+		$slug    = (string) get_option( Ch_Client::OPT_SLUG, '' );
 
 		if ( $error !== '' ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( $error ) . '</p></div>';
@@ -114,6 +92,7 @@ class Ch_Settings {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Camera History', 'camera-history' ); ?></h1>
+			<p><?php esc_html_e( 'Embed your camera history on this site. The plugin only needs the API URL and workspace slug; it does not store an account password.', 'camera-history' ); ?></p>
 			<form method="post" action="options.php">
 				<?php settings_fields( self::GROUP ); ?>
 				<table class="form-table" role="presentation">
@@ -122,55 +101,38 @@ class Ch_Settings {
 						<td>
 							<input type="url" class="regular-text" id="ch_api_base_url"
 								name="<?php echo esc_attr( Ch_Client::OPT_BASE_URL ); ?>"
-								value="<?php echo esc_attr( get_option( Ch_Client::OPT_BASE_URL, '' ) ); ?>"
-								placeholder="https://camera.sengycraft.cz" />
-							<p class="description"><?php esc_html_e( 'Musí začínat https://.', 'camera-history' ); ?></p>
+								value="<?php echo esc_attr( $base ); ?>"
+								placeholder="<?php echo esc_attr( Ch_Client::DEFAULT_BASE_URL ); ?>" />
+							<p class="description"><?php esc_html_e( 'Must start with https://.', 'camera-history' ); ?></p>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="ch_email"><?php esc_html_e( 'E-mail', 'camera-history' ); ?></label></th>
-						<td>
-							<input type="email" class="regular-text" id="ch_email"
-								name="<?php echo esc_attr( Ch_Client::OPT_EMAIL ); ?>"
-								value="<?php echo esc_attr( get_option( Ch_Client::OPT_EMAIL, '' ) ); ?>" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="ch_password"><?php esc_html_e( 'Heslo', 'camera-history' ); ?></label></th>
-						<td>
-							<input type="password" class="regular-text" id="ch_password"
-								name="<?php echo esc_attr( Ch_Client::OPT_PASSWORD ); ?>" autocomplete="new-password"
-								placeholder="<?php echo esc_attr( __( 'zachovat stávající', 'camera-history' ) ); ?>" />
-							<p class="description"><?php esc_html_e( 'Heslo se nikdy nezobrazuje; prázdné políčko zachová uložené heslo.', 'camera-history' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="ch_tenant_slug"><?php esc_html_e( 'Tenant slug', 'camera-history' ); ?></label></th>
+						<th scope="row"><label for="ch_tenant_slug"><?php esc_html_e( 'Workspace slug', 'camera-history' ); ?></label></th>
 						<td>
 							<input type="text" class="regular-text" id="ch_tenant_slug"
 								name="<?php echo esc_attr( Ch_Client::OPT_SLUG ); ?>"
-								value="<?php echo esc_attr( get_option( Ch_Client::OPT_SLUG, '' ) ); ?>"
-								placeholder="např. acme-basins" />
-							<p class="description"><?php esc_html_e( 'Slug tenanta (vidíte ho v admin URL). Použije se v URL widgetu.', 'camera-history' ); ?></p>
+								value="<?php echo esc_attr( $slug ); ?>"
+								placeholder="<?php esc_attr_e( 'e.g. alpine-summit', 'camera-history' ); ?>" />
+							<p class="description"><?php esc_html_e( 'Find it in Camera History under Plugins, or in your widget URL.', 'camera-history' ); ?></p>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><?php esc_html_e( 'Výběr kamery', 'camera-history' ); ?></th>
+						<th scope="row"><?php esc_html_e( 'Camera', 'camera-history' ); ?></th>
 						<td>
 							<?php if ( $error !== '' ) : ?>
-								<p class="description"><?php esc_html_e( 'Seznam kamer se nepodařilo načíst (viz chyba výše).', 'camera-history' ); ?></p>
+								<p class="description"><?php esc_html_e( 'The camera list could not be loaded. Fix the error above and save again.', 'camera-history' ); ?></p>
 							<?php elseif ( empty( $cameras ) ) : ?>
-								<p class="description"><?php esc_html_e( 'Žádné kamery. Vytvořte kameru v adminu.', 'camera-history' ); ?></p>
+								<p class="description"><?php esc_html_e( 'No cameras yet. Add a camera in Camera History first.', 'camera-history' ); ?></p>
 							<?php else : ?>
 								<select id="ch-camera-pick">
 									<?php foreach ( $cameras as $camera ) : ?>
-										<option value="<?php echo esc_attr( $camera['id'] ); ?>">
-											<?php echo esc_html( $camera['name'] . ' (' . $camera['feedType'] . ', ' . $camera['status'] . ')' ); ?>
+										<option value="<?php echo esc_attr( $camera['slug'] ); ?>">
+											<?php echo esc_html( $camera['name'] . ' (' . $camera['slug'] . ')' ); ?>
 										</option>
 									<?php endforeach; ?>
 								</select>
 								<p class="description">
-									<?php esc_html_e( 'Shortcode pro vybranou kameru:', 'camera-history' ); ?>
+									<?php esc_html_e( 'Shortcode for the selected camera:', 'camera-history' ); ?>
 									<input type="text" readonly class="regular-text code" id="ch-shortcode" />
 								</p>
 								<script>

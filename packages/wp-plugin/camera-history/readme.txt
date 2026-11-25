@@ -1,62 +1,76 @@
 === Camera History ===
 Contributors: camera-history
-Tags: video, camera, widget
+Tags: camera, video, widget
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Vkládá widget Camera History SaaS (historii snímků kamer) do příspěvků a stránek jako responzivní iframe.
+Embed the Camera History widget with a shortcode.
 
 == Description ==
 
-Camera History je plugin pro WordPress, který vloží widget Camera History
-SaaS do jakékoliv stránky nebo příspěvku pomocí shortcodu:
+Camera History turns hourly camera snapshots into a browsable visual history.
+This plugin embeds the widget in any WordPress post or page:
 
-`[camera-history camera="ID_KAMERY"]`
+`[camera-history camera="glacier-bowl"]`
 
-Plugin automaticky vkládá pomocný skript `embed.js`, který přizpůsobí
-výšku iframu obsahu widgetu a předá mu font použité šablony. Funguje i při
-více shortcodech na jedné stránce — skript se načte jen jednou.
+The plugin only needs your Camera History API URL and workspace slug. It does
+not store an admin email address, password or session token.
 
-Nastavení najdete v **Settings → Camera History**: vyplníte API URL,
-e-mail a heslo do SaaS admin účtu a tenant slug. Plugin se připojí k admin
-API, načte seznam kamer a zobrazí je v rozbalovacím seznamu — vyberte
-kameru a zkopírujte vygenerovaný shortcode.
+The helper script automatically adjusts the iframe height and inherits the
+font used by your theme. It is loaded once even when a page contains several
+shortcodes.
 
-Vlastnosti:
+Features:
 
-* Žádné Composer závislosti, žádné secrets v logách.
-* Heslo se nikdy nezobrazuje (prázdné políčko = zachovat uložené).
-* Volitelné atributy shortcodu: `width` (default 100%), `height` (jen fallback, default 720), `theme`.
+* No Composer dependencies.
+* No account credentials stored in WordPress.
+* Optional shortcode attributes: `width` (default 100%), `height` (fallback
+  720), `theme`.
+* Camera IDs from the 1.x plugin remain supported.
 
 == Installation ==
 
-1. V administraci jděte na **Plugins → Add New → Upload Plugin**.
-2. Nahrajte `camera-history.zip` a klikněte na **Install Now**.
-3. Aktivujte plugin.
-4. Jděte na **Settings → Camera History** a vyplňte API URL, e-mail,
-   heslo a tenant slug.
-5. Vložte `[camera-history camera="…"]` do stránky nebo příspěvku.
+1. In WordPress, go to **Plugins → Add New → Upload Plugin**.
+2. Upload `camera-history.zip`, click **Install Now**, then **Activate**.
+3. Go to **Settings → Camera History** and enter the API URL and workspace slug.
+4. Pick a camera and paste the generated shortcode into a post or page.
+
+You can find the API URL and workspace slug in Camera History under **Plugins**.
 
 == Frequently Asked Questions ==
 
-= Kde najdu ID kamery? =
-Na stránce **Settings → Camera History** vyberte kameru v seznamu —
-shortcode se vygeneruje v poli vedle seznamu.
+= Where do I find the workspace slug? =
+Open Camera History → Plugins. The workspace slug is shown with a copy button.
 
-= Co je tenant slug? =
-Slug tenanta je součást URL widgetu (`/widget/{tenant_slug}/{camera_id}`).
-Najdete ho v admin adrese nebo v nastavení tenanta v SaaS.
+= What is the camera slug? =
+The shortcode uses the camera slug, but older shortcodes that contain a camera
+ID still work.
+
+= Does the plugin store my Camera History password? =
+No. Version 2.0.0 and later use the public camera list endpoint and never store
+account credentials.
+
+= Does this plugin require a Camera History account? =
+Yes. Camera History is an external service that stores and serves the camera
+history. The plugin is an interface to that service.
 
 == Changelog ==
 
+= 2.0.0 =
+* Removed admin email/password and session handling.
+* Camera list now comes from the public workspace endpoint.
+* Shortcodes use camera slugs; camera IDs remain supported.
+* Settings and readme translated to English.
+* Legacy credentials are removed on upgrade.
+
 = 1.1.0 =
-* Plugin automaticky načítá `embed.js` (auto-výška iframu + font šablony), jednou pro všechny shortcody.
-* Výchozí `height` shortcodu je 720 (používá se jen jako fallback).
-* Při renderu po `wp_footer` se skript vloží přímo za iframe.
+* Automatically loads `embed.js` once for all shortcodes.
+* Default shortcode height is 720 as a fallback.
+* Injects the helper after the footer when needed.
 
 = 1.0.0 =
-* První vydání: admin settings, login přes admin API, dropdown kamer, shortcode.
+* First release: settings, camera picker and shortcode.

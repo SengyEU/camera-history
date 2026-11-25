@@ -502,6 +502,39 @@ describe("App camera CRUD", () => {
     return { fn, calls };
   }
 
+  it("opens the WordPress plugins page with connection values", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("nav-plugins"));
+
+    expect(await screen.findByTestId("plugins-page")).toBeInTheDocument();
+    expect(screen.getByText(window.location.origin)).toBeInTheDocument();
+    expect(screen.getByText("acme")).toBeInTheDocument();
+    expect(screen.getByText('[camera-history camera="cam-1"]')).toBeInTheDocument();
+    expect(screen.getByTestId("download-plugin")).toHaveAttribute(
+      "href",
+      "/downloads/camera-history.zip?v=2.0.0",
+    );
+  });
+
+  it("copies the workspace slug from the plugins page", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "clipboard", { configurable: true, value: { writeText } });
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+    await userEvent.click(screen.getByTestId("nav-plugins"));
+
+    await userEvent.click(screen.getByTestId("copy-workspace-slug"));
+
+    expect(writeText).toHaveBeenCalledWith("acme");
+    expect(screen.getByTestId("copy-workspace-slug")).toHaveTextContent("Copied");
+  });
+
   it("opens account settings and shows the read-only identity", async () => {
     const { fn } = listServer();
     vi.stubGlobal("fetch", fn);
@@ -657,6 +690,10 @@ describe("App camera CRUD", () => {
     expect(screen.getByText("Add the camera")).toBeInTheDocument();
     expect(screen.getByText("Set its schedule")).toBeInTheDocument();
     expect(screen.getByText("Copy the embed")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "WordPress plugin" })).toHaveAttribute(
+      "href",
+      "#/plugins",
+    );
 
     await userEvent.click(screen.getByTestId("empty-add-camera"));
     expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
