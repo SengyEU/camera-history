@@ -43,7 +43,7 @@ describe("landing page", () => {
     expect(html).toContain("That's the whole integration.");
   });
 
-  it("uses the Sengycraft contact email in CTAs", () => {
+  it("uses the camera-history contact email in CTAs", () => {
     expect(html).toContain("mailto:support@camera-history.com");
     expect(html).toContain("support@camera-history.com");
   });
