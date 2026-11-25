@@ -1645,6 +1645,7 @@ button.link:hover {
     align-self: center;
   }
   .topbar-account {
+    display: none;
     grid-column: 1 / -1;
     grid-row: 2;
     align-self: center;
@@ -1653,8 +1654,15 @@ button.link:hover {
     margin-left: 0;
     gap: 8px;
   }
+  .topbar-account.has-pilot {
+    display: flex;
+  }
   .topbar-signout {
-    margin-left: auto;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-self: end;
+    margin-left: 0;
   }
   .topbar-user {
     display: none;

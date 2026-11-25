@@ -1401,7 +1401,7 @@ export function App() {
             Account
           </a>
         </nav>
-        <div className="topbar-account">
+        <div className={`topbar-account${pilotActive ? " has-pilot" : ""}`}>
           {pilotActive && (
             <span
               className="topbar-pilot"
@@ -1415,10 +1415,10 @@ export function App() {
           <span className="topbar-user" title={accountEmail || email || ""}>
             {accountEmail || email}
           </span>
-          <button className="secondary topbar-signout" onClick={logout} data-testid="logout">
-            Sign out
-          </button>
         </div>
+        <button className="secondary topbar-signout" onClick={logout} data-testid="logout">
+          Sign out
+        </button>
       </header>
       <div className="notice-stack">
         {view !== "billing" && accountNotice}
