@@ -19,6 +19,10 @@ import type {
 
 export interface Repos {
   createTenant(input: NewTenant): Promise<Tenant>;
+  createTenantWithUser(input: {
+    tenant: NewTenant;
+    user: Omit<NewUser, "tenantId">;
+  }): Promise<{ tenant: Tenant; user: User }>;
   getTenantById(id: string): Promise<Tenant | null>;
   getTenantBySlug(slug: string): Promise<Tenant | null>;
   createUser(input: NewUser): Promise<User>;

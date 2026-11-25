@@ -45,6 +45,18 @@ function toCamera(row: CameraRow): Camera {
   };
 }
 
+function tenantValues(input: NewTenant) {
+  return {
+    name: input.name,
+    slug: input.slug,
+    packageCode: input.packageCode ?? DEFAULT_PACKAGE,
+    billingStatus: input.billingStatus ?? "none",
+    billingGraceUntil: input.billingGraceUntil ?? null,
+    isPilot: input.isPilot ?? false,
+    pilotUntil: input.pilotUntil ?? null,
+  };
+}
+
 function cameraValues(tenantId: string, input: NewCamera) {
   return {
     tenantId,
@@ -71,19 +83,23 @@ function cameraValues(tenantId: string, input: NewCamera) {
 export function createRepos(db: Db): Repos {
   return {
     async createTenant(input: NewTenant): Promise<Tenant> {
-      const [row] = await db
-        .insert(tenants)
-        .values({
-          name: input.name,
-          slug: input.slug,
-          packageCode: input.packageCode ?? DEFAULT_PACKAGE,
-          billingStatus: input.billingStatus ?? "none",
-          billingGraceUntil: input.billingGraceUntil ?? null,
-          isPilot: input.isPilot ?? false,
-          pilotUntil: input.pilotUntil ?? null,
-        })
-        .returning();
+      const [row] = await db.insert(tenants).values(tenantValues(input)).returning();
       return toTenant(row!);
+    },
+    async createTenantWithUser({ tenant, user }) {
+      return db.transaction(async (tx) => {
+        const [tenantRow] = await tx.insert(tenants).values(tenantValues(tenant)).returning();
+        const [userRow] = await tx
+          .insert(users)
+          .values({
+            tenantId: tenantRow!.id,
+            email: user.email,
+            passwordHash: user.passwordHash,
+            role: user.role ?? "owner",
+          })
+          .returning();
+        return { tenant: toTenant(tenantRow!), user: userRow! };
+      });
     },
     async getTenantById(id: string) {
       const [row] = await db.select().from(tenants).where(eq(tenants.id, id));

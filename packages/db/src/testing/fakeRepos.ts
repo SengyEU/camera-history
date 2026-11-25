@@ -56,6 +56,30 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
       db.tenants.push(tenant);
       return tenant;
     },
+    async createTenantWithUser({ tenant: tenantInput, user: userInput }) {
+      const tenant: Tenant = {
+        id: randomUUID(),
+        slug: tenantInput.slug,
+        name: tenantInput.name,
+        packageCode: tenantInput.packageCode ?? DEFAULT_PACKAGE,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        billingStatus: tenantInput.billingStatus ?? "none",
+        billingGraceUntil: tenantInput.billingGraceUntil ?? null,
+        isPilot: tenantInput.isPilot ?? false,
+        pilotUntil: tenantInput.pilotUntil ?? null,
+      };
+      const user: User = {
+        id: randomUUID(),
+        tenantId: tenant.id,
+        email: userInput.email,
+        passwordHash: userInput.passwordHash,
+        role: userInput.role ?? "owner",
+      };
+      db.tenants.push(tenant);
+      db.users.push(user);
+      return { tenant, user };
+    },
     async getTenantById(id: string) {
       return db.tenants.find((t) => t.id === id) ?? null;
     },

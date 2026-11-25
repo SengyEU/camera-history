@@ -5,92 +5,154 @@ import type { AppDeps } from "../app.js";
 import { clearCookies, getRefreshToken, setCookies } from "../plugins/auth.js";
 
 const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const VALID_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REGISTER_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
+const LOGIN_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
+const NAME_MAX = 80;
+const SLUG_MAX = 40;
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 128;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function uniqueViolation(err: unknown): "email" | "slug" | null {
+  if ((err as { code?: string }).code !== "23505") return null;
+  const constraint = String((err as { constraint?: string }).constraint ?? "");
+  if (constraint.includes("email")) return "email";
+  if (constraint.includes("slug")) return "slug";
+  return null;
+}
 
 export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
   app.post(
     "/api/v1/auth/register",
     { config: { rateLimit: REGISTER_RATE_LIMIT } },
     async (req, reply) => {
-    const body = req.body as {
-      name?: string;
-      slug?: string;
-      email?: string;
-      password?: string;
-      packageCode?: string;
-      pilotCode?: string;
-    };
-    if (!body.name || !body.slug || !body.email || !body.password) {
-      throw new HttpError(400, "bad_request", "name, slug, email and password are required");
-    }
-    if (!VALID_SLUG.test(body.slug)) {
-      throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
-    }
-    if (body.password.length < 8) throw new HttpError(400, "bad_request", "password must be at least 8 characters");
-    const packageCode = body.packageCode;
-    if (packageCode !== undefined && !isPackageCode(packageCode)) {
-      throw new HttpError(400, "bad_request", "unknown package");
-    }
+      const body = req.body as {
+        name?: string;
+        slug?: string;
+        email?: string;
+        password?: string;
+        packageCode?: string;
+        pilotCode?: string;
+      };
+      const name = text(body.name);
+      const slug = text(body.slug);
+      const email = text(body.email).toLowerCase();
+      const password = typeof body.password === "string" ? body.password : "";
 
-    const pilotRequested = body.pilotCode !== undefined;
-    if (pilotRequested) {
-      if (!deps.cfg.pilot.inviteCode || body.pilotCode !== deps.cfg.pilot.inviteCode) {
-        throw new HttpError(403, "invalid_pilot_code", "pilot invite code is not valid");
+      if (!name || !slug || !email || !password) {
+        throw new HttpError(400, "bad_request", "name, slug, email and password are required");
       }
-    }
+      if (name.length > NAME_MAX) {
+        throw new HttpError(400, "bad_request", `name must be ${NAME_MAX} characters or fewer`);
+      }
+      if (slug.length > SLUG_MAX) {
+        throw new HttpError(400, "bad_request", `slug must be ${SLUG_MAX} characters or fewer`);
+      }
+      if (!VALID_SLUG.test(slug)) {
+        throw new HttpError(400, "bad_request", "slug must be lowercase alphanumeric with dashes");
+      }
+      if (!VALID_EMAIL.test(email)) {
+        throw new HttpError(400, "bad_request", "invalid email");
+      }
+      if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
+        throw new HttpError(
+          400,
+          "bad_request",
+          `password must be ${PASSWORD_MIN}-${PASSWORD_MAX} characters`,
+        );
+      }
 
-    const existing = await deps.repos.getTenantBySlug(body.slug);
-    if (existing) throw new HttpError(409, "conflict", "tenant slug already taken");
+      const packageCode = body.packageCode;
+      if (packageCode !== undefined && !isPackageCode(packageCode)) {
+        throw new HttpError(400, "bad_request", "unknown package");
+      }
 
-    const passwordHash = await argon2.hash(body.password);
-    const tenant = await deps.repos.createTenant({
-      name: body.name,
-      slug: body.slug,
-      packageCode,
-      isPilot: pilotRequested,
-      pilotUntil: pilotRequested
-        ? new Date(Date.now() + deps.cfg.pilot.durationDays * DAY_MS)
-        : null,
-    });
-    const user = await deps.repos.createUser({
-      tenantId: tenant.id,
-      email: body.email.toLowerCase(),
-      passwordHash,
-      role: "owner",
-    });
+      const pilotRequested = body.pilotCode !== undefined;
+      if (pilotRequested) {
+        if (!deps.cfg.pilot.inviteCode || body.pilotCode !== deps.cfg.pilot.inviteCode) {
+          throw new HttpError(403, "invalid_pilot_code", "pilot invite code is not valid");
+        }
+      }
 
-    const access = app.jwt.sign(
-      { tenantId: tenant.id, email: user.email, role: user.role, kind: "access" },
-      { expiresIn: deps.cfg.jwt.accessTtlSeconds },
-    );
-    const refresh = app.jwt.sign(
-      { tenantId: tenant.id, email: user.email, role: user.role, kind: "refresh" },
-      { expiresIn: deps.cfg.jwt.refreshTtlSeconds },
-    );
-    setCookies(reply, deps.cfg, access, refresh);
-    return reply.code(201).send({ status: "created", tenantId: tenant.id });
-  });
+      if (await deps.repos.getUserByEmail(email)) {
+        throw new HttpError(409, "conflict", "email already registered");
+      }
+      if (await deps.repos.getTenantBySlug(slug)) {
+        throw new HttpError(409, "conflict", "tenant slug already taken");
+      }
 
-  app.post("/api/v1/auth/login", async (req, reply) => {
-    const body = req.body as { email?: string; password?: string };
-    if (!body.email || !body.password) throw new HttpError(400, "bad_request", "email and password are required");
-    const user = await deps.repos.getUserByEmail(body.email.toLowerCase());
-    if (!user) throw new HttpError(401, "unauthorized", "invalid credentials");
-    const ok = await argon2.verify(user.passwordHash, body.password);
-    if (!ok) throw new HttpError(401, "unauthorized", "invalid credentials");
+      const passwordHash = await argon2.hash(password);
+      let created;
+      try {
+        created = await deps.repos.createTenantWithUser({
+          tenant: {
+            name,
+            slug,
+            packageCode,
+            isPilot: pilotRequested,
+            pilotUntil: pilotRequested
+              ? new Date(Date.now() + deps.cfg.pilot.durationDays * DAY_MS)
+              : null,
+          },
+          user: { email, passwordHash, role: "owner" },
+        });
+      } catch (err) {
+        const conflict = uniqueViolation(err);
+        if (conflict === "email") {
+          throw new HttpError(409, "conflict", "email already registered");
+        }
+        if (conflict === "slug") {
+          throw new HttpError(409, "conflict", "tenant slug already taken");
+        }
+        throw err;
+      }
 
-    const access = app.jwt.sign(
-      { tenantId: user.tenantId, email: user.email, role: user.role, kind: "access" },
-      { expiresIn: deps.cfg.jwt.accessTtlSeconds },
-    );
-    const refresh = app.jwt.sign(
-      { tenantId: user.tenantId, email: user.email, role: user.role, kind: "refresh" },
-      { expiresIn: deps.cfg.jwt.refreshTtlSeconds },
-    );
-    setCookies(reply, deps.cfg, access, refresh);
-    return { status: "ok" };
-  });
+      const { tenant, user } = created;
+      const access = app.jwt.sign(
+        { tenantId: tenant.id, email: user.email, role: user.role, kind: "access" },
+        { expiresIn: deps.cfg.jwt.accessTtlSeconds },
+      );
+      const refresh = app.jwt.sign(
+        { tenantId: tenant.id, email: user.email, role: user.role, kind: "refresh" },
+        { expiresIn: deps.cfg.jwt.refreshTtlSeconds },
+      );
+      setCookies(reply, deps.cfg, access, refresh);
+      return reply.code(201).send({ status: "created", tenantId: tenant.id });
+    },
+  );
+
+  app.post(
+    "/api/v1/auth/login",
+    { config: { rateLimit: LOGIN_RATE_LIMIT } },
+    async (req, reply) => {
+      const body = req.body as { email?: string; password?: string };
+      const email = text(body.email).toLowerCase();
+      const password = typeof body.password === "string" ? body.password : "";
+      if (!email || !password) {
+        throw new HttpError(400, "bad_request", "email and password are required");
+      }
+      const user = await deps.repos.getUserByEmail(email);
+      if (!user) throw new HttpError(401, "unauthorized", "invalid credentials");
+      const ok = await argon2.verify(user.passwordHash, password);
+      if (!ok) throw new HttpError(401, "unauthorized", "invalid credentials");
+
+      const access = app.jwt.sign(
+        { tenantId: user.tenantId, email: user.email, role: user.role, kind: "access" },
+        { expiresIn: deps.cfg.jwt.accessTtlSeconds },
+      );
+      const refresh = app.jwt.sign(
+        { tenantId: user.tenantId, email: user.email, role: user.role, kind: "refresh" },
+        { expiresIn: deps.cfg.jwt.refreshTtlSeconds },
+      );
+      setCookies(reply, deps.cfg, access, refresh);
+      return { status: "ok" };
+    },
+  );
 
   app.post("/api/v1/auth/refresh", async (req, reply) => {
     const token = getRefreshToken(req);
