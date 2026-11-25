@@ -57,7 +57,7 @@ Erasure must cover:
 
 ## 3. Data-subject requests
 
-- Public contact route for access, rectification, erasure, restriction and objection.
+- Public contact route for access, rectification, erasure, restriction and objection: `privacy@camera-history.com`.
 - Identity verification proportional to the request.
 - Target response within one month; document extensions where legally allowed.
 - Operator requests are handled by the operator; Camera History assists as processor.

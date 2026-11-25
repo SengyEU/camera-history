@@ -44,8 +44,8 @@ describe("landing page", () => {
   });
 
   it("uses the Sengycraft contact email in CTAs", () => {
-    expect(html).toContain("mailto:hello@sengycraft.cz");
-    expect(html).toContain("hello@sengycraft.cz");
+    expect(html).toContain("mailto:support@camera-history.com");
+    expect(html).toContain("support@camera-history.com");
   });
 
   it("says Contact us instead of Talk to us", () => {

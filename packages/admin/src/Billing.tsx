@@ -162,7 +162,7 @@ export function BillingPage() {
         {pilotEnded ? (
           <p className="notice danger" data-testid="pilot-ended-notice">
             Pilot ended — captures are paused.{" "}
-            <a href="mailto:hello@sengycraft.cz">Contact us</a> to continue on a paid package.
+            <a href="mailto:support@camera-history.com">Contact us</a> to continue on a paid package.
           </p>
         ) : data.isPilot ? (
           <p className="notice" data-testid="pilot-notice">

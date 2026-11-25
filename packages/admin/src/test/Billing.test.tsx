@@ -112,7 +112,7 @@ describe("BillingPage", () => {
     expect(await screen.findByTestId("pilot-ended-notice")).toHaveTextContent(/pilot ended/i);
     expect(screen.getByRole("link", { name: "Contact us" })).toHaveAttribute(
       "href",
-      "mailto:hello@sengycraft.cz",
+      "mailto:support@camera-history.com",
     );
     expect(screen.queryByTestId("pilot-notice")).not.toBeInTheDocument();
     expect(screen.getByTestId("billing-action-hint")).toHaveTextContent(/pilot has ended/i);

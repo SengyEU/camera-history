@@ -21,7 +21,7 @@ This runbook is executed before pilot outreach and before any public/case-study 
 | Canonical | `https://camera-history.com` (apex) |
 | `www` | `301` to apex |
 | Old domain | `301` to the new domain for at least 12 months; app retired |
-| E-mail | `hello@camera-history.com` for site/general; personal founder address for outreach; old address forwarded |
+| E-mail | `support@camera-history.com` for site/support/legal; `marek@camera-history.com` for outreach; `privacy@camera-history.com` for GDPR/DSAR; `noreply@camera-history.com` for automated mail; no `hello@` |
 | Embed compatibility | Demo/test only; update all snippets, no dual-origin layer |
 | Auth | Host-only cookies; users re-login once; JWT secret unchanged |
 
@@ -90,9 +90,9 @@ Expected areas:
 
 ## 9. E-mail and legal
 
-- [ ] Create `hello@camera-history.com` and the personal outreach mailbox.
+- [ ] Create `marek@camera-history.com` (human/outreach), `support@camera-history.com` (support/legal/billing) and `privacy@camera-history.com` (GDPR/DSAR); use `noreply@camera-history.com` for automated mail with `Reply-To: support@camera-history.com`.
 - [ ] Configure SPF, DKIM and DMARC for the new domain.
-- [ ] Forward `hello@sengycraft.cz` to the new address.
+- [ ] Retire `hello@`; do not recreate `hello@sengycraft.cz`.
 - [ ] Update terms, privacy, DPA, cookies, operator details and e-mail signatures.
 - [ ] Update social profiles and e-mail templates.
 

@@ -39,7 +39,7 @@ describe("deck", () => {
     }
     expect(html).toContain("12 months of history");
     expect(html).not.toContain("36 months");
-    expect(html).toContain("mailto:hello@sengycraft.cz");
+    expect(html).toContain("mailto:marek@camera-history.com");
   });
 
   it("marks every slide with an OSD slide marker", () => {

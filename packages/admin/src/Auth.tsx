@@ -34,7 +34,7 @@ function AuthShell({ children }: { children: ReactNode }) {
             {children}
           </div>
           <p className="auth-support">
-            Need help? <a href="mailto:hello@sengycraft.cz">hello@sengycraft.cz</a>
+            Need help? <a href="mailto:support@camera-history.com">support@camera-history.com</a>
           </p>
         </section>
       </div>

@@ -32,7 +32,7 @@ describe("AccountPage", () => {
     expect(screen.getByTestId("account-email")).toHaveTextContent("owner@alpine.example");
     expect(screen.getByRole("link", { name: "Contact support" })).toHaveAttribute(
       "href",
-      "mailto:hello@sengycraft.cz",
+      "mailto:support@camera-history.com",
     );
     expect(screen.getByTestId("account-password-submit")).toHaveTextContent("Update password");
   });

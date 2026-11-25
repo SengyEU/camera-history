@@ -67,10 +67,10 @@ if (contactForm) {
 
     if (status) {
       status.hidden = false;
-      status.textContent = "Opening your email app… If nothing happens, email hello@sengycraft.cz.";
+      status.textContent = "Opening your email app… If nothing happens, email marek@camera-history.com.";
     }
 
-    window.location.href = `mailto:hello@sengycraft.cz?subject=${subject}&body=${encodeURIComponent(lines.join("\n"))}`;
+    window.location.href = `mailto:marek@camera-history.com?subject=${subject}&body=${encodeURIComponent(lines.join("\n"))}`;
   });
 }
 

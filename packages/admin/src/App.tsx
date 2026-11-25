@@ -1356,7 +1356,7 @@ export function App() {
     if (pilotEnded) {
       return (
         <p className="notice danger" data-testid="account-notice">
-          Pilot ended — captures are paused. <a href="mailto:hello@sengycraft.cz">Contact us</a> to continue.
+          Pilot ended — captures are paused. <a href="mailto:support@camera-history.com">Contact us</a> to continue.
         </p>
       );
     }
@@ -1620,8 +1620,8 @@ export function App() {
       )}
       <footer className="admin-footer">
         <span>Need help?</span>
-        <a href="mailto:hello@sengycraft.cz" data-testid="admin-help">
-          hello@sengycraft.cz
+        <a href="mailto:support@camera-history.com" data-testid="admin-help">
+          support@camera-history.com
         </a>
       </footer>
     </main>

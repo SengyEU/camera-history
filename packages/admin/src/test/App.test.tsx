@@ -275,9 +275,9 @@ describe("App login", () => {
 
     render(<App />);
     await screen.findByTestId("login-form");
-    expect(screen.getByRole("link", { name: "hello@sengycraft.cz" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "support@camera-history.com" })).toHaveAttribute(
       "href",
-      "mailto:hello@sengycraft.cz",
+      "mailto:support@camera-history.com",
     );
   });
 
@@ -548,7 +548,7 @@ describe("App camera CRUD", () => {
     expect(screen.getByTestId("account-email")).toHaveTextContent("owner@acme.dev");
     expect(screen.getByRole("link", { name: "Contact support" })).toHaveAttribute(
       "href",
-      "mailto:hello@sengycraft.cz",
+      "mailto:support@camera-history.com",
     );
   });
 
@@ -750,7 +750,7 @@ describe("App camera CRUD", () => {
 
     expect(screen.getByTestId("admin-help")).toHaveAttribute(
       "href",
-      "mailto:hello@sengycraft.cz",
+      "mailto:support@camera-history.com",
     );
   });
 

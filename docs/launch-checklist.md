@@ -11,7 +11,7 @@ This checklist is executed before public launch, after product features are comp
 - [ ] Admin, widget, group and embed snippets verified on the new domain
 - [ ] Stripe webhook and return URLs updated
 - [ ] Search Console new property, sitemap and Change of Address
-- [ ] `hello@camera-history.com` + personal outreach mailbox, SPF/DKIM/DMARC, old address forwarded
+- [ ] `support@camera-history.com` + `marek@camera-history.com` (outreach) + `privacy@camera-history.com` (GDPR/DSAR) + `noreply@camera-history.com` (automated), SPF/DKIM/DMARC; no `hello@`
 - [ ] Legal documents and e-mail signatures use the new domain
 - [ ] Full runbook: `docs/domain-migration.md`
 

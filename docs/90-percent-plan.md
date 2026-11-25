@@ -225,7 +225,7 @@ Zbylých 10 % může být obsah, case studies, další jazyky, automatizovaná m
 - **Oblast:** Ops
 - **Termín:** 28. 11. 2026
 - **Checklist:**
-  - [ ] `hello@camera-history.com`
+  - [ ] `support@camera-history.com` / `marek@camera-history.com` / `privacy@camera-history.com` / `noreply@camera-history.com`
   - [ ] osobní outreach adresa
   - [ ] SPF, DKIM, DMARC
   - [ ] forward ze staré adresy

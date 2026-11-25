@@ -181,7 +181,7 @@ export function AccountPage({ tenantName, email }: { tenantName: string; email: 
         </div>
         <p className="field-hint account-support">
           Need to change your workspace name or email?{" "}
-          <a href="mailto:hello@sengycraft.cz">Contact support</a>.
+          <a href="mailto:support@camera-history.com">Contact support</a>.
         </p>
 
         <div className="account-password">
