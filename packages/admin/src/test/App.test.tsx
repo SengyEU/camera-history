@@ -494,12 +494,29 @@ describe("App camera CRUD", () => {
         return new Response(null, { status: 204 });
       }
       if (u.endsWith("/api/v1/admin/tenant")) {
-        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme", packageCode: "starter", cameraLimit: 3, billingStatus: "active", isPilot: false, pilotUntil: null } });
+        return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme", email: "owner@acme.dev", packageCode: "starter", cameraLimit: 3, billingStatus: "active", isPilot: false, pilotUntil: null } });
       }
       return jsonResponse({ detail: "not found" }, 404);
     });
     return { fn, calls };
   }
+
+  it("opens account settings and shows the read-only identity", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    await userEvent.click(screen.getByTestId("nav-account"));
+
+    expect(await screen.findByTestId("account-page")).toBeInTheDocument();
+    expect(screen.getByTestId("account-tenant")).toHaveTextContent("Acme");
+    expect(screen.getByTestId("account-email")).toHaveTextContent("owner@acme.dev");
+    expect(screen.getByRole("link", { name: "Contact support" })).toHaveAttribute(
+      "href",
+      "mailto:hello@sengycraft.cz",
+    );
+  });
 
   it("creates a camera through the form", async () => {
     const { fn, calls } = listServer();
@@ -1142,8 +1159,8 @@ describe("App registration", () => {
     await screen.findByTestId("register-form");
     await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
     await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
-    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
-    await userEvent.type(screen.getByTestId("register-password-confirm"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password"), "Supersecret1");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "Supersecret1");
     expect((screen.getByTestId("register-slug") as HTMLInputElement).value).toBe("alpine-resort");
     await userEvent.click(screen.getByTestId("register-submit"));
 
@@ -1159,8 +1176,8 @@ describe("App registration", () => {
     await screen.findByTestId("register-form");
     await userEvent.type(screen.getByTestId("register-name"), "Taken Co");
     await userEvent.type(screen.getByTestId("register-email"), "a@b.dev");
-    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
-    await userEvent.type(screen.getByTestId("register-password-confirm"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password"), "Supersecret1");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "Supersecret1");
     await userEvent.click(screen.getByTestId("register-submit"));
 
     expect(await screen.findByTestId("register-slug-error")).toHaveTextContent(
@@ -1184,12 +1201,39 @@ describe("App registration", () => {
     await screen.findByTestId("register-form");
     await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
     await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
-    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password"), "Supersecret1");
     await userEvent.type(screen.getByTestId("register-password-confirm"), "different");
     await userEvent.click(screen.getByTestId("register-submit"));
 
     expect(await screen.findByTestId("register-password-confirm-error")).toHaveTextContent(
       "Passwords don’t match.",
+    );
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/register"))).toBe(false);
+    window.location.hash = "";
+  });
+
+  it("requires an uppercase letter and a number in the password", async () => {
+    const calls: string[] = [];
+    const server = registerServer();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        calls.push(String(url));
+        return server(url);
+      }),
+    );
+    window.location.hash = "#/register";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
+    await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "lowercase1");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "lowercase1");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    expect(await screen.findByTestId("register-password-error")).toHaveTextContent(
+      "Use 8 to 128 characters, one uppercase letter and one number.",
     );
     expect(calls.some((u) => u.endsWith("/api/v1/auth/register"))).toBe(false);
     window.location.hash = "";
@@ -1203,8 +1247,8 @@ describe("App registration", () => {
     await screen.findByTestId("register-form");
     await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
     await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
-    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
-    await userEvent.type(screen.getByTestId("register-password-confirm"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password"), "Supersecret1");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "Supersecret1");
     await userEvent.click(screen.getByTestId("register-submit"));
 
     expect(await screen.findByTestId("register-email-error")).toHaveTextContent(
@@ -1231,8 +1275,8 @@ describe("App registration", () => {
     await screen.findByTestId("register-form");
     await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
     await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
-    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
-    await userEvent.type(screen.getByTestId("register-password-confirm"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password"), "Supersecret1");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "Supersecret1");
     await userEvent.click(screen.getByTestId("register-submit"));
 
     await screen.findByTestId("logout");

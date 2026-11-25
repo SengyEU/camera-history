@@ -5,12 +5,12 @@ async function registerAndLogin(app: ReturnType<typeof makeApp>["app"]) {
   await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+    payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
   });
   const login = await app.inject({
     method: "POST",
     url: "/api/v1/auth/login",
-    payload: { email: "a@acme.cz", password: "password123" },
+    payload: { email: "a@acme.cz", password: "Password123" },
   });
   return (login.headers["set-cookie"] as string[]).map((c) => c.split(";")[0]!).join("; ");
 }
@@ -24,7 +24,7 @@ async function registerTenant(
   const reg = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { name, slug, email, password: "password1" },
+    payload: { name, slug, email, password: "Password1" },
   });
   return {
     cookie: reg.cookies.map((c) => `${c.name}=${c.value}`).join("; "),
@@ -901,7 +901,7 @@ describe("admin groups", () => {
     const reg = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "G", slug: "grp-admin", email: "g@x.dev", password: "password1" },
+      payload: { name: "G", slug: "grp-admin", email: "g@x.dev", password: "Password1" },
     });
     const cookie = reg.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
     const tenantId = reg.json().tenantId as string;
@@ -1017,7 +1017,7 @@ describe("admin groups", () => {
     const reg = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "T", slug: "slug-src", email: "s@x.dev", password: "password1" },
+      payload: { name: "T", slug: "slug-src", email: "s@x.dev", password: "Password1" },
     });
     const cookie = reg.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
     const res = await app.inject({ method: "GET", url: "/api/v1/admin/tenant", headers: { cookie } });

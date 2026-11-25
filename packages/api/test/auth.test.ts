@@ -7,7 +7,7 @@ describe("auth", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
     });
     expect(res.statusCode).toBe(201);
     expect(res.headers["set-cookie"]).toBeDefined();
@@ -21,12 +21,12 @@ describe("auth", () => {
     await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
     });
     const second = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME2", slug: "acme", email: "b@acme.cz", password: "password123" },
+      payload: { name: "ACME2", slug: "acme", email: "b@acme.cz", password: "Password123" },
     });
     expect(second.statusCode).toBe(409);
     await (app as { close: () => Promise<void> }).close();
@@ -37,12 +37,12 @@ describe("auth", () => {
     await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
     });
     const second = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "Other", slug: "other", email: "A@ACME.CZ", password: "password123" },
+      payload: { name: "Other", slug: "other", email: "A@ACME.CZ", password: "Password123" },
     });
     expect(second.statusCode).toBe(409);
     expect(second.json().detail).toBe("email already registered");
@@ -56,14 +56,14 @@ describe("auth", () => {
     const invalid = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "not-an-email", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "not-an-email", password: "Password123" },
     });
     expect(invalid.statusCode).toBe(400);
 
     const created = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "  ACME  ", slug: "  acme  ", email: "  Owner@ACME.CZ ", password: "password123" },
+      payload: { name: "  ACME  ", slug: "  acme  ", email: "  Owner@ACME.CZ ", password: "Password123" },
     });
     expect(created.statusCode).toBe(201);
     expect(repos.db.tenants[0]!.name).toBe("ACME");
@@ -73,7 +73,7 @@ describe("auth", () => {
     const login = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
-      payload: { email: "OWNER@acme.cz", password: "password123" },
+      payload: { email: "OWNER@acme.cz", password: "Password123" },
     });
     expect(login.statusCode).toBe(200);
     await (app as { close: () => Promise<void> }).close();
@@ -81,12 +81,14 @@ describe("auth", () => {
 
   it("enforces name, slug and password limits", async () => {
     const { app } = makeApp();
-    const base = { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" };
+    const base = { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" };
     for (const payload of [
       { ...base, name: "x".repeat(81) },
       { ...base, slug: "x".repeat(41) },
       { ...base, password: "short" },
       { ...base, password: "x".repeat(129) },
+      { ...base, password: "lowercase123" },
+      { ...base, password: "NoNumbers" },
     ]) {
       const res = await app.inject({ method: "POST", url: "/api/v1/auth/register", payload });
       expect(res.statusCode).toBe(400);
@@ -99,7 +101,7 @@ describe("auth", () => {
     await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
     });
     for (let i = 0; i < 10; i += 1) {
       const res = await app.inject({
@@ -118,17 +120,93 @@ describe("auth", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("changes the password for the signed-in user", async () => {
+    const { app } = makeApp();
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
+    });
+    const cookie = created.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+
+    const changed = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/password",
+      headers: { cookie },
+      payload: { currentPassword: "Password123", newPassword: "NewPassword456" },
+    });
+    expect(changed.statusCode).toBe(200);
+
+    const oldLogin = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: { email: "a@acme.cz", password: "Password123" },
+    });
+    expect(oldLogin.statusCode).toBe(401);
+
+    const newLogin = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: { email: "a@acme.cz", password: "NewPassword456" },
+    });
+    expect(newLogin.statusCode).toBe(200);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("validates the current and new password when changing it", async () => {
+    const { app } = makeApp();
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
+    });
+    const cookie = created.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+
+    const wrongCurrent = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/password",
+      headers: { cookie },
+      payload: { currentPassword: "WrongPass123", newPassword: "NewPassword456" },
+    });
+    expect(wrongCurrent.statusCode).toBe(400);
+    expect(wrongCurrent.json().detail).toBe("current password is incorrect");
+
+    const weak = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/password",
+      headers: { cookie },
+      payload: { currentPassword: "Password123", newPassword: "lowercase1" },
+    });
+    expect(weak.statusCode).toBe(400);
+
+    const same = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/password",
+      headers: { cookie },
+      payload: { currentPassword: "Password123", newPassword: "Password123" },
+    });
+    expect(same.statusCode).toBe(400);
+
+    const anonymous = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/password",
+      payload: { currentPassword: "Password123", newPassword: "NewPassword456" },
+    });
+    expect(anonymous.statusCode).toBe(401);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("login returns cookies, logout clears them", async () => {
     const { app } = makeApp();
     await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
     });
     const login = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
-      payload: { email: "a@acme.cz", password: "password123" },
+      payload: { email: "a@acme.cz", password: "Password123" },
     });
     expect(login.statusCode).toBe(200);
     expect(login.headers["set-cookie"]).toBeDefined();
@@ -147,7 +225,7 @@ describe("auth", () => {
     await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
     });
     const login = await app.inject({
       method: "POST",
@@ -166,7 +244,7 @@ describe("auth", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
     });
     expect(res.statusCode).toBe(201);
     expect(res.json().billing).toBeUndefined();
@@ -178,7 +256,7 @@ describe("auth", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+      payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
     });
     expect(res.statusCode).toBe(201);
     expect(res.json().billing).toBeUndefined();
@@ -194,7 +272,7 @@ describe("auth", () => {
         name: "ACME",
         slug: "acme",
         email: "a@acme.cz",
-        password: "password123",
+        password: "Password123",
         packageCode: "plus",
       },
     });
@@ -212,7 +290,7 @@ describe("auth", () => {
         name: "ACME",
         slug: "acme",
         email: "a@acme.cz",
-        password: "password123",
+        password: "Password123",
         packageCode: "enterprise",
       },
     });
@@ -232,7 +310,7 @@ describe("auth", () => {
         name: "Pilot Resort",
         slug: "pilot-resort",
         email: "pilot@example.com",
-        password: "password123",
+        password: "Password123",
         pilotCode: "pilot-secret",
       },
     });
@@ -257,7 +335,7 @@ describe("auth", () => {
         name: "ACME",
         slug: "acme",
         email: "a@acme.cz",
-        password: "password123",
+        password: "Password123",
         pilotCode: "wrong",
       },
     });

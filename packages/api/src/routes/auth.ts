@@ -2,12 +2,13 @@ import argon2 from "@node-rs/argon2";
 import type { FastifyInstance } from "fastify";
 import { HttpError, isPackageCode } from "@ch/core";
 import type { AppDeps } from "../app.js";
-import { clearCookies, getRefreshToken, setCookies } from "../plugins/auth.js";
+import { clearCookies, getRefreshToken, requireAuth, setCookies } from "../plugins/auth.js";
 
 const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const VALID_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REGISTER_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
 const LOGIN_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
+const PASSWORD_RATE_LIMIT = { max: 5, timeWindow: "1 minute" };
 const NAME_MAX = 80;
 const SLUG_MAX = 40;
 const PASSWORD_MIN = 8;
@@ -16,6 +17,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function passwordProblem(password: string): string | null {
+  if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
+    return `password must be ${PASSWORD_MIN}-${PASSWORD_MAX} characters`;
+  }
+  if (!/[A-Z]/.test(password) || !/\d/.test(password)) {
+    return "password must include an uppercase letter and a number";
+  }
+  return null;
 }
 
 function uniqueViolation(err: unknown): "email" | "slug" | null {
@@ -59,13 +70,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
       if (!VALID_EMAIL.test(email)) {
         throw new HttpError(400, "bad_request", "invalid email");
       }
-      if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
-        throw new HttpError(
-          400,
-          "bad_request",
-          `password must be ${PASSWORD_MIN}-${PASSWORD_MAX} characters`,
-        );
-      }
+      const passwordError = passwordProblem(password);
+      if (passwordError) throw new HttpError(400, "bad_request", passwordError);
 
       const packageCode = body.packageCode;
       if (packageCode !== undefined && !isPackageCode(packageCode)) {
@@ -150,6 +156,30 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
         { expiresIn: deps.cfg.jwt.refreshTtlSeconds },
       );
       setCookies(reply, deps.cfg, access, refresh);
+      return { status: "ok" };
+    },
+  );
+
+  app.post(
+    "/api/v1/auth/password",
+    { preHandler: requireAuth(app), config: { rateLimit: PASSWORD_RATE_LIMIT } },
+    async (req, reply) => {
+      const body = req.body as { currentPassword?: string; newPassword?: string };
+      const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
+      const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+      if (!currentPassword || !newPassword) {
+        throw new HttpError(400, "bad_request", "currentPassword and newPassword are required");
+      }
+      const user = await deps.repos.getUserByEmail(req.user!.email);
+      if (!user) throw new HttpError(401, "unauthorized", "unauthorized");
+      const ok = await argon2.verify(user.passwordHash, currentPassword);
+      if (!ok) throw new HttpError(400, "bad_request", "current password is incorrect");
+      const passwordError = passwordProblem(newPassword);
+      if (passwordError) throw new HttpError(400, "bad_request", passwordError);
+      if (currentPassword === newPassword) {
+        throw new HttpError(400, "bad_request", "new password must be different");
+      }
+      await deps.repos.updateUserPassword(user.id, await argon2.hash(newPassword));
       return { status: "ok" };
     },
   );

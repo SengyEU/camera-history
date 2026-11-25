@@ -27,6 +27,7 @@ export interface Repos {
   getTenantBySlug(slug: string): Promise<Tenant | null>;
   createUser(input: NewUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
+  updateUserPassword(id: string, passwordHash: string): Promise<void>;
   createCamera(tenantId: string, input: NewCamera): Promise<Camera>;
   createCameraWithLimit(
     tenantId: string,

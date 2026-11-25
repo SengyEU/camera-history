@@ -188,6 +188,11 @@ export const api = {
       { method: "POST", body: JSON.stringify(input) },
     ),
   logout: () => json<{ status?: string }>("/api/v1/auth/logout", { method: "POST" }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    json<{ status?: string }>("/api/v1/auth/password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
   listCameras: () => json<{ cameras: AdminCamera[] }>("/api/v1/admin/cameras").then((r) => r.cameras),
   createCamera: (input: CameraInput) =>
     json<{ camera: AdminCamera }>("/api/v1/admin/cameras", { method: "POST", body: JSON.stringify(input) }).then((r) => r.camera),
@@ -223,6 +228,7 @@ export const api = {
         id: string;
         name: string;
         slug: string;
+        email?: string;
         packageCode: string;
         cameraLimit: number;
         billingStatus: BillingStatus;

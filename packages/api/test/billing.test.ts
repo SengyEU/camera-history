@@ -5,12 +5,12 @@ async function registerAndLogin(app: ReturnType<typeof makeApp>["app"]) {
   await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "password123" },
+    payload: { name: "ACME", slug: "acme", email: "a@acme.cz", password: "Password123" },
   });
   const login = await app.inject({
     method: "POST",
     url: "/api/v1/auth/login",
-    payload: { email: "a@acme.cz", password: "password123" },
+    payload: { email: "a@acme.cz", password: "Password123" },
   });
   return (login.headers["set-cookie"] as string[]).map((c) => c.split(";")[0]!).join("; ");
 }

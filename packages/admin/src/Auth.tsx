@@ -164,7 +164,10 @@ function registerError(err: unknown): { field?: keyof FieldErrors; message: stri
     if (detail.includes("email")) return { field: "email", message: "Enter a valid email address." };
     if (detail.includes("slug")) return { field: "slug", message: "This workspace URL isn’t valid." };
     if (detail.includes("password")) {
-      return { field: "password", message: "Use a password with 8 to 128 characters." };
+      return {
+        field: "password",
+        message: "Use 8 to 128 characters, one uppercase letter and one number.",
+      };
     }
     if (detail.includes("name")) return { field: "name", message: "Enter a company name up to 80 characters." };
     return { message: err.message };
@@ -339,8 +342,13 @@ export function Register({
     if (!trimmedEmail) next.email = "Enter your email address.";
     else if (!EMAIL_RE.test(trimmedEmail)) next.email = "Enter a valid email address.";
     if (!password) next.password = "Create a password.";
-    else if (password.length < 8 || password.length > 128) {
-      next.password = "Use 8 to 128 characters.";
+    else if (
+      password.length < 8 ||
+      password.length > 128 ||
+      !/[A-Z]/.test(password) ||
+      !/\d/.test(password)
+    ) {
+      next.password = "Use 8 to 128 characters, one uppercase letter and one number.";
     }
     if (!confirm) next.confirm = "Repeat your password.";
     else if (confirm !== password) next.confirm = "Passwords don’t match.";
@@ -430,10 +438,8 @@ export function Register({
               data-testid="register-slug"
             />
             <span className="field-hint" id="register-slug-hint">
-              Lowercase letters, numbers and dashes. Max 40 characters.
-            </span>
-            <span className="auth-slug-preview" data-testid="register-slug-preview">
-              /widget/{slug.trim() || "your-workspace"}/camera
+              Generated from the company name. You can edit it — lowercase letters, numbers and
+              dashes, max 40 characters.
             </span>
             {errors.slug && (
               <span className="field-error" id="register-slug-error" data-testid="register-slug-error">
@@ -468,7 +474,7 @@ export function Register({
           <PasswordField
             id="register-password"
             label="Password"
-            placeholder="At least 8 characters"
+            placeholder="Your password"
             value={password}
             onChange={setPassword}
             testId="register-password"
@@ -479,9 +485,15 @@ export function Register({
             inputRef={passwordRef}
             fieldName="password"
           />
-          <span className={`auth-rule${password.length >= 8 ? " is-met" : ""}`} data-testid="password-rule">
-            At least 8 characters
-          </span>
+          <div className="auth-rules" data-testid="password-rules">
+            <span className={`auth-rule${password.length >= 8 ? " is-met" : ""}`}>
+              At least 8 characters
+            </span>
+            <span className={`auth-rule${/[A-Z]/.test(password) ? " is-met" : ""}`}>
+              One uppercase letter
+            </span>
+            <span className={`auth-rule${/\d/.test(password) ? " is-met" : ""}`}>One number</span>
+          </div>
           <PasswordField
             id="register-password-confirm"
             label="Confirm password"

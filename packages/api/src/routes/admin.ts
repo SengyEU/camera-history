@@ -425,6 +425,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: AppDeps) {
         id: t.id,
         name: t.name,
         slug: t.slug,
+        email: req.user!.email,
         packageCode: t.packageCode,
         cameraLimit: cameraLimitForPackage(t.packageCode),
         billingStatus: t.billingStatus,

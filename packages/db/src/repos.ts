@@ -125,6 +125,9 @@ export function createRepos(db: Db): Repos {
       const [row] = await db.select().from(users).where(eq(users.email, email));
       return row ?? null;
     },
+    async updateUserPassword(id, passwordHash) {
+      await db.update(users).set({ passwordHash }).where(eq(users.id, id));
+    },
     async createCamera(tenantId: string, input: NewCamera): Promise<Camera> {
       const [row] = await db.insert(cameras).values(cameraValues(tenantId, input)).returning();
       return toCamera(row!);

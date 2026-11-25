@@ -100,6 +100,10 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     async getUserByEmail(email: string) {
       return db.users.find((u) => u.email === email) ?? null;
     },
+    async updateUserPassword(id: string, passwordHash: string) {
+      const user = db.users.find((u) => u.id === id);
+      if (user) user.passwordHash = passwordHash;
+    },
     async createCamera(tenantId: string, input: NewCamera): Promise<Camera> {
       const camera: Camera = {
         id: randomUUID(),

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, FEED_LABELS, FEED_TYPES, SESSION_EXPIRED_EVENT, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
+import { AccountPage } from "./Account";
 import { AuthSplash, Login, Register } from "./Auth";
 import { BillingPage } from "./Billing";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -44,9 +45,10 @@ const emptyInput = (): CameraInput => ({
   showNight: false,
 });
 
-function currentView(): "cameras" | "groups" | "billing" {
+function currentView(): "cameras" | "groups" | "billing" | "account" {
   if (window.location.hash.startsWith("#/billing")) return "billing";
   if (window.location.hash.startsWith("#/groups")) return "groups";
+  if (window.location.hash.startsWith("#/account")) return "account";
   return "cameras";
 }
 
@@ -958,6 +960,8 @@ export function App() {
   const [camerasError, setCamerasError] = useState<string | null>(null);
   const [groupsError, setGroupsError] = useState<string | null>(null);
   const [tenantSlug, setTenantSlug] = useState<string>("");
+  const [tenantName, setTenantName] = useState<string>("");
+  const [accountEmail, setAccountEmail] = useState<string>("");
   const [tenantCameraLimit, setTenantCameraLimit] = useState<number>(3);
   const [tenantBilling, setTenantBilling] = useState<{
     billingStatus: BillingStatus;
@@ -965,7 +969,7 @@ export function App() {
     pilotUntil: string | null;
     packageCode: string;
   } | null>(null);
-  const [view, setView] = useState<"cameras" | "groups" | "billing">(currentView);
+  const [view, setView] = useState<"cameras" | "groups" | "billing" | "account">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
   const [cameraSavedNotice, setCameraSavedNotice] = useState<string | null>(null);
@@ -1053,6 +1057,8 @@ export function App() {
       .getTenant()
       .then((t) => {
         setTenantSlug(t.slug);
+        setTenantName(t.name);
+        if (t.email) setAccountEmail(t.email);
         setTenantCameraLimit(t.cameraLimit);
         setTenantBilling({
           billingStatus: t.billingStatus,
@@ -1063,6 +1069,7 @@ export function App() {
       })
       .catch(() => {
         setTenantSlug("");
+        setTenantName("");
         setTenantBilling(null);
       });
   }, [email, view]);
@@ -1092,6 +1099,7 @@ export function App() {
     }
     window.location.hash = "";
     setSessionNotice(null);
+    setAccountEmail("");
     setEmail(null);
   };
 
@@ -1246,6 +1254,7 @@ export function App() {
       <Register
         onSuccess={(nextEmail) => {
           setSessionNotice(null);
+          setAccountEmail(nextEmail);
           setEmail(nextEmail);
         }}
         onSignIn={() => {
@@ -1257,6 +1266,7 @@ export function App() {
         notice={sessionNotice}
         onSuccess={(nextEmail) => {
           setSessionNotice(null);
+          setAccountEmail(nextEmail);
           setEmail(nextEmail);
         }}
         onRegister={() => {
@@ -1327,6 +1337,9 @@ export function App() {
           <a href="#/billing" className={view === "billing" ? "active" : undefined} data-testid="nav-billing">
             Billing
           </a>
+          <a href="#/account" className={view === "account" ? "active" : undefined} data-testid="nav-account">
+            Account
+          </a>
         </nav>
         <div className="topbar-account">
           {pilotActive && (
@@ -1339,8 +1352,8 @@ export function App() {
               <span className="topbar-pilot-date"> · free until {pilotUntilLabel}</span>
             </span>
           )}
-          <span className="topbar-user" title={email}>
-            {email}
+          <span className="topbar-user" title={accountEmail || email || ""}>
+            {accountEmail || email}
           </span>
           <button className="secondary topbar-signout" onClick={logout} data-testid="logout">
             Sign out
@@ -1367,6 +1380,8 @@ export function App() {
       </div>
        {view === "billing" ? (
          <BillingPage />
+       ) : view === "account" ? (
+         <AccountPage tenantName={tenantName} email={accountEmail} />
        ) : view === "groups" ? (
          groupRoute !== null ? (
            groupRoute.mode === "new" ? (
