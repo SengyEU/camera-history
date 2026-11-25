@@ -6,6 +6,7 @@ import { BillingPage } from "./Billing";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EmbedCodePanel } from "./EmbedCodePanel";
 import { cameraEmbedId, cameraEmbedSrc, embedSnippet } from "./embed";
+import { shortEmail } from "./email";
 import { formatAge, formatDate, formatDateTime } from "./format";
 import { GroupEditor, GroupsView, type GroupInput } from "./Groups";
 import { PageHeader } from "./PageHeader";
@@ -1387,6 +1388,8 @@ export function App() {
     return null;
   })();
 
+  const topbarEmail = accountEmail || email || "";
+
   return (
     <main className="admin" data-testid="admin-app">
       <header className="topbar">
@@ -1419,8 +1422,8 @@ export function App() {
               <span className="topbar-pilot-date"> · free until {pilotUntilLabel}</span>
             </span>
           )}
-          <span className="topbar-user" title={accountEmail || email || ""}>
-            {accountEmail || email}
+          <span className="topbar-user" title={topbarEmail} aria-label={topbarEmail}>
+            {shortEmail(topbarEmail)}
           </span>
         </div>
         <button className="secondary topbar-signout" onClick={logout} data-testid="logout">

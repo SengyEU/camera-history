@@ -425,7 +425,7 @@ button.link:hover {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   background: var(--surface);
   padding: 10px 14px;
   border: 1px solid var(--line);
@@ -444,12 +444,14 @@ button.link:hover {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .topbar-user {
-  max-width: 220px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 240px;
   overflow: hidden;
   color: var(--muted);
   font-size: 13px;
@@ -472,7 +474,7 @@ button.link:hover {
 
 .topbar-signout {
   flex: none;
-  padding: 6px 10px;
+  padding: 6px 9px;
   font-size: 13px;
 }
 
@@ -487,7 +489,7 @@ button.link:hover {
 }
 
 .topbar-nav a {
-  padding: 6px 12px;
+  padding: 6px 8px;
   border-radius: 7px;
   color: var(--muted);
   font-size: 14px;
@@ -1630,6 +1632,12 @@ button.link:hover {
     border-top: 1px solid var(--line);
     background: var(--surface);
     box-shadow: 0 -4px 16px rgba(16, 24, 40, 0.08);
+  }
+}
+
+@media (max-width: 1100px) {
+  .topbar-user {
+    display: none;
   }
 }
 
