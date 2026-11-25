@@ -151,8 +151,9 @@ button.link:hover {
 }
 
 /* Auth screens — login/register */
-.auth-screen {
+.admin.auth-screen {
   max-width: none;
+  margin: 0;
   min-height: 100vh;
   display: grid;
   place-items: center;
@@ -349,7 +350,7 @@ button.link:hover {
   color: var(--glacier-deep);
 }
 
-.auth-screen-splash {
+.admin.auth-screen-splash {
   background: var(--snow);
 }
 
@@ -386,7 +387,7 @@ button.link:hover {
 }
 
 @media (max-width: 760px) {
-  .auth-screen {
+  .admin.auth-screen {
     align-items: start;
     padding: 16px;
   }

@@ -501,13 +501,24 @@ button:focus-visible {
   background: var(--color-night);
 }
 
+/* The widget body is transparent so it inherits its host page. On the landing
+   the host is this dark showcase, so paint the midnight preset behind it. */
+.cam-frame::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: var(--radius-md);
+  background: var(--theme-midnight-bg);
+}
+
 .cam-frame iframe {
+  position: relative;
   display: block;
   width: 100%;
   height: clamp(480px, calc(100dvh - 300px), 600px);
   border: 0;
   border-radius: var(--radius-md);
-  background: var(--color-snow);
+  background: transparent;
 }
 
 .section {
@@ -557,6 +568,9 @@ button:focus-visible {
   align-items: center;
   min-height: clamp(420px, 52vh, 560px);
   overflow: hidden;
+  /* Overlap the hero by 1px so fractional viewport heights cannot expose
+     the snow page background as a hairline between the two night bands. */
+  margin-top: -1px;
   padding: clamp(56px, 6vw, 88px) 0;
   border-top: 0;
   background: var(--color-night);
@@ -606,6 +620,9 @@ button:focus-visible {
 
 .section-cut {
   height: clamp(72px, 8vw, 120px);
+  /* 1px overlaps on both edges hide subpixel seams against the neighbouring
+     bands, just like the previous mobile-only border workaround. */
+  margin-top: -1px;
   margin-bottom: -1px;
   overflow: hidden;
   background: var(--color-night);

@@ -163,7 +163,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
   app.post(
     "/api/v1/auth/password",
     { preHandler: requireAuth(app), config: { rateLimit: PASSWORD_RATE_LIMIT } },
-    async (req, reply) => {
+    async (req) => {
       const body = req.body as { currentPassword?: string; newPassword?: string };
       const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
       const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
