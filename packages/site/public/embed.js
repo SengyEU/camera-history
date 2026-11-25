@@ -177,7 +177,10 @@
     try {
       var doc = frame.contentDocument;
       if (doc && doc.body) {
-        frame.style.height = Math.ceil(doc.body.getBoundingClientRect().height) + "px";
+        var height = Math.ceil(doc.body.getBoundingClientRect().height);
+        // Do not collapse the frame while the widget document is still blank;
+        // a 0px write causes a large layout shift on the host page.
+        if (height > 0) frame.style.height = Math.max(240, height) + "px";
         sendFont(frame.contentWindow, frame);
       }
     } catch {

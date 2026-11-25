@@ -49,11 +49,19 @@ class Ch_Renderer {
 
 		wp_enqueue_script( 'camera-history-embed', $embed_url, array(), null, true );
 
+		$title = sprintf(
+			/* translators: %1$s: camera or group, %2$s: target slug. */
+			__( 'Camera History %1$s: %2$s', 'camera-history' ),
+			'group' === $type ? __( 'group', 'camera-history' ) : __( 'camera', 'camera-history' ),
+			$target
+		);
+
 		$iframe = sprintf(
-			'<iframe src="%s" width="%s" height="%s" style="border:0" allowfullscreen loading="lazy"></iframe>',
+			'<iframe src="%s" width="%s" height="%s" title="%s" style="border:0" allowfullscreen loading="lazy"></iframe>',
 			esc_url( $url ),
 			esc_attr( $width ),
-			esc_attr( $height )
+			esc_attr( $height ),
+			esc_attr( $title )
 		);
 
 		if ( function_exists( 'did_action' ) && did_action( 'wp_footer' ) ) {
