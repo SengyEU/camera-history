@@ -1,5 +1,32 @@
 import { pilotStories, type PilotStory } from "./pilots";
 
+/*
+ * The widget is transparent by design, but a dark color-scheme iframe paints
+ * its canvas with the browser default instead of showing the parent through.
+ * Paint the hero demo canvas with the same midnight token as its card so the
+ * landing showcase stays one blue panel; the widget itself is not touched.
+ */
+const heroDemo = document.querySelector<HTMLIFrameElement>("#hero-demo iframe");
+
+function paintHeroDemoBackdrop(): void {
+  if (!heroDemo) return;
+  try {
+    const doc = heroDemo.contentDocument;
+    if (!doc) return;
+    const backdrop = getComputedStyle(document.documentElement)
+      .getPropertyValue("--theme-midnight-bg")
+      .trim();
+    if (backdrop) doc.documentElement.style.background = backdrop;
+  } catch {
+    // Cross-origin previews keep their own background.
+  }
+}
+
+if (heroDemo) {
+  heroDemo.addEventListener("load", paintHeroDemoBackdrop);
+  paintHeroDemoBackdrop();
+}
+
 const menu = document.querySelector<HTMLDetailsElement>(".mobile-nav");
 
 if (menu) {
