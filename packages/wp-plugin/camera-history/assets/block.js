@@ -29,7 +29,7 @@
 		if (!data.tenantSlug || !attributes.slug) return "";
 		var type = attributes.type === "group" ? "group" : "camera";
 		var url =
-			(data.apiUrl || "https://camera.sengycraft.cz").replace(/\/+$/, "") +
+			(data.apiUrl || "https://camera-history.com").replace(/\/+$/, "") +
 			(type === "group" ? "/group/" : "/widget/") +
 			encodeURIComponent(data.tenantSlug) +
 			"/" +

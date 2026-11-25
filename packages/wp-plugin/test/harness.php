@@ -4,8 +4,8 @@ declare(strict_types=1);
 /** Minimal WordPress stubs for the local plugin harness. */
 
 define( 'ABSPATH', 'unittest/' );
-define( 'CH_API_URL', 'https://camera.sengycraft.cz' );
-define( 'CH_VERSION', '3.1.0' );
+define( 'CH_API_URL', 'https://camera-history.com' );
+define( 'CH_VERSION', '3.1.1' );
 $GLOBALS['ch_options']   = array();
 $GLOBALS['ch_scripts']   = array();
 $GLOBALS['ch_http']      = null;
@@ -117,16 +117,16 @@ check( 'unknown workspace returns WP_Error', is_wp_error( $err ) && $err->get_er
 $GLOBALS['ch_options'] = array(
 	Ch_Client::OPT_SLUG => 'acme-basins',
 );
-check( 'camera URL uses widget path', Ch_Renderer::url( 'camera', 'glacier-bowl' ) === 'https://camera.sengycraft.cz/widget/acme-basins/glacier-bowl' );
-check( 'group URL uses group path', Ch_Renderer::url( 'group', 'summit' ) === 'https://camera.sengycraft.cz/group/acme-basins/summit' );
+check( 'camera URL uses widget path', Ch_Renderer::url( 'camera', 'glacier-bowl' ) === 'https://camera-history.com/widget/acme-basins/glacier-bowl' );
+check( 'group URL uses group path', Ch_Renderer::url( 'group', 'summit' ) === 'https://camera-history.com/group/acme-basins/summit' );
 
 $GLOBALS['ch_scripts'] = array();
 $html = Ch_Renderer::iframe( 'camera', 'glacier-bowl' );
-check( 'iframe builds camera source', strpos( $html, 'src="https://camera.sengycraft.cz/widget/acme-basins/glacier-bowl"' ) !== false );
+check( 'iframe builds camera source', strpos( $html, 'src="https://camera-history.com/widget/acme-basins/glacier-bowl"' ) !== false );
 check( 'iframe defaults width/height', strpos( $html, 'width="100%"' ) !== false && strpos( $html, 'height="720"' ) !== false );
 check( 'iframe includes attrs', strpos( $html, 'allowfullscreen' ) !== false && strpos( $html, 'loading="lazy"' ) !== false );
 check( 'embed helper enqueued', isset( $GLOBALS['ch_scripts']['camera-history-embed'] ) );
-check( 'embed helper follows API base', ( $GLOBALS['ch_scripts']['camera-history-embed']['src'] ?? '' ) === 'https://camera.sengycraft.cz/embed.js?v=3.1.0' );
+check( 'embed helper follows API base', ( $GLOBALS['ch_scripts']['camera-history-embed']['src'] ?? '' ) === 'https://camera-history.com/embed.js?v=3.1.1' );
 
 $group_html = Ch_Renderer::iframe( 'group', 'summit', '80%', '600', 'dark' );
 check( 'group iframe uses group path and theme', strpos( $group_html, '/group/acme-basins/summit?theme=dark' ) !== false );

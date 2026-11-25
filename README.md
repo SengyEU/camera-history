@@ -31,11 +31,11 @@ Integrační testy proti reálnému Postgres se spustí přes `RUN_INTEGRATION=1
 
 ## Embed widgetu
 
-Pokud API a web běží na stejném origin (např. `camera.sengycraft.cz`), vloží se widget jako iframe:
+Pokud API a web běží na stejném origin (např. `camera-history.com`), vloží se widget jako iframe:
 
 ```html
 <iframe
-  src="https://camera.sengycraft.cz/widget/{tenant_slug}/{camera_id}"
+  src="https://camera-history.com/widget/{tenant_slug}/{camera_id}"
   style="width:100%;height:600px;border:0;"
   frameborder="0" allowfullscreen></iframe>
 ```
@@ -91,7 +91,7 @@ node scripts/zip-wp-plugin.mjs   # → packages/wp-plugin/dist/camera-history.zi
 ### Instalace a konfigurace (manuální smoke, mimo repo)
 
 1. Nahrajte `packages/wp-plugin/dist/camera-history.zip` přes **Plugins → Add New → Upload Plugin** a aktivujte.
-2. **Settings → Camera History**: vyplňte API URL (např. `https://camera.sengycraft.cz`), e-mail a heslo
+2. **Settings → Camera History**: vyplňte API URL (např. `https://camera-history.com`), e-mail a heslo
    do SaaS admin účtu a tenant slug.
 3. Vyberte kameru z dropdownu (seznam z `GET /api/v1/admin/cameras`) a zkopírujte shortcode
    `[camera-history camera="…"]`.
@@ -130,7 +130,7 @@ Faktury, cancel a resume zůstávají ve Stripe portálu; změna balíčku je v 
 1. `node --env-file=.env scripts/seed-stripe.mjs` — vytvoří produkt, 5 package cen a archivuje staré retenční ceny.
 2. Do `.env` zkopíruj `STRIPE_PRICE_SOLO` … `STRIPE_PRICE_NETWORK`, `STRIPE_PORTAL_CONFIG_ID`
    a nastav `STRIPE_ENABLED=true`. Staré `STRIPE_PRICE_0_5`…`36` smaž.
-3. Stripe → Developers → Webhooks → endpoint `https://camera.sengycraft.cz/api/v1/billing/webhook`
+3. Stripe → Developers → Webhooks → endpoint `https://camera-history.com/api/v1/billing/webhook`
    s událostmi `checkout.session.completed`, `customer.subscription.updated`,
    `customer.subscription.deleted`; nastav `STRIPE_WEBHOOK_SECRET`.
 4. Restartuj API/worker (`docker compose build api worker && docker compose up -d api worker`).
@@ -192,26 +192,13 @@ Healthcheck API: http://127.0.0.1:3000/api/v1/health, web: http://127.0.0.1:8080
 | DATABASE_URL | hostname `postgres` (compose síť), např. `postgres://camera:heslo@postgres:5432/camera_history` |
 | MINIO_ENDPOINT | `minio` |
 | MINIO_ACCESS_KEY / MINIO_SECRET_KEY | silné hodnoty |
-| PUBLIC_BASE_URL | `https://camera.sengycraft.cz` |
+| PUBLIC_BASE_URL | `https://camera-history.com` |
 | JWT_SECRET | dlouhý náhodný řetězec |
 | STRIPE_* / BILLING_GRACE_DAYS | dle sekce M4 |
 
 ### Deploy na VPS (runbook — vyžaduje credentials)
 
 1. `git clone` repozitáře na VPS, vytvoř `.env` (viz tabulka) a spusť `docker compose up -d`.
-2. Hostitelský nginx — site `camera.sengycraft.cz` (TLS na portu 20005):
-
-   ```nginx
-   server {
-       listen 20005 ssl http2;
-       server_name camera.sengycraft.cz;
-       ssl_certificate     /etc/letsencrypt/live/camera.sengycraft.cz/fullchain.pem;
-       ssl_certificate_key /etc/letsencrypt/live/camera.sengycraft.cz/privkey.pem;
-       location /widget/ { proxy_pass http://127.0.0.1:8080; }
-       location /admin/  { proxy_pass http://127.0.0.1:8080; }
-       location /api/    { proxy_pass http://127.0.0.1:3000; }
-   }
-   ```
-
-3. Certifikát přes certbot **DNS-01** s Cloudflare pluginem (vzor ve spec `docs/superpowers/specs/2026-09-18-camera-history-saas-design.md` §3); nevyžaduje otevřený port 80/443.
-4. Cloudflare: A záznam `camera.sengycraft.cz` → IP VPS (orange cloud) + Origin Rule, který origin port přesměruje na 20005.
+2. Hostitelský nginx — použij `deploy/nginx/camera-history.com.conf` (Cloudflare Origin CA, `listen 443`, `www` → apex). Starý `camera.sengycraft.cz` má v `deploy/nginx/camera.sengycraft.cz.conf` už jen 301 redirect.
+3. Cloudflare: A `@` → IP VPS (orange cloud), CNAME `www` → `camera-history.com`, SSL režim **Full (strict)**. Origin cert je v `/etc/cloudflare/cert/camera-history.com.pem`.
+4. Starý `camera.sengycraft.cz` necháváme 12 měsíců jako 301; `/demo/` vrací 410.

@@ -23,7 +23,7 @@ describe("parseEmbedContext", () => {
 describe("buildShareUrl", () => {
   it("uses the host page URL with a state and an iframe hash", () => {
     const url = new URL(
-      buildShareUrl("https://camera.sengycraft.cz/widget/acme/cam-1", context, {
+      buildShareUrl("https://camera-history.com/widget/acme/cam-1", context, {
         date: "2026-10-18",
         hour: 14,
         cameraId: "cam-2",
@@ -42,7 +42,7 @@ describe("buildShareUrl", () => {
   it("replaces stale state and omits the camera for single-camera widgets", () => {
     const url = new URL(
       buildShareUrl(
-        "https://camera.sengycraft.cz/widget/acme/cam-1",
+        "https://camera-history.com/widget/acme/cam-1",
         {
           parentUrl:
             "https://resort.example/cameras?ch_date=2020-01-01&ch_camera=old&ch_target=old#old",
@@ -62,12 +62,12 @@ describe("buildShareUrl", () => {
   it("falls back to the widget URL when there is no host context", () => {
     const url = new URL(
       buildShareUrl(
-        "https://camera.sengycraft.cz/group/acme/summit?theme=dark",
+        "https://camera-history.com/group/acme/summit?theme=dark",
         null,
         { date: "2026-10-17", hour: 18, cameraId: "cam-2" },
       ),
     );
-    expect(url.origin).toBe("https://camera.sengycraft.cz");
+    expect(url.origin).toBe("https://camera-history.com");
     expect(url.pathname).toBe("/group/acme/summit");
     expect(url.searchParams.get("theme")).toBe("dark");
     expect(url.searchParams.get("date")).toBe("2026-10-17");
@@ -78,7 +78,7 @@ describe("buildShareUrl", () => {
 
   it("ignores an invalid context and falls back", () => {
     const url = new URL(
-      buildShareUrl("https://camera.sengycraft.cz/widget/acme/cam-1", { parentUrl: "javascript:x", iframeId: "x" } as never, {
+      buildShareUrl("https://camera-history.com/widget/acme/cam-1", { parentUrl: "javascript:x", iframeId: "x" } as never, {
         date: "2026-10-17",
         hour: 18,
         cameraId: null,

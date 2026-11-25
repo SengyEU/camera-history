@@ -4,7 +4,7 @@
   window.__cameraHistoryEmbedVersion = "20261019b";
 
   var script = document.currentScript;
-  var ORIGIN = "https://camera.sengycraft.cz";
+  var ORIGIN = "https://camera-history.com";
   try {
     if (script && script.src) ORIGIN = new URL(script.src).origin;
   } catch {

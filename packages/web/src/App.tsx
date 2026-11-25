@@ -285,7 +285,7 @@ function WidgetBody({
       {showEmbedNotice && (
         <div className="embed-warning" role="status">
           <strong>Embed script missing.</strong> Add{" "}
-          <code>{'<script src="https://camera.sengycraft.cz/embed.js"></script>'}</code> to
+          <code>{`<script src="${window.location.origin}/embed.js"></script>`}</code> to
           this page so the widget can size itself.
         </div>
       )}

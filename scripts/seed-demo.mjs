@@ -3,7 +3,7 @@
 // Bez deps: volá vlastní Camera History API přes global fetch (Node >= 20).
 //
 // Použití:
-//   API_BASE=https://camera.sengycraft.cz/api/v1 DEMO_PASSWORD=... node scripts/seed-demo.mjs
+//   API_BASE=https://camera-history.com/api/v1 DEMO_PASSWORD=... node scripts/seed-demo.mjs
 //
 // Strategie historie (dle GTM spec §4): reálný live-capture workerem.
 // Žádný syntetický backfill (vyrobená historie z jednoho snímku) — prozradilo by se.
@@ -13,7 +13,7 @@
 // Idempotence: tenant se přihlásí (popř. zaregistruje), chybějící kamery se vytvoří,
 // existující se srovnají s configem (interval + souřadnice). Opakovatelné spuštění neduplikuje.
 
-const API = (process.env.API_BASE ?? "https://camera.sengycraft.cz/api/v1").replace(/\/+$/, "");
+const API = (process.env.API_BASE ?? "https://camera-history.com/api/v1").replace(/\/+$/, "");
 const PASSWORD = process.env.DEMO_PASSWORD ?? "Demo-Resort-2026!";
 
 const TENANTS = [

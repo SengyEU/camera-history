@@ -13,21 +13,21 @@ const sitemap = read("../public/sitemap.xml");
 describe("landing SEO", () => {
   it("is indexable and canonical", () => {
     expect(landing).toContain('<meta name="robots" content="index, follow, max-image-preview:large" />');
-    expect(landing).toContain('<link rel="canonical" href="https://camera.sengycraft.cz/" />');
+    expect(landing).toContain('<link rel="canonical" href="https://camera-history.com/" />');
   });
 
   it("has Open Graph and Twitter metadata with a 1200x630 image", () => {
     expect(landing).toContain('<meta property="og:type" content="website" />');
     expect(landing).toContain('<meta property="og:site_name" content="Camera History" />');
-    expect(landing).toContain('<meta property="og:url" content="https://camera.sengycraft.cz/" />');
+    expect(landing).toContain('<meta property="og:url" content="https://camera-history.com/" />');
     expect(landing).toContain(
-      '<meta property="og:image" content="https://camera.sengycraft.cz/og-image-a2-final.png" />',
+      '<meta property="og:image" content="https://camera-history.com/og-image-a2-final.png" />',
     );
     expect(landing).toContain('<meta property="og:image:width" content="1200" />');
     expect(landing).toContain('<meta property="og:image:height" content="630" />');
     expect(landing).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(landing).toContain(
-      '<meta name="twitter:image" content="https://camera.sengycraft.cz/og-image-a2-final.png" />',
+      '<meta name="twitter:image" content="https://camera-history.com/og-image-a2-final.png" />',
     );
   });
 
@@ -76,11 +76,11 @@ describe("robots and sitemap", () => {
     expect(robots).toContain("Disallow: /admin/");
     expect(robots).not.toContain("Disallow: /widget/");
     expect(robots).not.toContain("Disallow: /group/");
-    expect(robots).toContain("Sitemap: https://camera.sengycraft.cz/sitemap.xml");
+    expect(robots).toContain("Sitemap: https://camera-history.com/sitemap.xml");
   });
 
   it("lists only the landing page", () => {
     const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-    expect(locations).toEqual(["https://camera.sengycraft.cz/"]);
+    expect(locations).toEqual(["https://camera-history.com/"]);
   });
 });

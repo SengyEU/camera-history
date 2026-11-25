@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 const devProxy = {
-  target: "https://camera.sengycraft.cz",
+  target: "https://camera-history.com",
   changeOrigin: true,
 };
 

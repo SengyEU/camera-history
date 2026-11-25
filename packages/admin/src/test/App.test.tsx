@@ -516,7 +516,7 @@ describe("App camera CRUD", () => {
     expect(screen.queryByText(/widget\/acme\/cam-1/)).not.toBeInTheDocument();
     expect(screen.getByTestId("download-plugin")).toHaveAttribute(
       "href",
-      "/downloads/camera-history.zip?v=3.1.0",
+      "/downloads/camera-history.zip?v=3.1.1",
     );
   });
 

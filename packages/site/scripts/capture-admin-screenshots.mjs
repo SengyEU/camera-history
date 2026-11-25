@@ -5,7 +5,7 @@
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 
-const BASE = (process.env.BASE_URL ?? "https://camera.sengycraft.cz").replace(/\/+$/, "");
+const BASE = (process.env.BASE_URL ?? "https://camera-history.com").replace(/\/+$/, "");
 const EMAIL = process.env.DEMO_EMAIL ?? "owner@alpinesummit.example";
 const PASSWORD = process.env.DEMO_PASSWORD ?? "Demo-Resort-2026!";
 

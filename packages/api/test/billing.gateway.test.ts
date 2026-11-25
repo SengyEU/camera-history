@@ -3,8 +3,8 @@ import { adminBase, createStripeGateway } from "../src/stripe/gateway.js";
 
 describe("adminBase", () => {
   it("builds admin url from public base url", () => {
-    expect(adminBase({ api: { publicBaseUrl: "https://camera.sengycraft.cz/" } } as never)).toBe(
-      "https://camera.sengycraft.cz/admin",
+    expect(adminBase({ api: { publicBaseUrl: "https://camera-history.com/" } } as never)).toBe(
+      "https://camera-history.com/admin",
     );
     expect(adminBase({ api: { publicBaseUrl: "http://localhost:8080" } } as never)).toBe(
       "http://localhost:8080/admin",

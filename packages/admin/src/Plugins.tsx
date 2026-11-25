@@ -73,7 +73,7 @@ export function PluginsPage({ tenantSlug }: { tenantSlug: string }) {
             </div>
             <a
               className="plugin-download"
-              href="/downloads/camera-history.zip?v=3.1.0"
+              href="/downloads/camera-history.zip?v=3.1.1"
               download
               data-testid="download-plugin"
             >

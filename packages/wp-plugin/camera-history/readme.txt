@@ -4,7 +4,7 @@ Tags: camera, video, widget
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,9 @@ Yes. Camera History is an external service that stores and serves the camera
 history. The plugin is an interface to that service.
 
 == Changelog ==
+
+= 3.1.1 =
+* The built-in API host now uses `camera-history.com`.
 
 = 3.1.0 =
 * The API host is built into the plugin; only the workspace slug is configured.

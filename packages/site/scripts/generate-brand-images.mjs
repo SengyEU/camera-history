@@ -85,7 +85,7 @@ function darkBanner({ width, height, caps, wide }) {
     <img class="wordmark" src="${logo(`wordmark-${caps ? "caps" : "title"}-dark.svg`)}" alt="">
     <div class="tagline">Your camera has a memory now.</div>
     <div class="small">Connect / Archive / Embed</div>
-    <div class="bottom"><span>camera.sengycraft.cz</span><span class="right">Archive / Embed / Share</span></div>
+    <div class="bottom"><span>camera-history.com</span><span class="right">Archive / Embed / Share</span></div>
   </body></html>`;
 }
 
