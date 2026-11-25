@@ -47,7 +47,6 @@ function applyThemeOverride(root: HTMLElement, data: ThemeMessage): void {
   for (const cssVar of Object.values(CUSTOM_THEME_VARS)) {
     root.style.removeProperty(cssVar);
   }
-  root.style.removeProperty("--bg");
   root.style.removeProperty("--widget-custom-theme");
   root.dataset.themeOverride = "1";
 
@@ -61,7 +60,6 @@ function applyThemeOverride(root: HTMLElement, data: ThemeMessage): void {
     for (const [key, cssVar] of Object.entries(CUSTOM_THEME_VARS)) {
       root.style.setProperty(cssVar, colors[key]!);
     }
-    root.style.setProperty("--bg", "transparent");
     root.style.setProperty("--widget-custom-theme", "1");
     return;
   }

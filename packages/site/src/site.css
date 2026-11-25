@@ -501,8 +501,8 @@ button:focus-visible {
   background: var(--color-night);
 }
 
-/* Backdrop for the iframe while the widget boots. Preset themes paint their
-   own background once loaded; custom themes stay transparent. */
+/* The widget body is transparent so it inherits its host page. On the landing
+   the host is this dark showcase, so paint the midnight preset behind it. */
 .cam-frame::before {
   content: "";
   position: absolute;

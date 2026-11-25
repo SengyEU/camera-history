@@ -1966,6 +1966,16 @@ button.link:hover {
   margin: -8px 0 0;
 }
 
+.account-support a {
+  color: var(--glacier-deep);
+  font-weight: 500;
+  text-underline-offset: 2px;
+}
+
+.account-support a:hover {
+  color: var(--glacier);
+}
+
 .account-password {
   display: flex;
   flex-direction: column;
