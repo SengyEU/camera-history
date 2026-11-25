@@ -211,6 +211,22 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         .map((c) => ({ id: c.id, name: c.name, slug: c.slug }))
         .sort((a, b) => a.name.localeCompare(b.name));
     },
+    async listPublicGroupsByTenantSlug(tenantSlug: string) {
+      const tenant = db.tenants.find((t) => t.slug === tenantSlug);
+      if (!tenant || ["unpaid", "canceled"].includes(tenant.billingStatus)) return null;
+      return db.cameraGroups
+        .filter((g) => g.tenantId === tenant.id)
+        .map((group) => {
+          const cameraCount = db.cameraGroupMembers.filter((m) => {
+            if (m.cameraGroupId !== group.id) return false;
+            const camera = db.cameras.find((c) => c.id === m.cameraId);
+            return Boolean(camera?.enabled);
+          }).length;
+          return { id: group.id, name: group.name, slug: group.slug, cameraCount };
+        })
+        .filter((group) => group.cameraCount > 0)
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
     async insertImage(input: NewImage): Promise<ImageRecord> {
       const rec: ImageRecord = {
         id: randomUUID(),

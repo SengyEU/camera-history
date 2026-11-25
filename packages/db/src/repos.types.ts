@@ -44,6 +44,9 @@ export interface Repos {
   listPublicCamerasByTenantSlug(
     tenantSlug: string,
   ): Promise<Array<{ id: string; name: string; slug: string }> | null>;
+  listPublicGroupsByTenantSlug(
+    tenantSlug: string,
+  ): Promise<Array<{ id: string; name: string; slug: string; cameraCount: number }> | null>;
   insertImage(input: NewImage): Promise<ImageRecord>;
   imagesForCameraDay(cameraId: string, from: Date, to: Date): Promise<ImageRecord[]>;
   getImageById(id: string): Promise<ImageRecord | null>;

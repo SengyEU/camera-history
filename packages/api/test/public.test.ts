@@ -126,6 +126,31 @@ describe("public routes", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("lists public groups with camera counts", async () => {
+    const { app, repos } = makeApp();
+    const camera = await seedCamera(repos);
+    const tenant = (await repos.getTenantById(camera.tenantId))!;
+    const group = await repos.createGroup(tenant.id, { name: "Summit", slug: "summit" });
+    await repos.setGroupCameras(group.id, [camera.id]);
+    const empty = await repos.createGroup(tenant.id, { name: "Empty", slug: "empty" });
+
+    const res = await app.inject({ url: "/api/v1/public/tenants/acme/groups" });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["cache-control"]).toBe("public, max-age=60");
+    expect(res.json().groups).toEqual([
+      { id: group.id, name: "Summit", slug: "summit", cameraCount: 1 },
+    ]);
+    expect(empty.id).toBeTruthy();
+    await (app as { close: () => Promise<void> }).close();
+  });
+
+  it("returns 404 for an unknown tenant group list", async () => {
+    const { app } = makeApp();
+    const res = await app.inject({ url: "/api/v1/public/tenants/missing/groups" });
+    expect(res.statusCode).toBe(404);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("hides camera and group when billing is canceled or unpaid", async () => {
     const { app, repos } = makeApp();
     const camera = await seedCamera(repos);

@@ -267,6 +267,38 @@ export function createRepos(db: Db): Repos {
         .where(and(eq(cameras.tenantId, tenant.id), eq(cameras.enabled, true)))
         .orderBy(cameras.name);
     },
+    async listPublicGroupsByTenantSlug(tenantSlug: string) {
+      const tenant = await this.getTenantBySlug(tenantSlug);
+      if (!tenant || ["unpaid", "canceled"].includes(tenant.billingStatus)) return null;
+      const rows = await db
+        .select({
+          id: cameraGroups.id,
+          name: cameraGroups.name,
+          slug: cameraGroups.slug,
+          cameraId: cameras.id,
+        })
+        .from(cameraGroups)
+        .innerJoin(tenants, eq(cameraGroups.tenantId, tenants.id))
+        .leftJoin(cameraGroupMembers, eq(cameraGroupMembers.cameraGroupId, cameraGroups.id))
+        .leftJoin(
+          cameras,
+          and(eq(cameras.id, cameraGroupMembers.cameraId), eq(cameras.enabled, true)),
+        )
+        .where(and(eq(tenants.slug, tenantSlug), notInArray(tenants.billingStatus, ["unpaid", "canceled"])))
+        .orderBy(cameraGroups.name);
+      const groups = new Map<string, { id: string; name: string; slug: string; cameraCount: number }>();
+      for (const row of rows) {
+        const group = groups.get(row.id) ?? {
+          id: row.id,
+          name: row.name,
+          slug: row.slug,
+          cameraCount: 0,
+        };
+        if (row.cameraId) group.cameraCount += 1;
+        groups.set(row.id, group);
+      }
+      return [...groups.values()].filter((group) => group.cameraCount > 0);
+    },
     async insertImage(input: NewImage): Promise<ImageRecord> {
       const [row] = await db.insert(images).values(input).returning();
       return row!;
