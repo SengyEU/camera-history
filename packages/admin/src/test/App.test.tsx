@@ -619,6 +619,145 @@ describe("App camera CRUD", () => {
     expect(screen.queryByTestId("summary-bytes")).not.toBeInTheDocument();
   });
 
+  it("shows first steps with the package and camera limit", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ cameras: [] });
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({
+            tenant: {
+              id: "t1",
+              name: "Acme",
+              slug: "acme",
+              email: "owner@acme.dev",
+              packageCode: "starter",
+              cameraLimit: 3,
+              billingStatus: "active",
+              isPilot: false,
+              pilotUntil: null,
+            },
+          });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByTestId("empty-state")).toBeInTheDocument();
+    expect(await screen.findByText(/Starter includes up to 3 cameras/)).toHaveTextContent(
+      "Starter includes up to 3 cameras. You’re using 0 of 3.",
+    );
+    expect(screen.getByRole("heading", { name: "Your first camera" })).toBeInTheDocument();
+    expect(screen.getByText("Add the camera")).toBeInTheDocument();
+    expect(screen.getByText("Set its schedule")).toBeInTheDocument();
+    expect(screen.getByText("Copy the embed")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("empty-add-camera"));
+    expect(screen.getByTestId("camera-editor")).toBeInTheDocument();
+  });
+
+  it("shows the Solo limit in first steps", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ cameras: [] });
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({
+            tenant: {
+              id: "t1",
+              name: "Acme",
+              slug: "acme",
+              email: "owner@acme.dev",
+              packageCode: "solo",
+              cameraLimit: 1,
+              billingStatus: "active",
+              isPilot: false,
+              pilotUntil: null,
+            },
+          });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByText(/Solo includes up to 1 camera/)).toHaveTextContent(
+      "Solo includes up to 1 camera. You’re using 0 of 1.",
+    );
+  });
+
+  it("hides first steps once a camera exists", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    expect(screen.queryByTestId("empty-state")).not.toBeInTheDocument();
+    expect(screen.queryByText("Your first camera")).not.toBeInTheDocument();
+  });
+
+  it("offers support from the admin footer", async () => {
+    const { fn } = listServer();
+    vi.stubGlobal("fetch", fn);
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    expect(screen.getByTestId("admin-help")).toHaveAttribute(
+      "href",
+      "mailto:hello@sengycraft.cz",
+    );
+  });
+
+  it("enforces the three camera limit on Starter", async () => {
+    const { fn } = listServer();
+    const seed = { packageCode: "starter", cameraLimit: 3 };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) {
+          return jsonResponse({
+            cameras: [
+              camera({ id: "cam-1" }),
+              camera({ id: "cam-2", name: "Ridge cam" }),
+              camera({ id: "cam-3", name: "Glacier cam" }),
+            ],
+          });
+        }
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({
+            tenant: {
+              id: "t1",
+              name: "Acme",
+              slug: "acme",
+              email: "owner@acme.dev",
+              ...seed,
+              billingStatus: "active",
+              isPilot: false,
+              pilotUntil: null,
+            },
+          });
+        }
+        return fn(url);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByText("Beach cam");
+
+    expect(screen.getByTestId("add-camera")).toBeDisabled();
+    expect(screen.getByText(/3 \/ 3 cameras/)).toBeInTheDocument();
+    expect(screen.getByTestId("summary-plan")).toHaveTextContent("Starter");
+  });
+
   it("explains the camera limit when the package is full", async () => {
     vi.stubGlobal(
       "fetch",

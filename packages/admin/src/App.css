@@ -644,6 +644,105 @@ button.link:hover {
   margin: 0;
 }
 
+/* First-run onboarding */
+.onboarding-panel {
+  padding: 8px 4px 4px;
+}
+
+.onboarding-head {
+  max-width: 620px;
+}
+
+.onboarding-head .page-kicker {
+  margin-bottom: 4px;
+}
+
+.onboarding-head h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.onboarding-lede {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding-step {
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--snow);
+}
+
+.onboarding-step-number {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--glacier-weak);
+  color: var(--glacier-deep);
+  font-family: var(--font-technical);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.onboarding-step strong {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.onboarding-step p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.onboarding-actions > a {
+  color: var(--glacier-deep);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.admin-footer {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 18px 0 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.admin-footer a {
+  color: var(--glacier-deep);
+}
+
 .thumb {
   height: 48px;
   border-radius: 6px;
@@ -1593,6 +1692,19 @@ button.link:hover {
     width: 100%;
   }
   .page-action-hint {
+    text-align: center;
+  }
+  .onboarding-steps {
+    grid-template-columns: 1fr;
+  }
+  .onboarding-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .onboarding-actions button {
+    width: 100%;
+  }
+  .onboarding-actions > a {
     text-align: center;
   }
   .camera-summary {

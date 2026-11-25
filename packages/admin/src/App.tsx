@@ -736,6 +736,66 @@ function CameraForm({
 }
 
 
+function OnboardingPanel({
+  packageCode,
+  limit,
+  onAddCamera,
+}: {
+  packageCode: string | null;
+  limit: number;
+  onAddCamera: () => void;
+}) {
+  const planName = packageCode ? (PACKAGE_LABELS[packageCode] ?? packageCode) : null;
+  const cameraWord = limit === 1 ? "camera" : "cameras";
+  return (
+    <section className="onboarding-panel" data-testid="empty-state" aria-labelledby="onboarding-title">
+      <div className="onboarding-head">
+        <p className="page-kicker">Getting started</p>
+        <h2 id="onboarding-title">Your first camera</h2>
+        <p className="onboarding-lede">
+          {planName ? `${planName} includes up to ${limit} ${cameraWord}. ` : `Your package includes up to ${limit} ${cameraWord}. `}
+          You’re using 0 of {limit}.
+        </p>
+      </div>
+      <ol className="onboarding-steps">
+        <li className="onboarding-step">
+          <span className="onboarding-step-number" aria-hidden="true">
+            1
+          </span>
+          <div>
+            <strong>Add the camera</strong>
+            <p>Give it a name and paste the snapshot URL.</p>
+          </div>
+        </li>
+        <li className="onboarding-step">
+          <span className="onboarding-step-number" aria-hidden="true">
+            2
+          </span>
+          <div>
+            <strong>Set its schedule</strong>
+            <p>Pick active hours and the camera’s timezone.</p>
+          </div>
+        </li>
+        <li className="onboarding-step">
+          <span className="onboarding-step-number" aria-hidden="true">
+            3
+          </span>
+          <div>
+            <strong>Copy the embed</strong>
+            <p>Paste the iframe into your site, or use the WordPress plugin.</p>
+          </div>
+        </li>
+      </ol>
+      <div className="onboarding-actions">
+        <button onClick={onAddCamera} data-testid="empty-add-camera">
+          Add your first camera
+        </button>
+        <a href="#/billing">Compare packages</a>
+      </div>
+    </section>
+  );
+}
+
 function CameraSummary({
   cameras,
   limit,
@@ -1506,13 +1566,11 @@ export function App() {
                 <button onClick={() => void refresh()}>Try again</button>
               </div>
             ) : cameras.length === 0 ? (
-              <div className="empty-state" data-testid="empty-state">
-                <p className="empty-title">No cameras yet</p>
-                <p>Add your first camera to start building its history.</p>
-                <button onClick={openNewCamera} data-testid="empty-add-camera">
-                  Add your first camera
-                </button>
-              </div>
+              <OnboardingPanel
+                packageCode={tenantBilling?.packageCode ?? null}
+                limit={tenantCameraLimit}
+                onAddCamera={openNewCamera}
+              />
             ) : (
               <>
                 <CameraSummary
@@ -1549,6 +1607,12 @@ export function App() {
           </p>
         </ConfirmDialog>
       )}
+      <footer className="admin-footer">
+        <span>Need help?</span>
+        <a href="mailto:hello@sengycraft.cz" data-testid="admin-help">
+          hello@sengycraft.cz
+        </a>
+      </footer>
     </main>
   );
 }
