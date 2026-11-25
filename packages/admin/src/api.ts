@@ -127,6 +127,7 @@ export class ApiError extends Error {
 }
 
 const AUTH_PATHS = ["/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/logout"];
+export const SESSION_EXPIRED_EVENT = "ch:session-expired";
 let refreshInFlight: Promise<boolean> | null = null;
 
 async function refreshSession(): Promise<boolean> {
@@ -153,6 +154,9 @@ async function json<T>(url: string, init: RequestInit = {}): Promise<T> {
   let res = await request();
   if (res.status === 401 && !AUTH_PATHS.some((path) => url.startsWith(path))) {
     if (await refreshSession()) res = await request();
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
   }
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;

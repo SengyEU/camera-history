@@ -24,17 +24,22 @@ afterEach(() => {
 describe("App login", () => {
   it("shows login and signs in", async () => {
     const calls: string[] = [];
+    let signedIn = false;
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
         const u = String(url);
         calls.push(u);
         if (u.endsWith("/api/v1/admin/cameras")) {
-          return jsonResponse({ detail: "unauthorized" }, 401);
+          return signedIn
+            ? jsonResponse({ cameras: [] })
+            : jsonResponse({ detail: "unauthorized" }, 401);
         }
         if (u.endsWith("/api/v1/auth/login")) {
+          signedIn = true;
           return jsonResponse({ status: "ok" });
         }
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
         return jsonResponse({ detail: "not found" }, 404);
       }),
     );
@@ -135,7 +140,145 @@ describe("App login", () => {
     await userEvent.type(screen.getByTestId("login-password"), "bad");
     await userEvent.click(screen.getByTestId("login-submit"));
 
-    await waitFor(() => expect(screen.getByTestId("login-error")).toHaveTextContent("wrong credentials"));
+    await waitFor(() =>
+      expect(screen.getByTestId("login-error")).toHaveTextContent("Email or password is incorrect."),
+    );
+  });
+
+  it("validates login fields before calling the API", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("login-form");
+    await userEvent.click(screen.getByTestId("login-submit"));
+
+    expect(await screen.findByTestId("login-email-error")).toHaveTextContent("Enter your email address.");
+    expect(screen.getByTestId("login-password-error")).toHaveTextContent("Enter your password.");
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/login"))).toBe(false);
+  });
+
+  it("shows a rate limit message when login is throttled", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        if (u.endsWith("/api/v1/auth/login")) return jsonResponse({ detail: "rate limited" }, 429);
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("login-form");
+    await userEvent.type(screen.getByTestId("login-email"), "demo@example.dev");
+    await userEvent.type(screen.getByTestId("login-password"), "demo-pass-123");
+    await userEvent.click(screen.getByTestId("login-submit"));
+
+    expect(await screen.findByTestId("login-error")).toHaveTextContent(
+      "Too many attempts. Wait a minute and try again.",
+    );
+  });
+
+  it("shows a loading state and blocks double submits", async () => {
+    let release!: (response: Response) => void;
+    let signedIn = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) {
+          return signedIn
+            ? jsonResponse({ cameras: [] })
+            : jsonResponse({ detail: "unauthorized" }, 401);
+        }
+        if (u.endsWith("/api/v1/auth/login")) {
+          signedIn = true;
+          return new Promise<Response>((resolve) => {
+            release = resolve;
+          });
+        }
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("login-form");
+    await userEvent.type(screen.getByTestId("login-email"), "demo@example.dev");
+    await userEvent.type(screen.getByTestId("login-password"), "demo-pass-123");
+    await userEvent.click(screen.getByTestId("login-submit"));
+
+    const submit = screen.getByTestId("login-submit");
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveTextContent("Signing in…");
+
+    release(jsonResponse({ status: "ok" }));
+    expect(await screen.findByTestId("logout")).toBeInTheDocument();
+  });
+
+  it("signs out and asks for a new login when the session expires", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ cameras: [] });
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ detail: "expired" }, 401);
+        if (u.endsWith("/api/v1/auth/refresh")) return jsonResponse({ detail: "expired" }, 401);
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({
+            tenant: {
+              id: "t1",
+              name: "Acme",
+              slug: "acme",
+              packageCode: "starter",
+              cameraLimit: 3,
+              billingStatus: "active",
+              isPilot: false,
+              pilotUntil: null,
+            },
+          });
+        }
+        if (u.endsWith("/api/v1/admin/billing")) {
+          return jsonResponse({ detail: "expired" }, 401);
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("logout");
+    await userEvent.click(screen.getByTestId("nav-groups"));
+
+    expect(await screen.findByTestId("login-form")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-notice")).toHaveTextContent("Your session expired. Sign in again.");
+  });
+
+  it("shows a support link on the login screen", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        if (String(url).endsWith("/api/v1/admin/cameras")) {
+          return jsonResponse({ detail: "unauthorized" }, 401);
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("login-form");
+    expect(screen.getByRole("link", { name: "hello@sengycraft.cz" })).toHaveAttribute(
+      "href",
+      "mailto:hello@sengycraft.cz",
+    );
   });
 
   it("signs out locally even when the logout request fails", async () => {
@@ -1000,6 +1143,7 @@ describe("App registration", () => {
     await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
     await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
     await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "supersecret");
     expect((screen.getByTestId("register-slug") as HTMLInputElement).value).toBe("alpine-resort");
     await userEvent.click(screen.getByTestId("register-submit"));
 
@@ -1016,9 +1160,56 @@ describe("App registration", () => {
     await userEvent.type(screen.getByTestId("register-name"), "Taken Co");
     await userEvent.type(screen.getByTestId("register-email"), "a@b.dev");
     await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "supersecret");
     await userEvent.click(screen.getByTestId("register-submit"));
 
-    await waitFor(() => expect(screen.getByTestId("register-error")).toHaveTextContent("tenant slug already taken"));
+    expect(await screen.findByTestId("register-slug-error")).toHaveTextContent(
+      "This workspace URL is already taken.",
+    );
+    expect(screen.queryByTestId("register-error")).not.toBeInTheDocument();
+    window.location.hash = "";
+  });
+
+  it("rejects a password confirmation mismatch", async () => {
+    const calls: string[] = [];
+    const server = registerServer();
+    const withCalls = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
+      calls.push(String(url));
+      return server(url);
+    });
+    vi.stubGlobal("fetch", withCalls);
+    window.location.hash = "#/register";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
+    await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "different");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    expect(await screen.findByTestId("register-password-confirm-error")).toHaveTextContent(
+      "Passwords don’t match.",
+    );
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/register"))).toBe(false);
+    window.location.hash = "";
+  });
+
+  it("maps a duplicate email to the email field", async () => {
+    vi.stubGlobal("fetch", registerServer(409, "email already registered"));
+    window.location.hash = "#/register";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
+    await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "supersecret");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    expect(await screen.findByTestId("register-email-error")).toHaveTextContent(
+      "An account with this email already exists. Sign in instead.",
+    );
     window.location.hash = "";
   });
 
@@ -1041,6 +1232,7 @@ describe("App registration", () => {
     await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
     await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
     await userEvent.type(screen.getByTestId("register-password"), "supersecret");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "supersecret");
     await userEvent.click(screen.getByTestId("register-submit"));
 
     await screen.findByTestId("logout");

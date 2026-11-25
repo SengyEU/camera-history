@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, ApiError, FEED_LABELS, FEED_TYPES, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
+import { api, ApiError, FEED_LABELS, FEED_TYPES, SESSION_EXPIRED_EVENT, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
+import { AuthSplash, Login, Register } from "./Auth";
 import { BillingPage } from "./Billing";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EmbedCodePanel } from "./EmbedCodePanel";
@@ -65,226 +66,6 @@ function parseGroupRoute(hash: string): GroupRoute {
   if (!match) return null;
   const id = decodeURIComponent(match[1]!);
   return id === "new" ? { mode: "new" } : { mode: "edit", id };
-}
-
-function PasswordField({
-  id,
-  label,
-  value,
-  onChange,
-  placeholder,
-  testId,
-  toggleTestId,
-  autoComplete,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  testId: string;
-  toggleTestId: string;
-  autoComplete?: string;
-}) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <label className="field" htmlFor={id}>
-      {label}
-      <span className="password-field">
-        <input
-          id={id}
-          type={visible ? "text" : "password"}
-          placeholder={placeholder}
-          value={value}
-          autoComplete={autoComplete}
-          onChange={(e) => onChange(e.target.value)}
-          data-testid={testId}
-        />
-        <button
-          type="button"
-          className="password-toggle"
-          onClick={() => setVisible((current) => !current)}
-          aria-label={visible ? "Hide password" : "Show password"}
-          data-testid={toggleTestId}
-        >
-          {visible ? "Hide" : "Show"}
-        </button>
-      </span>
-    </label>
-  );
-}
-
-function Login({ onSuccess, onRegister }: { onSuccess: (email: string) => void; onRegister: () => void }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await api.login(email, password);
-      onSuccess(email);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    }
-  };
-
-  return (
-    <form className="auth-card" onSubmit={submit} data-testid="login-form">
-      <div className="auth-brand">
-        <span className="auth-brand-name">Camera History</span>
-        <span className="ts-chip">ADMIN</span>
-      </div>
-      <h1>Sign in</h1>
-      <label className="field" htmlFor="login-email">
-        Email
-        <input
-          id="login-email"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          data-testid="login-email"
-        />
-      </label>
-      <PasswordField
-        id="login-password"
-        label="Password"
-        placeholder="Password"
-        value={password}
-        onChange={setPassword}
-        testId="login-password"
-        toggleTestId="login-password-toggle"
-        autoComplete="current-password"
-      />
-      {error && (
-        <p className="error" data-testid="login-error">
-          {error}
-        </p>
-      )}
-      <button type="submit" data-testid="login-submit">
-        Sign in
-      </button>
-      <button type="button" className="link" onClick={onRegister} data-testid="goto-register">
-        Create account
-      </button>
-    </form>
-  );
-}
-
-function Register({ onSuccess, onSignIn }: { onSuccess: (email: string) => void; onSignIn: () => void }) {
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
-  const pilotCode = params.get("pilot") ?? undefined;
-  const packageCode = params.get("package") ?? undefined;
-
-  useEffect(() => {
-    if (!slugTouched) setSlug(slugify(name));
-  }, [name, slugTouched]);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!SLUG_RE.test(slug)) {
-      setError("Slug can only contain lowercase letters, numbers and hyphens.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-    try {
-      await api.register({ name, slug, email, password, pilotCode, packageCode });
-      window.location.hash = "";
-      onSuccess(email);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
-    }
-  };
-
-  return (
-    <form className="auth-card" onSubmit={submit} data-testid="register-form">
-      <div className="auth-brand">
-        <span className="auth-brand-name">Camera History</span>
-        <span className="ts-chip">SIGN UP</span>
-      </div>
-      {pilotCode && (
-        <p className="auth-note" data-testid="pilot-note">
-          Pilot access — free for 90 days.
-        </p>
-      )}
-      {packageCode && (
-        <p className="auth-note" data-testid="package-note">
-          Selected package: {packageCode.charAt(0).toUpperCase() + packageCode.slice(1)}.
-        </p>
-      )}
-      <h1>Create account</h1>
-      <label className="field" htmlFor="register-name">
-        Company name
-        <input
-          id="register-name"
-          placeholder="Company name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          data-testid="register-name"
-          required
-        />
-      </label>
-      <label className="field" htmlFor="register-slug">
-        Slug
-        <input
-          id="register-slug"
-          placeholder="Slug"
-          value={slug}
-          onChange={(e) => {
-            setSlugTouched(true);
-            setSlug(e.target.value);
-          }}
-          data-testid="register-slug"
-          required
-        />
-        <span className="field-hint">Lowercase letters, numbers and dashes.</span>
-      </label>
-      <label className="field" htmlFor="register-email">
-        Email
-        <input
-          id="register-email"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          data-testid="register-email"
-          required
-        />
-      </label>
-      <PasswordField
-        id="register-password"
-        label="Password"
-        placeholder="Password (min 8 characters)"
-        value={password}
-        onChange={setPassword}
-        testId="register-password"
-        toggleTestId="register-password-toggle"
-        autoComplete="new-password"
-      />
-      {error && (
-        <p className="error" data-testid="register-error">
-          {error}
-        </p>
-      )}
-      <button type="submit" data-testid="register-submit">
-        Create account
-      </button>
-      <button type="button" className="link" onClick={onSignIn} data-testid="goto-signin">
-        Already have an account? Sign in
-      </button>
-    </form>
-  );
 }
 
 function parseCoordinateInput(raw: string): number | null | "invalid" {
@@ -1165,6 +946,8 @@ function CameraCard({
 export function App() {
   const [email, setEmail] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+  const emailRef = useRef<string | null>(null);
   const [cameras, setCameras] = useState<AdminCamera[]>([]);
   const [cameraRoute, setCameraRoute] = useState<CameraRoute>(() => parseCameraRoute(window.location.hash));
   const [groupRoute, setGroupRoute] = useState<GroupRoute>(() => parseGroupRoute(window.location.hash));
@@ -1189,6 +972,21 @@ export function App() {
   const [groupSavedNotice, setGroupSavedNotice] = useState<string | null>(null);
   const [cameraVersion, setCameraVersion] = useState(0);
   const [groupVersion, setGroupVersion] = useState(0);
+
+  useEffect(() => {
+    emailRef.current = email;
+  }, [email]);
+
+  useEffect(() => {
+    const onExpired = () => {
+      if (emailRef.current === null) return;
+      setSessionNotice("Your session expired. Sign in again.");
+      setEmail(null);
+      setChecked(true);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
 
   useEffect(() => {
     const onHash = () => {
@@ -1293,6 +1091,7 @@ export function App() {
       // Clear the local session even if the API is unavailable.
     }
     window.location.hash = "";
+    setSessionNotice(null);
     setEmail(null);
   };
 
@@ -1440,27 +1239,30 @@ export function App() {
     await refresh();
   };
 
-  if (!checked) return <p className="loading">Loading…</p>;
+  if (!checked) return <AuthSplash />;
 
   if (email === null) {
-    return (
-      <main className="admin auth-screen">
-        {registering ? (
-          <Register
-            onSuccess={setEmail}
-            onSignIn={() => {
-              window.location.hash = "";
-            }}
-          />
-        ) : (
-          <Login
-            onSuccess={setEmail}
-            onRegister={() => {
-              window.location.hash = "#/register";
-            }}
-          />
-        )}
-      </main>
+    return registering ? (
+      <Register
+        onSuccess={(nextEmail) => {
+          setSessionNotice(null);
+          setEmail(nextEmail);
+        }}
+        onSignIn={() => {
+          window.location.hash = "";
+        }}
+      />
+    ) : (
+      <Login
+        notice={sessionNotice}
+        onSuccess={(nextEmail) => {
+          setSessionNotice(null);
+          setEmail(nextEmail);
+        }}
+        onRegister={() => {
+          window.location.hash = "#/register";
+        }}
+      />
     );
   }
 
