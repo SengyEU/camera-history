@@ -40,8 +40,8 @@ export function PluginsPage({
   const [copied, setCopied] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const apiUrl = window.location.origin;
-  const cameraSlug = cameras[0]?.slug ?? "your-camera-slug";
-  const shortcode = `[camera-history camera="${cameraSlug}"]`;
+  const cameraSlug = cameras[0]?.slug ?? "your-camera";
+  const exampleUrl = `${apiUrl}/widget/${tenantSlug || "your-workspace"}/${cameraSlug}`;
 
   useEffect(
     () => () => {
@@ -67,7 +67,7 @@ export function PluginsPage({
       value: tenantSlug,
       testId: "copy-workspace-slug",
     },
-    { key: "shortcode", label: "Shortcode", value: shortcode, testId: "copy-shortcode" },
+    { key: "url", label: "Example camera URL", value: exampleUrl, testId: "copy-example-url" },
   ];
 
   return (
@@ -86,7 +86,7 @@ export function PluginsPage({
             </div>
             <a
               className="plugin-download"
-              href="/downloads/camera-history.zip?v=2.0.0"
+              href="/downloads/camera-history.zip?v=3.0.0"
               download
               data-testid="download-plugin"
             >
@@ -100,12 +100,12 @@ export function PluginsPage({
               <span>In WordPress, open Plugins → Add New → Upload Plugin and activate it.</span>
             </li>
             <li>
-              <strong>Open the settings</strong>
-              <span>Go to Settings → Camera History.</span>
+              <strong>Open Camera History</strong>
+              <span>Use the new Camera History menu in the WordPress sidebar.</span>
             </li>
             <li>
-              <strong>Paste the connection values</strong>
-              <span>Use the API URL and workspace slug below.</span>
+              <strong>Pick a camera or group</strong>
+              <span>Insert the Camera History block, use the widget, or paste an embed URL.</span>
             </li>
           </ol>
 
@@ -126,7 +126,8 @@ export function PluginsPage({
           </div>
 
           <p className="field-hint">
-            The plugin only needs these values. It never stores your Camera History password.
+            The plugin only needs the API URL and workspace slug. It never stores your Camera
+            History password.
           </p>
         </div>
       </section>

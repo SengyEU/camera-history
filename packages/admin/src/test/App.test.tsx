@@ -513,10 +513,10 @@ describe("App camera CRUD", () => {
     expect(await screen.findByTestId("plugins-page")).toBeInTheDocument();
     expect(screen.getByText(window.location.origin)).toBeInTheDocument();
     expect(screen.getByText("acme")).toBeInTheDocument();
-    expect(screen.getByText('[camera-history camera="cam-1"]')).toBeInTheDocument();
+    expect(screen.getByText(`${window.location.origin}/widget/acme/cam-1`)).toBeInTheDocument();
     expect(screen.getByTestId("download-plugin")).toHaveAttribute(
       "href",
-      "/downloads/camera-history.zip?v=2.0.0",
+      "/downloads/camera-history.zip?v=3.0.0",
     );
   });
 

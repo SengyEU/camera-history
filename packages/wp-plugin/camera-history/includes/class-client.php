@@ -12,29 +12,42 @@ defined( 'ABSPATH' ) || exit;
 
 class Ch_Client {
 
-	const OPT_BASE_URL    = 'ch_api_base_url';
-	const OPT_SLUG        = 'ch_tenant_slug';
+	const OPT_BASE_URL     = 'ch_api_base_url';
+	const OPT_SLUG         = 'ch_tenant_slug';
 	const DEFAULT_BASE_URL = 'https://camera.sengycraft.cz';
 	const REQUEST_TIMEOUT  = 15;
 
 	/**
-	 * GET /api/v1/public/tenants/{slug}/cameras.
-	 *
 	 * @return array|WP_Error List of {id, name, slug}.
 	 */
 	public function list_cameras() {
+		return $this->list_items( 'cameras' );
+	}
+
+	/**
+	 * @return array|WP_Error List of {id, name, slug, cameraCount}.
+	 */
+	public function list_groups() {
+		return $this->list_items( 'groups' );
+	}
+
+	/**
+	 * @param string $kind cameras|groups.
+	 * @return array|WP_Error
+	 */
+	private function list_items( $kind ) {
 		$base = untrailingslashit( (string) get_option( self::OPT_BASE_URL, self::DEFAULT_BASE_URL ) );
 		$slug = (string) get_option( self::OPT_SLUG, '' );
 
 		if ( $base === '' || $slug === '' ) {
 			return new WP_Error(
 				'ch_missing_config',
-				__( 'Camera History: set the API URL and workspace slug in Settings → Camera History.', 'camera-history' )
+				__( 'Camera History: set the API URL and workspace slug in Camera History → Settings.', 'camera-history' )
 			);
 		}
 
 		$response = wp_remote_get(
-			$base . '/api/v1/public/tenants/' . rawurlencode( $slug ) . '/cameras',
+			$base . '/api/v1/public/tenants/' . rawurlencode( $slug ) . '/' . $kind,
 			array( 'timeout' => self::REQUEST_TIMEOUT )
 		);
 
@@ -44,31 +57,30 @@ class Ch_Client {
 
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		if ( $code !== 200 ) {
-			return new WP_Error( 'ch_cameras_failed', $this->error_message( $response, $code ) );
+			return new WP_Error( 'ch_request_failed', $this->error_message( $response, $code ) );
 		}
 
-		$body    = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-		$cameras = isset( $body['cameras'] ) && is_array( $body['cameras'] ) ? $body['cameras'] : array();
+		$body  = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		$items = isset( $body[ $kind ] ) && is_array( $body[ $kind ] ) ? $body[ $kind ] : array();
 
 		return array_values(
 			array_filter(
 				array_map(
-					function ( $camera ) {
-						if (
-							! is_array( $camera ) ||
-							empty( $camera['id'] ) ||
-							empty( $camera['name'] ) ||
-							empty( $camera['slug'] )
-						) {
+					function ( $item ) use ( $kind ) {
+						if ( ! is_array( $item ) || empty( $item['id'] ) || empty( $item['name'] ) || empty( $item['slug'] ) ) {
 							return null;
 						}
-						return array(
-							'id'   => (string) $camera['id'],
-							'name' => (string) $camera['name'],
-							'slug' => (string) $camera['slug'],
+						$out = array(
+							'id'   => (string) $item['id'],
+							'name' => (string) $item['name'],
+							'slug' => (string) $item['slug'],
 						);
+						if ( $kind === 'groups' ) {
+							$out['cameraCount'] = isset( $item['cameraCount'] ) ? (int) $item['cameraCount'] : 0;
+						}
+						return $out;
 					},
-					$cameras
+					$items
 				)
 			)
 		);

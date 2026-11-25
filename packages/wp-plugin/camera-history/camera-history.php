@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Camera History
- * Description: Embed the Camera History widget with a shortcode.
- * Version: 2.0.0
+ * Description: Embed camera history and group switchers with a block, widget or URL.
+ * Version: 3.0.0
  * Author: Camera History
  * Text Domain: camera-history
  * Requires at least: 5.8
@@ -13,12 +13,16 @@
 
 defined( 'ABSPATH' ) || exit;
 
+define( 'CH_VERSION', '3.0.0' );
 define( 'CH_PLUGIN_FILE', __FILE__ );
 define( 'CH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'CH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once CH_PLUGIN_DIR . 'includes/class-client.php';
-require_once CH_PLUGIN_DIR . 'includes/class-shortcode.php';
-require_once CH_PLUGIN_DIR . 'includes/class-settings.php';
+require_once CH_PLUGIN_DIR . 'includes/class-renderer.php';
+require_once CH_PLUGIN_DIR . 'includes/class-block.php';
+require_once CH_PLUGIN_DIR . 'includes/class-widget.php';
+require_once CH_PLUGIN_DIR . 'includes/class-admin.php';
 
 add_action(
 	'plugins_loaded',
@@ -28,8 +32,16 @@ add_action(
 		delete_option( 'ch_password' );
 		delete_transient( 'ch_tokens' );
 
-		Ch_Shortcode::register();
-		Ch_Settings::init();
+		Ch_Block::init();
+		Ch_Widget::init();
+		Ch_Admin::init();
+	}
+);
+
+add_action(
+	'init',
+	static function () {
+		Ch_Renderer::register_embed_handler();
 	}
 );
 
