@@ -1,5 +1,7 @@
 # Camera History — Domain Migration Runbook
 
+> **Status 25 Nov 2026:** DNS, origin TLS, nginx and app cutover are live. `camera-history.com` is canonical; `camera.sengycraft.cz` returns 301 (except `/demo/` → 410). Remaining: Search Console change of address, Stripe live test and the Seznam e-mail mailboxes.
+
 **From:** `camera.sengycraft.cz`  
 **To:** `camera-history.com` (apex canonical; `www` 301 to apex)  
 **Scope:** full cutover. Old domain becomes a redirect only and is not an active app domain.

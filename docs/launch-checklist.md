@@ -6,7 +6,7 @@ This checklist is executed before public launch, after product features are comp
 
 - [ ] Apex `https://camera-history.com` canonical; `www` 301 to apex
 - [ ] New Cloudflare zone, DNS and origin certificate
-- [ ] Old `camera.sengycraft.cz` returns 301 path-preserving; app retired
+- [x] Old `camera.sengycraft.cz` returns 301 path-preserving; app retired
 - [ ] `PUBLIC_BASE_URL`, `embed.js` origin, site canonical/OG/JSON-LD/sitemap/robots updated
 - [ ] Admin, widget, group and embed snippets verified on the new domain
 - [ ] Stripe webhook and return URLs updated
