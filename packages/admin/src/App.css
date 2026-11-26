@@ -10,6 +10,15 @@ body {
   line-height: 1.5;
 }
 
+a {
+  color: var(--glacier-deep);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--glacier);
+}
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -1064,6 +1073,14 @@ button.link:hover {
   background: var(--color-red-weak);
   color: var(--color-red-dark);
   border-color: var(--color-red-border);
+}
+
+.notice.danger a {
+  color: var(--color-red-dark);
+}
+
+.notice.danger a:hover {
+  color: var(--color-red);
 }
 
 .checkbox-label {
