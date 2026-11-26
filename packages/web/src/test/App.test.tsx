@@ -1113,6 +1113,25 @@ describe("App widget", () => {
     expect(screen.queryByTestId("frame-n1")).not.toBeInTheDocument();
   });
 
+  it("auto-opens the latest daylight day when the first day is night-only", async () => {
+    vi.mocked(getCameraLatest).mockResolvedValue("2026-09-18");
+    vi.mocked(getImages).mockImplementation(async (_cameraId, date) => {
+      if (date === "2026-09-18") {
+        return [makeImage("night", "2026-09-18T22:00:00Z", "/api/v1/night.jpg", false)];
+      }
+      if (date === "2026-09-17") {
+        return [makeImage("day", "2026-09-17T09:00:00Z", "/api/v1/day.jpg")];
+      }
+      return [];
+    });
+
+    render(<App />);
+
+    expect(await screen.findByTestId("frame-day")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2026-09-17")).toBeInTheDocument();
+    expect(screen.queryByTestId("day-only-empty")).not.toBeInTheDocument();
+  });
+
   it("shows the day-only empty copy when every capture is a night shot", async () => {
     vi.mocked(getImages).mockResolvedValue([
       makeImage("n1", "2026-09-18T22:00:00Z", "/n1.jpg", false),

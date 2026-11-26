@@ -645,6 +645,9 @@ export function App() {
     getImages(cameraId, date)
       .then(async (imgs) => {
         if (cancelled) return;
+        const nextVisible = showNight
+          ? imgs
+          : imgs.filter((image) => image.isDaylight !== false);
         if (imgs.length === 0) {
           const key = `${cameraId}:${date}`;
           if (!fallbackRef.current.attempted.has(key)) {
@@ -660,10 +663,20 @@ export function App() {
               return;
             }
           }
+        } else if (nextVisible.length === 0 && !showNight && !dateTouchedRef.current) {
+          // The latest day can contain only night frames. On first load, jump
+          // straight to the latest day that has a frame the widget can show.
+          const key = `${cameraId}:${date}`;
+          if (!fallbackRef.current.attempted.has(key)) {
+            fallbackRef.current.attempted.add(key);
+            const target = await findLatestVisibleDate(cameraId, false, minDate);
+            if (cancelled) return;
+            if (target && target !== date) {
+              setDate(target);
+              return;
+            }
+          }
         }
-        const nextVisible = showNight
-          ? imgs
-          : imgs.filter((image) => image.isDaylight !== false);
         await preloadImages(nextVisible.map((image) => image.url));
         if (cancelled) return;
         setImages(imgs);
