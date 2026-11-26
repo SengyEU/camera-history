@@ -354,6 +354,12 @@ body { margin: 0; font-family: var(--widget-font, var(--font-ui)); background: t
   border-radius: 4px;
 }
 
+.empty-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 .empty-actions {
   display: flex;
   flex-wrap: wrap;

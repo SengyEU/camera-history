@@ -1304,6 +1304,56 @@ describe("App group widget", () => {
     expect(screen.getByDisplayValue("2026-09-17")).toBeInTheDocument();
   });
 
+  it("finds the latest day with daylight when the latest capture is night-only", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCameraLatest).mockResolvedValue("2026-09-17");
+    vi.mocked(getImages).mockImplementation(async (_cameraId, date) => {
+      if (date === "2026-09-17") {
+        return [makeImage("night", "2026-09-17T23:00:00Z", "/api/v1/night.jpg", false)];
+      }
+      if (date === "2026-09-16") {
+        return [makeImage("day", "2026-09-16T09:00:00Z", "/api/v1/day.jpg")];
+      }
+      if (date === "2026-09-18") return defaultImages;
+      return [];
+    });
+
+    render(<App />);
+    expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-05" } });
+    expect(await screen.findByText("No captures for this date yet.")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("view-latest"));
+
+    expect(await screen.findByTestId("frame-day")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2026-09-16")).toBeInTheDocument();
+    expect(vi.mocked(getImages)).toHaveBeenCalledWith("cam-1", "2026-09-17");
+    expect(vi.mocked(getImages)).toHaveBeenCalledWith("cam-1", "2026-09-16");
+  });
+
+  it("stops looking for the latest daylight after the lookback window", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCameraLatest).mockResolvedValue("2026-09-17");
+    vi.mocked(getImages).mockImplementation(async (_cameraId, date) => {
+      if (date === "2026-09-18") return defaultImages;
+      return [makeImage(`night-${date}`, `${date}T23:00:00Z`, `/api/v1/${date}.jpg`, false)];
+    });
+
+    render(<App />);
+    expect(await screen.findByTestId("frame-img-1")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-05" } });
+    expect(await screen.findByTestId("day-only-empty")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("view-latest"));
+
+    await waitFor(() => expect(vi.mocked(getImages)).toHaveBeenCalledWith("cam-1", "2026-09-04"));
+    expect(vi.mocked(getImages)).not.toHaveBeenCalledWith("cam-1", "2026-09-03");
+    expect(screen.getByTestId("day-only-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("view-latest")).not.toBeDisabled();
+  });
+
   it("falls back to the latest date once when the camera has no images", async () => {
     vi.mocked(getGroup).mockResolvedValue(summitGroup);
     vi.mocked(getCameraLatest).mockResolvedValue("2026-10-09");

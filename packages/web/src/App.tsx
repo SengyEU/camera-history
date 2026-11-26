@@ -185,6 +185,27 @@ function shiftDay(date: string, delta: number): string {
   return toLocalInputValue(d);
 }
 
+const LATEST_LOOKBACK_DAYS = 14;
+
+async function findLatestVisibleDate(
+  cameraId: string,
+  showNight: boolean,
+  minDate: string | undefined,
+): Promise<string | null> {
+  const latest = await getCameraLatest(cameraId);
+  if (!latest) return null;
+  if (showNight) return minDate && latest < minDate ? null : latest;
+
+  let candidate = latest;
+  for (let i = 0; i < LATEST_LOOKBACK_DAYS; i += 1) {
+    if (minDate && candidate < minDate) return null;
+    const imgs = await getImages(cameraId, candidate);
+    if (imgs.some((image) => image.isDaylight !== false)) return candidate;
+    candidate = shiftDay(candidate, -1);
+  }
+  return null;
+}
+
 const PRELOAD_TIMEOUT_MS = 1500;
 const PRELOAD_MAX_IMAGES = 30;
 
@@ -230,6 +251,7 @@ interface WidgetBodyProps {
   shareUrl: string;
   onCloseShare: () => void;
   onViewLatest: () => void;
+  latestLoading: boolean;
   switcher?: ReactNode;
   children?: ReactNode;
   contentKey: string;
@@ -256,6 +278,7 @@ function WidgetBody({
   shareUrl,
   onCloseShare,
   onViewLatest,
+  latestLoading,
   switcher,
   children,
   contentKey,
@@ -314,8 +337,15 @@ function WidgetBody({
                 Browse another day or check back after the next hourly capture.
               </p>
               <div className="empty-actions">
-                <button type="button" className="empty-action" onClick={onViewLatest}>
-                  View latest capture
+                <button
+                  type="button"
+                  className="empty-action"
+                  onClick={onViewLatest}
+                  disabled={latestLoading}
+                  aria-busy={latestLoading}
+                  data-testid="view-latest"
+                >
+                  {latestLoading ? "Finding latest capture…" : "View latest capture"}
                 </button>
                 {date !== today && (
                   <button
@@ -335,8 +365,15 @@ function WidgetBody({
               </p>
               <p className="empty-hint">Night frames are hidden for this camera. Try another day.</p>
               <div className="empty-actions">
-                <button type="button" className="empty-action" onClick={onViewLatest}>
-                  View latest capture
+                <button
+                  type="button"
+                  className="empty-action"
+                  onClick={onViewLatest}
+                  disabled={latestLoading}
+                  aria-busy={latestLoading}
+                  data-testid="view-latest"
+                >
+                  {latestLoading ? "Finding latest capture…" : "View latest capture"}
                 </button>
                 {date !== today && (
                   <button
@@ -424,6 +461,7 @@ export function App() {
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [images, setImages] = useState<ImageDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [latestLoading, setLatestLoading] = useState(false);
   const [groupError, setGroupError] = useState(false);
   const [cameraMetaError, setCameraMetaError] = useState(false);
   const [imagesError, setImagesError] = useState(false);
@@ -702,12 +740,15 @@ export function App() {
   };
 
   const viewLatest = async () => {
-    if (!cameraId) return;
+    if (!cameraId || latestLoading) return;
+    setLatestLoading(true);
     try {
-      const latest = await getCameraLatest(cameraId);
-      if (latest) changeDate(latest);
+      const target = await findLatestVisibleDate(cameraId, showNight, minDate);
+      if (target) changeDate(target);
     } catch {
       // Keep the current empty state if the latest capture lookup fails.
+    } finally {
+      setLatestLoading(false);
     }
   };
 
@@ -767,6 +808,7 @@ export function App() {
         shareUrl={shareUrl}
         onCloseShare={() => setShareImage(null)}
         onViewLatest={viewLatest}
+        latestLoading={latestLoading}
         switcher={
           group ? (
             <CameraSwitcher
@@ -803,6 +845,7 @@ export function App() {
       shareUrl={shareUrl}
       onCloseShare={() => setShareImage(null)}
       onViewLatest={viewLatest}
+      latestLoading={latestLoading}
     >
       {!widgetRoute && <p className="error">Invalid widget URL. Use /widget/{"{tenant}"}/{"{camera_id}"}</p>}
     </WidgetBody>
