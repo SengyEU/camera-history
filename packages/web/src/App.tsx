@@ -332,9 +332,15 @@ function WidgetBody({
             </div>
           ) : images.length === 0 ? (
             <div className="empty-state" data-testid="empty-state">
-              <p className="empty">No captures for this date yet.</p>
+              <p className="empty">
+                {date === today
+                  ? "No captures for this date yet."
+                  : "No captures for this date."}
+              </p>
               <p className="empty-hint">
-                Browse another day or check back after the next hourly capture.
+                {date === today
+                  ? "Browse another day or check back after the next hourly capture."
+                  : "Browse another day."}
               </p>
               <div className="empty-actions">
                 <button
