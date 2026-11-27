@@ -38,6 +38,8 @@ describe("contact route", () => {
     });
     expect(sent[0]!.subject).toContain("Alpine Resort");
     expect(sent[0]!.text).toContain("We have two public cameras");
+    expect(sent[0]!.html).toContain("New contact message");
+    expect(sent[0]!.html).toContain("New inquiry");
     await app.close();
   });
 

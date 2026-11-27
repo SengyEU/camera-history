@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { HttpError } from "@ch/core";
 import type { AppDeps } from "../app.js";
+import { contactEmail } from "../emails/contact.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX = {
@@ -24,7 +25,6 @@ type ContactBody = {
 };
 
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
-const singleLine = (value: string) => value.replace(/[\r\n]+/g, " ").trim();
 
 export const registerContactRoutes: FastifyPluginAsync<AppDeps> = async (app, deps) => {
   app.post<{ Body: ContactBody }>(
@@ -68,25 +68,22 @@ export const registerContactRoutes: FastifyPluginAsync<AppDeps> = async (app, de
         throw new HttpError(503, "contact_unavailable", "Contact is not configured right now.");
       }
 
-      const lines = [
-        "New Camera History contact message",
-        "",
-        `Topic: ${topic}`,
-        `Name: ${name}`,
-        `Email: ${email}`,
-        `Website: ${website || "—"}`,
-        `Cameras: ${cameras || "—"}`,
-        "",
-        "Message:",
+      const messageContent = contactEmail({
+        name,
+        email,
+        topic,
+        website,
+        cameras,
         message,
-      ];
+      });
 
       try {
         await deps.mailer.send({
           to: deps.cfg.mail.contactTo,
           replyTo: email,
-          subject: `Camera History contact — ${singleLine(topic)} — ${singleLine(name)}`,
-          text: lines.join("\n"),
+          subject: messageContent.subject,
+          text: messageContent.text,
+          html: messageContent.html,
         });
       } catch (err) {
         req.log.error({ err }, "contact email failed");

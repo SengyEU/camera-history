@@ -404,8 +404,10 @@ describe("auth email verification", () => {
     expect(res.headers["set-cookie"]).toBeUndefined();
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ to: account.email, replyTo: "support@camera-history.com" });
-    expect(sent[0]!.subject).toContain("Verify");
+    expect(sent[0]!.subject).toContain("Confirm");
     expect(sent[0]!.text).toContain("http://localhost:8080/admin/#/verify-email?token=");
+    expect(sent[0]!.html).toContain("<!doctype html>");
+    expect(sent[0]!.html).toContain("Verify email");
 
     const user = await repos.getUserByEmail(account.email);
     expect(user?.emailVerifiedAt).toBeNull();
@@ -453,6 +455,8 @@ describe("auth email verification", () => {
     expect(welcome.text).toContain("support@camera-history.com");
     expect(welcome.text).not.toContain("marek@");
     expect(welcome.text.toLowerCase()).not.toContain("reply to this email");
+    expect(welcome.html).toContain("Open your workspace");
+    expect(welcome.html).not.toContain("marek@");
 
     const user = await repos.getUserByEmail(account.email);
     expect(user?.emailVerifiedAt).toBeInstanceOf(Date);
@@ -663,6 +667,7 @@ describe("password reset", () => {
     expect(sent[0]).toMatchObject({ to: account.email, replyTo: "support@camera-history.com" });
     expect(sent[0]!.subject).toContain("Reset");
     expect(sent[0]!.text).toContain("http://localhost:8080/admin/#/reset-password?token=");
+    expect(sent[0]!.html).toContain("Choose a new password");
 
     const token = resetTokenFrom(sent[0]);
     const stored = repos.db.passwordResetTokens[0]!;

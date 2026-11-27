@@ -3,6 +3,9 @@ import { createHash, randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { HttpError, isPackageCode } from "@ch/core";
 import type { AppDeps } from "../app.js";
+import { passwordResetEmail } from "../emails/password-reset.js";
+import { verificationEmail } from "../emails/verification.js";
+import { welcomeEmail } from "../emails/welcome.js";
 import { clearCookies, getRefreshToken, requireAuth, setCookies } from "../plugins/auth.js";
 
 const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -48,69 +51,6 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function companyName(name: string): string {
-  return name.replace(/\s+/g, " ").trim() || "your team";
-}
-
-function verificationEmail(name: string, link: string, ttlHours: number): { subject: string; text: string } {
-  const company = companyName(name);
-  return {
-    subject: "Verify your Camera History email",
-    text: [
-      `Hi ${company},`,
-      "",
-      "Confirm your email address to activate your Camera History workspace.",
-      "",
-      link,
-      "",
-      `This link expires in ${ttlHours} hours and can be used once.`,
-      "If you did not create a Camera History account, you can ignore this email.",
-      "",
-      "Camera History",
-      SUPPORT_EMAIL,
-    ].join("\n"),
-  };
-}
-
-function welcomeEmail(name: string, signInUrl: string): { subject: string; text: string } {
-  const company = companyName(name);
-  return {
-    subject: `Welcome to Camera History, ${company}`,
-    text: [
-      `Welcome to Camera History, ${company}.`,
-      "",
-      "Your email is verified and your workspace is ready.",
-      "",
-      "Sign in to add your first camera and choose how often it is archived:",
-      signInUrl,
-      "",
-      `If you need help, write to ${SUPPORT_EMAIL}.`,
-      "",
-      "Camera History",
-    ].join("\n"),
-  };
-}
-
-function passwordResetEmail(name: string, link: string, ttlMinutes: number): { subject: string; text: string } {
-  const company = companyName(name);
-  return {
-    subject: "Reset your Camera History password",
-    text: [
-      `Hi ${company},`,
-      "",
-      "We received a request to reset the password for your Camera History account.",
-      "",
-      link,
-      "",
-      `This link expires in ${ttlMinutes} minutes and can be used once.`,
-      "If you did not request this, you can ignore this email. Your password stays the same.",
-      "",
-      "Camera History",
-      SUPPORT_EMAIL,
-    ].join("\n"),
-  };
-}
-
 function adminUrl(deps: AppDeps, hashPath: string): string {
   return `${deps.cfg.api.publicBaseUrl.replace(/\/+$/, "")}/admin/${hashPath}`;
 }
@@ -145,6 +85,7 @@ async function sendVerification(
       to: user.email,
       subject: message.subject,
       text: message.text,
+      html: message.html,
       replyTo: SUPPORT_EMAIL,
     });
     return true;
@@ -170,6 +111,7 @@ async function sendWelcome(
       to: user.email,
       subject: message.subject,
       text: message.text,
+      html: message.html,
       replyTo: SUPPORT_EMAIL,
     });
     await deps.repos.markWelcomeSent(user.id, new Date());
@@ -208,6 +150,7 @@ async function sendPasswordReset(
       to: user.email,
       subject: message.subject,
       text: message.text,
+      html: message.html,
       replyTo: SUPPORT_EMAIL,
     });
   } catch (err) {

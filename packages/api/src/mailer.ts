@@ -5,6 +5,7 @@ export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  html?: string;
   replyTo?: string;
 }
 
@@ -37,6 +38,7 @@ export function createSmtpMailer(cfg: AppConfig): Mailer | null {
         to: message.to,
         subject: message.subject,
         text: message.text,
+        html: message.html,
         replyTo: message.replyTo,
       });
     },
