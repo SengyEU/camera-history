@@ -11,6 +11,8 @@ import { registerAuthRoutes } from "./routes/auth.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerBillingRoutes } from "./routes/billing.js";
+import { registerContactRoutes } from "./routes/contact.js";
+import { createSmtpMailer, type Mailer } from "./mailer.js";
 import type { StripeGateway } from "./stripe/gateway.js";
 
 export interface AppDeps {
@@ -18,6 +20,7 @@ export interface AppDeps {
   repos: Repos;
   storage: ObjectStorage;
   stripe: StripeGateway | null;
+  mailer?: Mailer | null;
 }
 
 export function buildApp(deps: AppDeps): FastifyInstance {
@@ -31,11 +34,17 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   app.setErrorHandler(errorHandler);
 
+  const depsWithMail = {
+    ...deps,
+    mailer: deps.mailer !== undefined ? deps.mailer : createSmtpMailer(deps.cfg),
+  };
+
   app.register(registerHealthRoutes);
-  app.register(registerAuthRoutes, deps);
-  app.register(registerAdminRoutes, deps);
-  app.register(registerBillingRoutes, deps);
-  app.register(registerPublicRoutes, deps);
+  app.register(registerAuthRoutes, depsWithMail);
+  app.register(registerAdminRoutes, depsWithMail);
+  app.register(registerBillingRoutes, depsWithMail);
+  app.register(registerPublicRoutes, depsWithMail);
+  app.register(registerContactRoutes, depsWithMail);
 
   return app;
 }

@@ -37,6 +37,15 @@ const AppConfigSchema = z.object({
     port: numeric(3000),
     publicBaseUrl: z.string().default("http://localhost:8080"),
   }),
+  mail: z.object({
+    host: z.string().default(""),
+    port: numeric(465),
+    secure: boolean(true),
+    user: z.string().default(""),
+    pass: z.string().default(""),
+    from: z.string().default("Camera History <noreply@camera-history.com>"),
+    contactTo: z.string().default("marek@camera-history.com"),
+  }),
   worker: z.object({
     tickMs: numeric(60000),
     retryBackoffMs: numeric(30000),
@@ -98,6 +107,15 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
       refreshTtlSeconds: env.JWT_REFRESH_TTL_SECONDS,
     },
     api: { port: env.API_PORT, publicBaseUrl: env.PUBLIC_BASE_URL },
+    mail: {
+      host: env.SMTP_HOST ?? "",
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE,
+      user: env.SMTP_USER ?? "",
+      pass: env.SMTP_PASS ?? "",
+      from: env.SMTP_FROM ?? "Camera History <noreply@camera-history.com>",
+      contactTo: env.CONTACT_TO ?? "marek@camera-history.com",
+    },
     worker: {
       tickMs: env.WORKER_TICK_MS,
       retryBackoffMs: env.WORKER_RETRY_BACKOFF_MS,

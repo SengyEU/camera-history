@@ -503,6 +503,9 @@
             </p>
           </div>
           <form class="contact-form" data-contact-form>
+            <div class="contact-honeypot" aria-hidden="true">
+              <label>Company website<input name="botfield" tabindex="-1" autocomplete="off" /></label>
+            </div>
             <label>
               What is this about?
               <select name="topic">
@@ -542,6 +545,10 @@
                 placeholder="What would you like to archive, or what would you like to know?"
                 required
               ></textarea>
+            </label>
+            <label class="contact-consent">
+              <input type="checkbox" name="privacy" required />
+              <span>I agree that Camera History may use these details to reply to my inquiry.</span>
             </label>
             <button class="btn primary" type="submit">Send message</button>
             <p class="contact-status" role="status" aria-live="polite" hidden></p>

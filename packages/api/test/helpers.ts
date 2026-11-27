@@ -2,6 +2,7 @@ import type { AppConfig } from "@ch/core";
 import type { ObjectStorage, Repos } from "@ch/db";
 import { createFakeRepos } from "@ch/db";
 import { buildApp } from "../src/app.js";
+import type { Mailer } from "../src/mailer.js";
 import type { StripeGateway } from "../src/stripe/gateway.js";
 
 export const testConfig: AppConfig = {
@@ -9,6 +10,15 @@ export const testConfig: AppConfig = {
   minio: { endpoint: "x", port: 0, useSsl: false, accessKey: "a", secretKey: "b", bucket: "org" },
   jwt: { secret: "x".repeat(32), accessTtlSeconds: 900, refreshTtlSeconds: 604800 },
   api: { port: 3000, publicBaseUrl: "http://localhost:8080" },
+  mail: {
+    host: "",
+    port: 465,
+    secure: true,
+    user: "",
+    pass: "",
+    from: "Camera History <noreply@camera-history.com>",
+    contactTo: "marek@camera-history.com",
+  },
   worker: { tickMs: 60000, retryBackoffMs: 30000, concurrency: 2 },
   feed: { timeoutMs: 2000, maxBytes: 1_000_000 },
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
@@ -38,6 +48,7 @@ export function makeApp(overrides: {
   storage?: ObjectStorage;
   cfg?: AppConfig;
   stripe?: StripeGateway | null;
+  mailer?: Mailer | null;
 } = {}) {
   const fakes = createFakeRepos();
   const repos = overrides.repos ?? fakes;
@@ -52,6 +63,7 @@ export function makeApp(overrides: {
     repos,
     storage,
     stripe: overrides.stripe !== undefined ? overrides.stripe : null,
+    mailer: overrides.mailer,
   });
   return { app, repos };
 }

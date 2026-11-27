@@ -51,26 +51,69 @@ const contactForm = document.querySelector<HTMLFormElement>("[data-contact-form]
 
 if (contactForm) {
   const status = contactForm.querySelector<HTMLElement>(".contact-status");
+  const submit = contactForm.querySelector<HTMLButtonElement>('button[type="submit"]');
 
   contactForm.addEventListener("submit", (event) => {
     event.preventDefault();
+    if (!contactForm.reportValidity() || submit?.disabled) return;
+
     const data = new FormData(contactForm);
     const value = (key: string) => String(data.get(key) ?? "").trim();
-    const topic = value("topic");
-    const lines = [`Topic: ${topic}`, `Name: ${value("name")}`, `Email: ${value("email")}`];
-
-    if (value("website")) lines.push(`Website: ${value("website")}`);
-    if (value("cameras")) lines.push(`Cameras: ${value("cameras")}`);
-    lines.push("", value("message"));
-
-    const subject = encodeURIComponent(`Camera History — ${topic}`);
+    const payload = {
+      topic: value("topic"),
+      name: value("name"),
+      email: value("email"),
+      website: value("website"),
+      cameras: value("cameras"),
+      message: value("message"),
+      privacy: data.get("privacy") === "on",
+      botfield: value("botfield"),
+    };
 
     if (status) {
       status.hidden = false;
-      status.textContent = "Opening your email app… If nothing happens, email marek@camera-history.com.";
+      status.className = "contact-status";
+      status.textContent = "Sending…";
+    }
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = "Sending…";
     }
 
-    window.location.href = `mailto:marek@camera-history.com?subject=${subject}&body=${encodeURIComponent(lines.join("\n"))}`;
+    void fetch("/api/v1/contact", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+          throw new Error(typeof body?.detail === "string" ? body.detail : "Message could not be sent.");
+        }
+        contactForm.reset();
+        if (status) {
+          status.hidden = false;
+          status.className = "contact-status is-success";
+          status.textContent =
+            "Message sent. We’ll reply to the email address you entered.";
+        }
+      })
+      .catch((err: unknown) => {
+        if (status) {
+          status.hidden = false;
+          status.className = "contact-status is-error";
+          status.textContent =
+            err instanceof Error
+              ? `${err.message} You can also write to support@camera-history.com.`
+              : "Message could not be sent. Write to support@camera-history.com.";
+        }
+      })
+      .finally(() => {
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = "Send message";
+        }
+      });
   });
 }
 

@@ -1302,6 +1302,42 @@ button:focus-visible {
   justify-self: start;
 }
 
+.contact-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contact-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.contact-consent input[type="checkbox"] {
+  width: auto;
+  min-height: 0;
+  margin-top: 3px;
+  accent-color: var(--color-glacier);
+}
+
+.contact-status.is-success {
+  border-color: var(--color-pine-weak);
+  background: var(--color-pine-weak);
+  color: var(--color-pine);
+}
+
+.contact-status.is-error {
+  border-color: var(--color-red-border);
+  background: var(--color-red-weak);
+  color: var(--color-red-dark);
+}
+
 .contact-status {
   margin: 0;
   padding: 12px 14px;
