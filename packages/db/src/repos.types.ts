@@ -26,8 +26,21 @@ export interface Repos {
   getTenantById(id: string): Promise<Tenant | null>;
   getTenantBySlug(slug: string): Promise<Tenant | null>;
   createUser(input: NewUser): Promise<User>;
+  getUserById(id: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
   updateUserPassword(id: string, passwordHash: string): Promise<void>;
+  markEmailVerified(id: string, at: Date): Promise<User | null>;
+  markWelcomeSent(id: string, at: Date): Promise<void>;
+  deleteEmailVerificationTokensForUser(userId: string): Promise<void>;
+  createEmailVerificationToken(input: {
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<void>;
+  consumeEmailVerificationToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<{ userId: string } | null>;
   createCamera(tenantId: string, input: NewCamera): Promise<Camera>;
   createCameraWithLimit(
     tenantId: string,

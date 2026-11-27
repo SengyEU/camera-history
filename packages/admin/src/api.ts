@@ -125,7 +125,14 @@ export class ApiError extends Error {
   }
 }
 
-const AUTH_PATHS = ["/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/logout"];
+const AUTH_PATHS = [
+  "/api/v1/auth/login",
+  "/api/v1/auth/register",
+  "/api/v1/auth/verify-email",
+  "/api/v1/auth/resend-verification",
+  "/api/v1/auth/refresh",
+  "/api/v1/auth/logout",
+];
 export const SESSION_EXPIRED_EVENT = "ch:session-expired";
 let refreshInFlight: Promise<boolean> | null = null;
 
@@ -182,10 +189,20 @@ export const api = {
     packageCode?: string;
     pilotCode?: string;
   }) =>
-    json<{ status: string; tenantId: string; pilot?: boolean }>(
+    json<{ status: string; tenantId?: string; email?: string; emailSent?: boolean; pilot?: boolean }>(
       "/api/v1/auth/register",
       { method: "POST", body: JSON.stringify(input) },
     ),
+  verifyEmail: (token: string) =>
+    json<{ status: string; email: string }>("/api/v1/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    }),
+  resendVerification: (email: string) =>
+    json<{ status: string }>("/api/v1/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
   logout: () => json<{ status?: string }>("/api/v1/auth/logout", { method: "POST" }),
   changePassword: (currentPassword: string, newPassword: string) =>
     json<{ status?: string }>("/api/v1/auth/password", {

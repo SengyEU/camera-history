@@ -27,6 +27,14 @@ export interface FakeDb {
   images: ImageRecord[];
   cameraGroups: CameraGroup[];
   cameraGroupMembers: { cameraGroupId: string; cameraId: string; position: number }[];
+  emailVerificationTokens: {
+    id: string;
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    usedAt: Date | null;
+    createdAt: Date;
+  }[];
 }
 
 export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeDb } {
@@ -37,6 +45,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     images: seed.images ?? [],
     cameraGroups: seed.cameraGroups ?? [],
     cameraGroupMembers: seed.cameraGroupMembers ?? [],
+    emailVerificationTokens: seed.emailVerificationTokens ?? [],
   };
 
   const repos: Repos = {
@@ -75,6 +84,8 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         email: userInput.email,
         passwordHash: userInput.passwordHash,
         role: userInput.role ?? "owner",
+        emailVerifiedAt: null,
+        welcomeSentAt: null,
       };
       db.tenants.push(tenant);
       db.users.push(user);
@@ -93,9 +104,14 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         email: input.email,
         passwordHash: input.passwordHash,
         role: input.role ?? "owner",
+        emailVerifiedAt: null,
+        welcomeSentAt: null,
       };
       db.users.push(user);
       return user;
+    },
+    async getUserById(id: string) {
+      return db.users.find((u) => u.id === id) ?? null;
     },
     async getUserByEmail(email: string) {
       return db.users.find((u) => u.email === email) ?? null;
@@ -103,6 +119,37 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     async updateUserPassword(id: string, passwordHash: string) {
       const user = db.users.find((u) => u.id === id);
       if (user) user.passwordHash = passwordHash;
+    },
+    async markEmailVerified(id: string, at: Date) {
+      const user = db.users.find((u) => u.id === id);
+      if (!user) return null;
+      user.emailVerifiedAt = at;
+      return user;
+    },
+    async markWelcomeSent(id: string, at: Date) {
+      const user = db.users.find((u) => u.id === id);
+      if (user) user.welcomeSentAt = at;
+    },
+    async deleteEmailVerificationTokensForUser(userId: string) {
+      db.emailVerificationTokens = db.emailVerificationTokens.filter((t) => t.userId !== userId);
+    },
+    async createEmailVerificationToken({ userId, tokenHash, expiresAt }) {
+      db.emailVerificationTokens.push({
+        id: randomUUID(),
+        userId,
+        tokenHash,
+        expiresAt,
+        usedAt: null,
+        createdAt: new Date(),
+      });
+    },
+    async consumeEmailVerificationToken(tokenHash, now) {
+      const token = db.emailVerificationTokens.find(
+        (t) => t.tokenHash === tokenHash && !t.usedAt && t.expiresAt > now,
+      );
+      if (!token) return null;
+      token.usedAt = now;
+      return { userId: token.userId };
     },
     async createCamera(tenantId: string, input: NewCamera): Promise<Camera> {
       const camera: Camera = {

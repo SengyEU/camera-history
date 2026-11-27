@@ -1309,27 +1309,29 @@ describe("App camera CRUD", () => {
 });
 
 describe("App registration", () => {
-  const registerServer = (registerStatus = 201, detail = "tenant slug already taken") => {
-    let registered = false;
+  const registerServer = (
+    registerStatus = 201,
+    detail = "tenant slug already taken",
+    emailSent = true,
+  ) => {
     return vi.fn(async (url: RequestInfo | URL) => {
       const u = String(url);
-      if (u.endsWith("/api/v1/admin/cameras")) {
-        return registered
-          ? jsonResponse({ cameras: [] })
-          : jsonResponse({ detail: "unauthorized" }, 401);
-      }
+      if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
       if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
       if (u.endsWith("/api/v1/auth/logout")) return jsonResponse({ status: "ok" });
       if (u.endsWith("/api/v1/auth/register")) {
         if (registerStatus !== 201) return jsonResponse({ detail }, registerStatus);
-        registered = true;
-        return jsonResponse({ status: "created", tenantId: "t1", billing: { required: false } }, 201);
+        return jsonResponse(
+          { status: "verification_sent", email: "owner@alpine.dev", emailSent },
+          201,
+        );
       }
+      if (u.endsWith("/api/v1/auth/resend-verification")) return jsonResponse({ status: "ok" }, 202);
       return jsonResponse({ detail: "not found" }, 404);
     });
   };
 
-  it("registers and lands on the empty camera list", async () => {
+  it("registers and asks the user to verify their email", async () => {
     vi.stubGlobal("fetch", registerServer());
     window.location.hash = "#/register";
     render(<App />);
@@ -1342,7 +1344,51 @@ describe("App registration", () => {
     expect((screen.getByTestId("register-slug") as HTMLInputElement).value).toBe("alpine-resort");
     await userEvent.click(screen.getByTestId("register-submit"));
 
-    expect(await screen.findByTestId("empty-state")).toBeInTheDocument();
+    expect(await screen.findByTestId("check-email")).toBeInTheDocument();
+    expect(screen.getByText("owner@alpine.dev")).toBeInTheDocument();
+    expect(screen.queryByTestId("admin-app")).not.toBeInTheDocument();
+    expect(window.location.hash).toBe("#/check-email");
+    window.location.hash = "";
+  });
+
+  it("resends the verification email from the check-email screen", async () => {
+    const server = registerServer();
+    vi.stubGlobal("fetch", server);
+    window.location.hash = "#/register";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
+    await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "Supersecret1");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "Supersecret1");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    await screen.findByTestId("check-email");
+    await userEvent.click(screen.getByTestId("resend-verification"));
+
+    expect(await screen.findByTestId("resend-status")).toHaveTextContent("Email sent");
+    expect(server.mock.calls.some(([url]) => String(url).endsWith("/api/v1/auth/resend-verification"))).toBe(
+      true,
+    );
+    window.location.hash = "";
+  });
+
+  it("warns when the account was created but the email could not be sent", async () => {
+    vi.stubGlobal("fetch", registerServer(201, "", false));
+    window.location.hash = "#/register";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
+    await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "Supersecret1");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "Supersecret1");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    expect(await screen.findByTestId("check-email-warning")).toHaveTextContent(
+      "we couldn’t send the email",
+    );
     window.location.hash = "";
   });
 
@@ -1445,7 +1491,7 @@ describe("App registration", () => {
     window.location.hash = "";
   });
 
-  it("returns to login (not register) after registering then logging out", async () => {
+  it("returns to login (not register) after registering then choosing sign in", async () => {
     vi.stubGlobal("fetch", registerServer());
     window.location.hash = "#/register";
     render(<App />);
@@ -1457,12 +1503,120 @@ describe("App registration", () => {
     await userEvent.type(screen.getByTestId("register-password-confirm"), "Supersecret1");
     await userEvent.click(screen.getByTestId("register-submit"));
 
-    await screen.findByTestId("logout");
+    await screen.findByTestId("check-email");
     expect(screen.queryByTestId("register-form")).not.toBeInTheDocument();
-    await userEvent.click(screen.getByTestId("logout"));
+    await userEvent.click(screen.getByTestId("goto-signin"));
 
     await screen.findByTestId("login-form");
     expect(screen.queryByTestId("register-form")).not.toBeInTheDocument();
+    window.location.hash = "";
+  });
+});
+
+describe("App email verification", () => {
+  it("asks an unverified user to verify before signing in and can resend the link", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        if (u.endsWith("/api/v1/auth/login")) {
+          return jsonResponse({ status: 403, title: "email_not_verified", detail: "email is not verified" }, 403);
+        }
+        if (u.endsWith("/api/v1/auth/resend-verification")) return jsonResponse({ status: "ok" }, 202);
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("login-form");
+    await userEvent.type(screen.getByTestId("login-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("login-password"), "Supersecret1");
+    await userEvent.click(screen.getByTestId("login-submit"));
+
+    expect(await screen.findByTestId("login-unverified")).toHaveTextContent(
+      "Verify your email before signing in.",
+    );
+    expect(screen.queryByTestId("admin-app")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("login-resend"));
+    expect(await screen.findByTestId("login-resend-status")).toHaveTextContent("Email sent.");
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/resend-verification"))).toBe(true);
+  });
+
+  it("verifies a link and sends the user to sign in", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        if (u.endsWith("/api/v1/auth/verify-email")) {
+          return jsonResponse({ status: "verified", email: "owner@alpine.dev" });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    window.location.hash = "#/verify-email?token=good-token-1";
+    render(<App />);
+
+    expect(await screen.findByTestId("verify-success")).toHaveTextContent("owner@alpine.dev");
+    expect(calls.filter((u) => u.endsWith("/api/v1/auth/verify-email"))).toHaveLength(1);
+
+    await userEvent.click(screen.getByTestId("verify-signin"));
+    expect(await screen.findByTestId("login-form")).toBeInTheDocument();
+    window.location.hash = "";
+  });
+
+  it("offers a new link when verification fails", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        if (u.endsWith("/api/v1/auth/verify-email")) {
+          return jsonResponse({ detail: "verification link is invalid or expired" }, 400);
+        }
+        if (u.endsWith("/api/v1/auth/resend-verification")) return jsonResponse({ status: "ok" }, 202);
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    window.location.hash = "#/verify-email?token=expired-token-1";
+    render(<App />);
+
+    expect(await screen.findByTestId("verify-error")).toHaveTextContent("This link didn’t work");
+    await userEvent.type(screen.getByTestId("verify-resend-email"), "owner@alpine.dev");
+    await userEvent.click(screen.getByTestId("verify-resend-submit"));
+
+    expect(await screen.findByTestId("verify-resend-message")).toHaveTextContent("a new link is on its way");
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/resend-verification"))).toBe(true);
+    window.location.hash = "";
+  });
+
+  it("shows the error state for a link without a token", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    window.location.hash = "#/verify-email";
+    render(<App />);
+
+    expect(await screen.findByTestId("verify-error")).toBeInTheDocument();
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/verify-email"))).toBe(false);
     window.location.hash = "";
   });
 });

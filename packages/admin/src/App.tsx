@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, FEED_LABELS, FEED_TYPES, SESSION_EXPIRED_EVENT, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
 import { AccountPage } from "./Account";
-import { AuthSplash, Login, Register } from "./Auth";
+import { AuthSplash, CheckEmail, Login, Register, VerifyEmail } from "./Auth";
 import { BillingPage } from "./Billing";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EmbedCodePanel } from "./EmbedCodePanel";
@@ -65,6 +65,12 @@ function parseCameraRoute(hash: string): CameraRoute {
 }
 
 type GroupRoute = { mode: "new" } | { mode: "edit"; id: string } | null;
+
+function verifyTokenFromHash(): string | null {
+  const hash = window.location.hash;
+  if (!hash.startsWith("#/verify-email")) return null;
+  return new URLSearchParams(hash.split("?")[1] ?? "").get("token") ?? "";
+}
 
 function parseGroupRoute(hash: string): GroupRoute {
   const match = hash.match(/^#\/groups\/([^/?#]+)/);
@@ -1036,6 +1042,10 @@ export function App() {
   } | null>(null);
   const [view, setView] = useState<"cameras" | "groups" | "billing" | "account" | "plugins">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
+  const [checkEmail, setCheckEmail] = useState(() => window.location.hash.startsWith("#/check-email"));
+  const [verifyToken, setVerifyToken] = useState<string | null>(verifyTokenFromHash);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [pendingEmailSent, setPendingEmailSent] = useState(true);
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
   const [cameraSavedNotice, setCameraSavedNotice] = useState<string | null>(null);
   const [groupSavedNotice, setGroupSavedNotice] = useState<string | null>(null);
@@ -1061,6 +1071,8 @@ export function App() {
     const onHash = () => {
       setView(currentView());
       setRegistering(window.location.hash.startsWith("#/register"));
+      setCheckEmail(window.location.hash.startsWith("#/check-email"));
+      setVerifyToken(verifyTokenFromHash());
       setCameraRoute(parseCameraRoute(window.location.hash));
       setGroupRoute(parseGroupRoute(window.location.hash));
     };
@@ -1314,10 +1326,42 @@ export function App() {
 
   if (!checked) return <AuthSplash />;
 
+  if (verifyToken !== null) {
+    return (
+      <VerifyEmail
+        token={verifyToken}
+        onSignIn={() => {
+          setVerifyToken(null);
+          window.location.hash = "";
+        }}
+      />
+    );
+  }
+
   if (email === null) {
+    if (checkEmail && pendingEmail) {
+      return (
+        <CheckEmail
+          email={pendingEmail}
+          emailSent={pendingEmailSent}
+          onSignIn={() => {
+            setPendingEmail("");
+            setRegistering(false);
+            setCheckEmail(false);
+            window.location.hash = "";
+          }}
+        />
+      );
+    }
     return registering ? (
       <Register
-        onSuccess={(nextEmail) => {
+        onRegistered={(nextEmail, emailSent) => {
+          setSessionNotice(null);
+          setPendingEmail(nextEmail);
+          setPendingEmailSent(emailSent);
+          setAccountEmail(nextEmail);
+        }}
+        onSignedIn={(nextEmail) => {
           setSessionNotice(null);
           setAccountEmail(nextEmail);
           setEmail(nextEmail);

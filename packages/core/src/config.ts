@@ -46,6 +46,10 @@ const AppConfigSchema = z.object({
     from: z.string().default("Camera History <noreply@camera-history.com>"),
     contactTo: z.string().default("marek@camera-history.com"),
   }),
+  auth: z.object({
+    requireEmailVerification: boolean(true),
+    verificationTtlHours: numeric(24),
+  }),
   worker: z.object({
     tickMs: numeric(60000),
     retryBackoffMs: numeric(30000),
@@ -115,6 +119,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
       pass: env.SMTP_PASS ?? "",
       from: env.SMTP_FROM ?? "Camera History <noreply@camera-history.com>",
       contactTo: env.CONTACT_TO ?? "marek@camera-history.com",
+    },
+    auth: {
+      requireEmailVerification: env.AUTH_REQUIRE_EMAIL_VERIFICATION,
+      verificationTtlHours: env.AUTH_VERIFICATION_TTL_HOURS,
     },
     worker: {
       tickMs: env.WORKER_TICK_MS,

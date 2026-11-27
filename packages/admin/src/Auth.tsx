@@ -189,9 +189,23 @@ export function Login({
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [unverified, setUnverified] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [submitting, setSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+
+  const resend = async () => {
+    const trimmed = email.trim();
+    if (!EMAIL_RE.test(trimmed) || resendState === "sending") return;
+    setResendState("sending");
+    try {
+      await api.resendVerification(trimmed);
+      setResendState("sent");
+    } catch {
+      setResendState("error");
+    }
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -203,6 +217,8 @@ export function Login({
     if (!password) next.password = "Enter your password.";
     setErrors(next);
     setFormError(null);
+    setUnverified(false);
+    setResendState("idle");
     if (firstInvalidField(next)) {
       focusField(firstInvalidField(next));
       return;
@@ -212,7 +228,11 @@ export function Login({
       await api.login(trimmed, password);
       onSuccess(trimmed);
     } catch (err) {
-      setFormError(loginError(err));
+      if (err instanceof ApiError && err.status === 403 && err.message.toLowerCase().includes("verif")) {
+        setUnverified(true);
+      } else {
+        setFormError(loginError(err));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -272,6 +292,28 @@ export function Login({
             {formError}
           </p>
         )}
+        {unverified && (
+          <div className="auth-alert auth-alert-info" data-testid="login-unverified" role="status">
+            <p>Verify your email before signing in. We sent you a link when you created the account.</p>
+            <button
+              type="button"
+              className="link"
+              onClick={() => void resend()}
+              disabled={resendState === "sending"}
+              data-testid="login-resend"
+            >
+              {resendState === "sending"
+                ? "Sending…"
+                : resendState === "sent"
+                  ? "Send again"
+                  : "Resend verification email"}
+            </button>
+            {resendState === "sent" && <p data-testid="login-resend-status">Email sent.</p>}
+            {resendState === "error" && (
+              <p data-testid="login-resend-error">We couldn’t send the email. Try again in a moment.</p>
+            )}
+          </div>
+        )}
         <button type="submit" className="auth-submit" disabled={submitting} data-testid="login-submit">
           {submitting ? "Signing in…" : "Sign in"}
         </button>
@@ -287,10 +329,12 @@ export function Login({
 }
 
 export function Register({
-  onSuccess,
+  onRegistered,
+  onSignedIn,
   onSignIn,
 }: {
-  onSuccess: (email: string) => void;
+  onRegistered: (email: string, emailSent: boolean) => void;
+  onSignedIn: (email: string) => void;
   onSignIn: () => void;
 }) {
   const [name, setName] = useState("");
@@ -357,7 +401,7 @@ export function Register({
     if (firstInvalidField(next)) return;
     setSubmitting(true);
     try {
-      await api.register({
+      const result = await api.register({
         name: trimmedName,
         slug: trimmedSlug,
         email: trimmedEmail,
@@ -365,8 +409,13 @@ export function Register({
         pilotCode,
         packageCode,
       });
-      window.location.hash = "";
-      onSuccess(trimmedEmail);
+      if (result.status === "created") {
+        window.location.hash = "";
+        onSignedIn(trimmedEmail);
+      } else {
+        window.location.hash = "#/check-email";
+        onRegistered(trimmedEmail, result.emailSent !== false);
+      }
     } catch (err) {
       const mapped = registerError(err);
       if (mapped.field) {
@@ -522,6 +571,220 @@ export function Register({
         Already have an account?{" "}
         <button type="button" className="link" onClick={onSignIn} data-testid="goto-signin">
           Sign in
+        </button>
+      </p>
+    </AuthShell>
+  );
+}
+
+export function CheckEmail({
+  email,
+  emailSent,
+  onSignIn,
+}: {
+  email: string;
+  emailSent: boolean;
+  onSignIn: () => void;
+}) {
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  const resend = async () => {
+    if (resendState === "sending") return;
+    setResendState("sending");
+    try {
+      await api.resendVerification(email);
+      setResendState("sent");
+    } catch {
+      setResendState("error");
+    }
+  };
+
+  return (
+    <AuthShell>
+      <div className="auth-head" data-testid="check-email">
+        <span className="ts-chip">VERIFY EMAIL</span>
+        <h1>Check your email</h1>
+        <p>
+          We sent a verification link to <strong>{email}</strong>. Open it to activate your
+          workspace, then sign in.
+        </p>
+      </div>
+      {!emailSent && (
+        <p className="auth-alert" role="alert" data-testid="check-email-warning">
+          Your account was created, but we couldn’t send the email. Try resending it below, or write
+          to support@camera-history.com.
+        </p>
+      )}
+      {resendState === "sent" && (
+        <p className="auth-note" role="status" data-testid="resend-status">
+          Email sent. It can take a minute to arrive.
+        </p>
+      )}
+      {resendState === "error" && (
+        <p className="auth-alert" role="alert" data-testid="resend-error">
+          We couldn’t send the email. Try again, or write to support@camera-history.com.
+        </p>
+      )}
+      <button
+        type="button"
+        className="auth-submit"
+        onClick={() => void resend()}
+        disabled={resendState === "sending"}
+        data-testid="resend-verification"
+      >
+        {resendState === "sending" ? "Sending…" : resendState === "sent" ? "Send again" : "Resend email"}
+      </button>
+      <p className="auth-switch">
+        Already verified?{" "}
+        <button type="button" className="link" onClick={onSignIn} data-testid="goto-signin">
+          Sign in
+        </button>
+      </p>
+    </AuthShell>
+  );
+}
+
+type VerifyResult = { status: string; email: string };
+const verifyRequests = new Map<string, Promise<VerifyResult>>();
+
+function verifyOnce(token: string): Promise<VerifyResult> {
+  let request = verifyRequests.get(token);
+  if (!request) {
+    request = api.verifyEmail(token).catch((err: unknown) => {
+      verifyRequests.delete(token);
+      throw err;
+    });
+    verifyRequests.set(token, request);
+  }
+  return request;
+}
+
+export function VerifyEmail({ token, onSignIn }: { token: string; onSignIn: () => void }) {
+  const [state, setState] = useState<"verifying" | "success" | "error">(token ? "verifying" : "error");
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [resendError, setResendError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    verifyOnce(token)
+      .then((result) => {
+        if (!active) return;
+        setVerifiedEmail(result.email);
+        setState("success");
+      })
+      .catch(() => {
+        if (active) setState("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  const resend = async (event: FormEvent) => {
+    event.preventDefault();
+    if (resending) return;
+    const trimmed = email.trim();
+    if (!EMAIL_RE.test(trimmed)) {
+      setEmailError("Enter the email you registered with.");
+      return;
+    }
+    setEmailError(null);
+    setResendMessage(null);
+    setResendError(null);
+    setResending(true);
+    try {
+      await api.resendVerification(trimmed);
+      setResendMessage("If that address has an unverified account, a new link is on its way.");
+    } catch {
+      setResendError("We couldn’t request a new link. Try again in a moment.");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  if (state === "verifying") {
+    return (
+      <AuthShell>
+        <div className="auth-head" role="status" aria-live="polite" data-testid="verify-loading">
+          <span className="ts-chip">VERIFY EMAIL</span>
+          <h1>Verifying your email…</h1>
+          <p>One moment while we activate your workspace.</p>
+        </div>
+      </AuthShell>
+    );
+  }
+
+  if (state === "success") {
+    return (
+      <AuthShell>
+        <div className="auth-head" data-testid="verify-success">
+          <span className="ts-chip">EMAIL VERIFIED</span>
+          <h1>You’re all set</h1>
+          <p>
+            {verifiedEmail ? <strong>{verifiedEmail}</strong> : "Your email"} is verified. Sign in to
+            open your workspace.
+          </p>
+        </div>
+        <button type="button" className="auth-submit" onClick={onSignIn} data-testid="verify-signin">
+          Sign in
+        </button>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell>
+      <div className="auth-head" data-testid="verify-error">
+        <span className="ts-chip">VERIFY EMAIL</span>
+        <h1>This link didn’t work</h1>
+        <p>
+          Verification links expire after 24 hours and can only be used once. Enter your email and
+          we’ll send a new one.
+        </p>
+      </div>
+      <form className="auth-form" noValidate onSubmit={resend} data-testid="verify-resend-form">
+        <label className="field" htmlFor="verify-email">
+          Email
+          <input
+            id="verify-email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            autoComplete="email"
+            autoFocus
+            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? "verify-email-error" : undefined}
+            data-testid="verify-resend-email"
+          />
+          {emailError && (
+            <span className="field-error" id="verify-email-error" data-testid="verify-resend-error">
+              {emailError}
+            </span>
+          )}
+        </label>
+        {resendMessage && (
+          <p className="auth-note" role="status" data-testid="verify-resend-message">
+            {resendMessage}
+          </p>
+        )}
+        {resendError && (
+          <p className="auth-alert" role="alert" data-testid="verify-resend-failure">
+            {resendError}
+          </p>
+        )}
+        <button type="submit" className="auth-submit" disabled={resending} data-testid="verify-resend-submit">
+          {resending ? "Sending…" : "Send a new link"}
+        </button>
+      </form>
+      <p className="auth-switch">
+        <button type="button" className="link" onClick={onSignIn} data-testid="goto-signin">
+          Back to sign in
         </button>
       </p>
     </AuthShell>

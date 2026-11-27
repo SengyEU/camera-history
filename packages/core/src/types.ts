@@ -34,6 +34,8 @@ export interface User {
   email: string;
   passwordHash: string;
   role: UserRole;
+  emailVerifiedAt: Date | null;
+  welcomeSentAt: Date | null;
 }
 
 export interface Camera {

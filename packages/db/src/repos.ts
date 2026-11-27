@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lt, notInArray, sql } from "drizzle-orm";
 import type {
   AdminCameraGroup,
   BillingPatch,
@@ -19,7 +19,7 @@ import type {
 } from "@ch/core";
 import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable, slugify } from "@ch/core";
 import type { Db } from "./db.js";
-import { cameraGroupMembers, cameraGroups, cameras, images, tenants, users } from "./schema.js";
+import { cameraGroupMembers, cameraGroups, cameras, emailVerificationTokens, images, tenants, users } from "./schema.js";
 import type { Repos } from "./repos.types.js";
 
 type TenantRow = typeof tenants.$inferSelect;
@@ -125,8 +125,50 @@ export function createRepos(db: Db): Repos {
       const [row] = await db.select().from(users).where(eq(users.email, email));
       return row ?? null;
     },
+    async getUserById(id: string) {
+      const [row] = await db.select().from(users).where(eq(users.id, id));
+      return row ?? null;
+    },
     async updateUserPassword(id, passwordHash) {
       await db.update(users).set({ passwordHash }).where(eq(users.id, id));
+    },
+    async markEmailVerified(id, at) {
+      const [row] = await db
+        .update(users)
+        .set({ emailVerifiedAt: at })
+        .where(eq(users.id, id))
+        .returning();
+      return row ?? null;
+    },
+    async markWelcomeSent(id, at) {
+      await db.update(users).set({ welcomeSentAt: at }).where(eq(users.id, id));
+    },
+    async deleteEmailVerificationTokensForUser(userId) {
+      await db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, userId));
+    },
+    async createEmailVerificationToken({ userId, tokenHash, expiresAt }) {
+      await db.insert(emailVerificationTokens).values({ userId, tokenHash, expiresAt });
+    },
+    async consumeEmailVerificationToken(tokenHash, now) {
+      return db.transaction(async (tx) => {
+        const [token] = await tx
+          .select()
+          .from(emailVerificationTokens)
+          .where(
+            and(
+              eq(emailVerificationTokens.tokenHash, tokenHash),
+              isNull(emailVerificationTokens.usedAt),
+              gt(emailVerificationTokens.expiresAt, now),
+            ),
+          )
+          .for("update");
+        if (!token) return null;
+        await tx
+          .update(emailVerificationTokens)
+          .set({ usedAt: now })
+          .where(eq(emailVerificationTokens.id, token.id));
+        return { userId: token.userId };
+      });
     },
     async createCamera(tenantId: string, input: NewCamera): Promise<Camera> {
       const [row] = await db.insert(cameras).values(cameraValues(tenantId, input)).returning();

@@ -53,10 +53,30 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("owner"),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  welcomeSentAt: timestamp("welcome_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex("users_email_unique").on(t.email),
 ]);
+
+export const emailVerificationTokens = pgTable(
+  "email_verification_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("email_verification_tokens_hash_unique").on(t.tokenHash),
+    index("email_verification_tokens_user_idx").on(t.userId),
+  ],
+);
 
 export const cameras = pgTable("cameras", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -137,4 +157,12 @@ export const cameraGroupMembers = pgTable(
   ],
 );
 
-export const tables = { tenants, users, cameras, images, cameraGroups, cameraGroupMembers };
+export const tables = {
+  tenants,
+  users,
+  cameras,
+  images,
+  cameraGroups,
+  cameraGroupMembers,
+  emailVerificationTokens,
+};

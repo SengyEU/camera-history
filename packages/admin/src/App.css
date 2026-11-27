@@ -288,6 +288,25 @@ button.link:hover {
   line-height: 1.45;
 }
 
+.auth-alert p {
+  margin: 0;
+}
+
+.auth-alert .link {
+  margin-top: 8px;
+  font-size: inherit;
+}
+
+.auth-alert-info {
+  border-color: var(--glacier);
+  background: var(--glacier-weak);
+  color: var(--glacier-deep);
+}
+
+.auth-alert-info .link {
+  color: var(--glacier-deep);
+}
+
 .auth-note {
   margin: 0;
   padding: 8px 12px;
