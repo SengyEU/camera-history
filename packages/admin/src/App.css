@@ -233,6 +233,13 @@ button.link:hover {
   gap: 16px;
 }
 
+.auth-field-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 0;
+  font-size: 0.82rem;
+}
+
 .auth-section {
   display: flex;
   flex-direction: column;

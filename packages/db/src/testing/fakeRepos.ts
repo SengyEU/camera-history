@@ -35,6 +35,14 @@ export interface FakeDb {
     usedAt: Date | null;
     createdAt: Date;
   }[];
+  passwordResetTokens: {
+    id: string;
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    usedAt: Date | null;
+    createdAt: Date;
+  }[];
 }
 
 export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeDb } {
@@ -46,6 +54,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     cameraGroups: seed.cameraGroups ?? [],
     cameraGroupMembers: seed.cameraGroupMembers ?? [],
     emailVerificationTokens: seed.emailVerificationTokens ?? [],
+    passwordResetTokens: seed.passwordResetTokens ?? [],
   };
 
   const repos: Repos = {
@@ -86,6 +95,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         role: userInput.role ?? "owner",
         emailVerifiedAt: null,
         welcomeSentAt: null,
+        passwordChangedAt: null,
       };
       db.tenants.push(tenant);
       db.users.push(user);
@@ -106,6 +116,7 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         role: input.role ?? "owner",
         emailVerifiedAt: null,
         welcomeSentAt: null,
+        passwordChangedAt: null,
       };
       db.users.push(user);
       return user;
@@ -118,7 +129,10 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     },
     async updateUserPassword(id: string, passwordHash: string) {
       const user = db.users.find((u) => u.id === id);
-      if (user) user.passwordHash = passwordHash;
+      if (user) {
+        user.passwordHash = passwordHash;
+        user.passwordChangedAt = new Date();
+      }
     },
     async markEmailVerified(id: string, at: Date) {
       const user = db.users.find((u) => u.id === id);
@@ -145,6 +159,27 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     },
     async consumeEmailVerificationToken(tokenHash, now) {
       const token = db.emailVerificationTokens.find(
+        (t) => t.tokenHash === tokenHash && !t.usedAt && t.expiresAt > now,
+      );
+      if (!token) return null;
+      token.usedAt = now;
+      return { userId: token.userId };
+    },
+    async deletePasswordResetTokensForUser(userId: string) {
+      db.passwordResetTokens = db.passwordResetTokens.filter((t) => t.userId !== userId);
+    },
+    async createPasswordResetToken({ userId, tokenHash, expiresAt }) {
+      db.passwordResetTokens.push({
+        id: randomUUID(),
+        userId,
+        tokenHash,
+        expiresAt,
+        usedAt: null,
+        createdAt: new Date(),
+      });
+    },
+    async consumePasswordResetToken(tokenHash, now) {
+      const token = db.passwordResetTokens.find(
         (t) => t.tokenHash === tokenHash && !t.usedAt && t.expiresAt > now,
       );
       if (!token) return null;

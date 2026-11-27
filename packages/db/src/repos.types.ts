@@ -41,6 +41,16 @@ export interface Repos {
     tokenHash: string,
     now: Date,
   ): Promise<{ userId: string } | null>;
+  deletePasswordResetTokensForUser(userId: string): Promise<void>;
+  createPasswordResetToken(input: {
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<void>;
+  consumePasswordResetToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<{ userId: string } | null>;
   createCamera(tenantId: string, input: NewCamera): Promise<Camera>;
   createCameraWithLimit(
     tenantId: string,

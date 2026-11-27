@@ -49,6 +49,7 @@ const AppConfigSchema = z.object({
   auth: z.object({
     requireEmailVerification: boolean(true),
     verificationTtlHours: numeric(24),
+    passwordResetTtlMinutes: numeric(60),
   }),
   worker: z.object({
     tickMs: numeric(60000),
@@ -123,6 +124,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
     auth: {
       requireEmailVerification: env.AUTH_REQUIRE_EMAIL_VERIFICATION,
       verificationTtlHours: env.AUTH_VERIFICATION_TTL_HOURS,
+      passwordResetTtlMinutes: env.AUTH_PASSWORD_RESET_TTL_MINUTES,
     },
     worker: {
       tickMs: env.WORKER_TICK_MS,

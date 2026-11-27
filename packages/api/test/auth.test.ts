@@ -350,7 +350,7 @@ describe("auth", () => {
 
 const verifyConfig: AppConfig = {
   ...testConfig,
-  auth: { requireEmailVerification: true, verificationTtlHours: 24 },
+  auth: { requireEmailVerification: true, verificationTtlHours: 24, passwordResetTtlMinutes: 60 },
 };
 
 const account = {
@@ -637,6 +637,202 @@ describe("auth email verification", () => {
     expect(res.headers["set-cookie"]).toBeDefined();
     expect(sent).toHaveLength(0);
     expect((await repos.getUserByEmail(account.email))?.emailVerifiedAt).toBeInstanceOf(Date);
+    await app.close();
+  });
+});
+
+function resetTokenFrom(message: MailMessage | undefined): string {
+  const match = /#\/reset-password\?token=([A-Za-z0-9_-]+)/.exec(message?.text ?? "");
+  if (!match) throw new Error("password reset token missing from email");
+  return match[1]!;
+}
+
+describe("password reset", () => {
+  it("emails a single-use link and changes the password", async () => {
+    const { mailer, sent } = makeMailer();
+    const { app, repos } = makeApp({ cfg: testConfig, mailer });
+    await app.inject({ method: "POST", url: "/api/v1/auth/register", payload: account });
+
+    const forgot = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: { email: account.email },
+    });
+    expect(forgot.statusCode).toBe(202);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ to: account.email, replyTo: "support@camera-history.com" });
+    expect(sent[0]!.subject).toContain("Reset");
+    expect(sent[0]!.text).toContain("http://localhost:8080/admin/#/reset-password?token=");
+
+    const token = resetTokenFrom(sent[0]);
+    const stored = repos.db.passwordResetTokens[0]!;
+    expect(stored.tokenHash).not.toBe(token);
+
+    const reset = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: { token, newPassword: "BrandNew456" },
+    });
+    expect(reset.statusCode).toBe(200);
+
+    const oldLogin = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: { email: account.email, password: account.password },
+    });
+    expect(oldLogin.statusCode).toBe(401);
+
+    const newLogin = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: { email: account.email, password: "BrandNew456" },
+    });
+    expect(newLogin.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it("returns 202 for an unknown address without sending anything", async () => {
+    const { mailer, sent } = makeMailer();
+    const { app } = makeApp({ cfg: testConfig, mailer });
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: { email: "nobody@example.com" },
+    });
+
+    expect(res.statusCode).toBe(202);
+    expect(sent).toHaveLength(0);
+    await app.close();
+  });
+
+  it("rejects an expired or reused link", async () => {
+    const repos = createFakeRepos();
+    const { mailer, sent } = makeMailer();
+    const { app } = makeApp({ repos, cfg: testConfig, mailer });
+    await app.inject({ method: "POST", url: "/api/v1/auth/register", payload: account });
+    await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: { email: account.email },
+    });
+    const token = resetTokenFrom(sent[0]);
+    repos.db.passwordResetTokens[0]!.expiresAt = new Date(Date.now() - 1000);
+
+    const expired = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: { token, newPassword: "BrandNew456" },
+    });
+    expect(expired.statusCode).toBe(400);
+
+    await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: { email: account.email },
+    });
+    const fresh = resetTokenFrom(sent[1]);
+    const first = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: { token: fresh, newPassword: "BrandNew456" },
+    });
+    const second = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: { token: fresh, newPassword: "Another789" },
+    });
+
+    expect(first.statusCode).toBe(200);
+    expect(second.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("keeps the link usable when the new password is too weak", async () => {
+    const { mailer, sent } = makeMailer();
+    const { app } = makeApp({ cfg: testConfig, mailer });
+    await app.inject({ method: "POST", url: "/api/v1/auth/register", payload: account });
+    await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: { email: account.email },
+    });
+    const token = resetTokenFrom(sent[0]);
+
+    const weak = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: { token, newPassword: "lowercase1" },
+    });
+    expect(weak.statusCode).toBe(400);
+
+    const retry = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: { token, newPassword: "BrandNew456" },
+    });
+    expect(retry.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it("does not bypass email verification", async () => {
+    const { mailer, sent } = makeMailer();
+    const { app } = makeApp({ cfg: verifyConfig, mailer });
+    await app.inject({ method: "POST", url: "/api/v1/auth/register", payload: account });
+    await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: { email: account.email },
+    });
+    const token = resetTokenFrom(sent[1]);
+
+    const reset = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: { token, newPassword: "BrandNew456" },
+    });
+    expect(reset.statusCode).toBe(200);
+
+    const login = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: { email: account.email, password: "BrandNew456" },
+    });
+    expect(login.statusCode).toBe(403);
+    await app.close();
+  });
+
+  it("invalidates refresh tokens issued before the password change", async () => {
+    const repos = createFakeRepos();
+    const { mailer, sent } = makeMailer();
+    const { app } = makeApp({ repos, cfg: testConfig, mailer });
+    const registered = await app.inject({ method: "POST", url: "/api/v1/auth/register", payload: account });
+    const refreshCookie = registered.cookies.find((c) => c.name === "ch_refresh");
+    expect(refreshCookie).toBeDefined();
+
+    await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: { email: account.email },
+    });
+    const token = resetTokenFrom(sent[0]);
+    await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: { token, newPassword: "BrandNew456" },
+    });
+
+    const user = repos.db.users.find((u) => u.email === account.email)!;
+    user.passwordChangedAt = new Date(Date.now() + 5000);
+
+    const refresh = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/refresh",
+      headers: { cookie: `ch_refresh=${refreshCookie!.value}` },
+    });
+
+    expect(refresh.statusCode).toBe(401);
+    expect(refresh.headers["set-cookie"]).toBeDefined();
     await app.close();
   });
 });

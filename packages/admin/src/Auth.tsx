@@ -179,10 +179,12 @@ function registerError(err: unknown): { field?: keyof FieldErrors; message: stri
 export function Login({
   onSuccess,
   onRegister,
+  onForgot,
   notice,
 }: {
   onSuccess: (email: string) => void;
   onRegister: () => void;
+  onForgot: () => void;
   notice?: string | null;
 }) {
   const [email, setEmail] = useState("");
@@ -287,6 +289,11 @@ export function Login({
           inputRef={passwordRef}
           fieldName="password"
         />
+        <p className="auth-field-row">
+          <button type="button" className="link" onClick={onForgot} data-testid="goto-forgot">
+            Forgot password?
+          </button>
+        </p>
         {formError && (
           <p className="auth-alert" data-testid="login-error" role="alert">
             {formError}
@@ -780,6 +787,250 @@ export function VerifyEmail({ token, onSignIn }: { token: string; onSignIn: () =
         )}
         <button type="submit" className="auth-submit" disabled={resending} data-testid="verify-resend-submit">
           {resending ? "Sending…" : "Send a new link"}
+        </button>
+      </form>
+      <p className="auth-switch">
+        <button type="button" className="link" onClick={onSignIn} data-testid="goto-signin">
+          Back to sign in
+        </button>
+      </p>
+    </AuthShell>
+  );
+}
+
+export function ForgotPassword({ onSignIn }: { onSignIn: () => void }) {
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submitting) return;
+    const trimmed = email.trim();
+    if (!EMAIL_RE.test(trimmed)) {
+      setEmailError("Enter the email you registered with.");
+      return;
+    }
+    setEmailError(null);
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      await api.forgotPassword(trimmed);
+      setSent(true);
+    } catch {
+      setFormError("We couldn’t send the email. Try again in a moment.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <AuthShell>
+        <div className="auth-head" data-testid="forgot-sent">
+          <span className="ts-chip">RESET PASSWORD</span>
+          <h1>Check your email</h1>
+          <p>
+            If an account exists for <strong>{email.trim()}</strong>, we sent a reset link. It
+            expires in 60 minutes and can be used once.
+          </p>
+        </div>
+        <p className="auth-note">
+          Didn’t get it? Check spam, or try again in a few minutes. You can also write to
+          support@camera-history.com.
+        </p>
+        <button type="button" className="auth-submit" onClick={onSignIn} data-testid="forgot-signin">
+          Back to sign in
+        </button>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell>
+      <div className="auth-head">
+        <span className="ts-chip">RESET PASSWORD</span>
+        <h1>Forgot your password?</h1>
+        <p>Enter your email and we’ll send you a link to choose a new one.</p>
+      </div>
+      <form className="auth-form" noValidate onSubmit={submit} data-testid="forgot-form">
+        <label className="field" htmlFor="forgot-email">
+          Email
+          <input
+            id="forgot-email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            autoComplete="email"
+            autoFocus
+            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? "forgot-email-error" : undefined}
+            data-testid="forgot-email"
+          />
+          {emailError && (
+            <span className="field-error" id="forgot-email-error" data-testid="forgot-email-error">
+              {emailError}
+            </span>
+          )}
+        </label>
+        {formError && (
+          <p className="auth-alert" role="alert" data-testid="forgot-error">
+            {formError}
+          </p>
+        )}
+        <button type="submit" className="auth-submit" disabled={submitting} data-testid="forgot-submit">
+          {submitting ? "Sending…" : "Send reset link"}
+        </button>
+      </form>
+      <p className="auth-switch">
+        <button type="button" className="link" onClick={onSignIn} data-testid="goto-signin">
+          Back to sign in
+        </button>
+      </p>
+    </AuthShell>
+  );
+}
+
+function newPasswordProblem(password: string): string | null {
+  if (password.length < 8 || password.length > 128 || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+    return "Use 8 to 128 characters, one uppercase letter and one number.";
+  }
+  return null;
+}
+
+export function ResetPassword({
+  token,
+  onSignIn,
+  onForgot,
+}: {
+  token: string;
+  onSignIn: () => void;
+  onForgot: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submitting || !token) return;
+    const next: FieldErrors = {};
+    const passwordError = newPasswordProblem(password);
+    if (!password) next.password = "Create a new password.";
+    else if (passwordError) next.password = passwordError;
+    if (!confirm) next.confirm = "Repeat your new password.";
+    else if (confirm !== password) next.confirm = "Passwords don’t match.";
+    setErrors(next);
+    setFormError(null);
+    if (firstInvalidField(next)) {
+      const ref = next.password ? passwordRef : confirmRef;
+      window.setTimeout(() => ref.current?.focus(), 0);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.resetPassword(token, password);
+      setDone(true);
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 400 || err.status === 401)) {
+        setFormError("This reset link is invalid or has expired. Request a new one.");
+      } else {
+        setFormError(err instanceof ApiError ? err.message : NETWORK_ERROR);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <AuthShell>
+        <div className="auth-head" data-testid="reset-done">
+          <span className="ts-chip">PASSWORD UPDATED</span>
+          <h1>Password updated</h1>
+          <p>Sign in with your new password to open your workspace.</p>
+        </div>
+        <button type="button" className="auth-submit" onClick={onSignIn} data-testid="reset-signin">
+          Sign in
+        </button>
+      </AuthShell>
+    );
+  }
+
+  if (!token) {
+    return (
+      <AuthShell>
+        <div className="auth-head" data-testid="reset-error">
+          <span className="ts-chip">RESET PASSWORD</span>
+          <h1>This link didn’t work</h1>
+          <p>Reset links expire after 60 minutes and can only be used once. Request a new one.</p>
+        </div>
+        <button type="button" className="auth-submit" onClick={onForgot} data-testid="reset-request-new">
+          Request a new link
+        </button>
+        <p className="auth-switch">
+          <button type="button" className="link" onClick={onSignIn} data-testid="goto-signin">
+            Back to sign in
+          </button>
+        </p>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell>
+      <div className="auth-head">
+        <span className="ts-chip">RESET PASSWORD</span>
+        <h1>Choose a new password</h1>
+        <p>Use 8 to 128 characters, one uppercase letter and one number.</p>
+      </div>
+      <form className="auth-form" noValidate onSubmit={submit} data-testid="reset-form">
+        <PasswordField
+          id="reset-password"
+          label="New password"
+          placeholder="Your new password"
+          value={password}
+          onChange={setPassword}
+          testId="reset-password"
+          toggleTestId="reset-password-toggle"
+          autoComplete="new-password"
+          error={errors.password}
+          errorTestId="reset-password-error"
+          inputRef={passwordRef}
+          fieldName="new-password"
+        />
+        <PasswordField
+          id="reset-password-confirm"
+          label="Confirm new password"
+          placeholder="Repeat your new password"
+          value={confirm}
+          onChange={setConfirm}
+          testId="reset-password-confirm"
+          toggleTestId="reset-password-confirm-toggle"
+          autoComplete="new-password"
+          error={errors.confirm}
+          errorTestId="reset-password-confirm-error"
+          inputRef={confirmRef}
+          fieldName="new-password-confirm"
+        />
+        {formError && (
+          <p className="auth-alert" role="alert" data-testid="reset-error">
+            {formError}{" "}
+            <button type="button" className="link" onClick={onForgot} data-testid="reset-request-new">
+              Request a new link
+            </button>
+          </p>
+        )}
+        <button type="submit" className="auth-submit" disabled={submitting} data-testid="reset-submit">
+          {submitting ? "Updating…" : "Update password"}
         </button>
       </form>
       <p className="auth-switch">

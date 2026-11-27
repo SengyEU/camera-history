@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, FEED_LABELS, FEED_TYPES, SESSION_EXPIRED_EVENT, THEMES, THEME_LABELS, type AdminCamera, type CameraInput, type AdminGroup, type BillingStatus } from "./api";
 import { AccountPage } from "./Account";
-import { AuthSplash, CheckEmail, Login, Register, VerifyEmail } from "./Auth";
+import { AuthSplash, CheckEmail, ForgotPassword, Login, Register, ResetPassword, VerifyEmail } from "./Auth";
 import { BillingPage } from "./Billing";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EmbedCodePanel } from "./EmbedCodePanel";
@@ -69,6 +69,12 @@ type GroupRoute = { mode: "new" } | { mode: "edit"; id: string } | null;
 function verifyTokenFromHash(): string | null {
   const hash = window.location.hash;
   if (!hash.startsWith("#/verify-email")) return null;
+  return new URLSearchParams(hash.split("?")[1] ?? "").get("token") ?? "";
+}
+
+function resetTokenFromHash(): string | null {
+  const hash = window.location.hash;
+  if (!hash.startsWith("#/reset-password")) return null;
   return new URLSearchParams(hash.split("?")[1] ?? "").get("token") ?? "";
 }
 
@@ -1043,7 +1049,11 @@ export function App() {
   const [view, setView] = useState<"cameras" | "groups" | "billing" | "account" | "plugins">(currentView);
   const [registering, setRegistering] = useState(() => window.location.hash.startsWith("#/register"));
   const [checkEmail, setCheckEmail] = useState(() => window.location.hash.startsWith("#/check-email"));
+  const [forgotPassword, setForgotPassword] = useState(() =>
+    window.location.hash.startsWith("#/forgot-password"),
+  );
   const [verifyToken, setVerifyToken] = useState<string | null>(verifyTokenFromHash);
+  const [resetToken, setResetToken] = useState<string | null>(resetTokenFromHash);
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingEmailSent, setPendingEmailSent] = useState(true);
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
@@ -1072,7 +1082,9 @@ export function App() {
       setView(currentView());
       setRegistering(window.location.hash.startsWith("#/register"));
       setCheckEmail(window.location.hash.startsWith("#/check-email"));
+      setForgotPassword(window.location.hash.startsWith("#/forgot-password"));
       setVerifyToken(verifyTokenFromHash());
+      setResetToken(resetTokenFromHash());
       setCameraRoute(parseCameraRoute(window.location.hash));
       setGroupRoute(parseGroupRoute(window.location.hash));
     };
@@ -1326,6 +1338,25 @@ export function App() {
 
   if (!checked) return <AuthSplash />;
 
+  if (resetToken !== null) {
+    return (
+      <ResetPassword
+        token={resetToken}
+        onSignIn={() => {
+          setSessionNotice("Password updated. Sign in with your new password.");
+          setResetToken(null);
+          setForgotPassword(false);
+          window.location.hash = "";
+        }}
+        onForgot={() => {
+          setResetToken(null);
+          setForgotPassword(true);
+          window.location.hash = "#/forgot-password";
+        }}
+      />
+    );
+  }
+
   if (verifyToken !== null) {
     return (
       <VerifyEmail
@@ -1339,6 +1370,16 @@ export function App() {
   }
 
   if (email === null) {
+    if (forgotPassword) {
+      return (
+        <ForgotPassword
+          onSignIn={() => {
+            setForgotPassword(false);
+            window.location.hash = "";
+          }}
+        />
+      );
+    }
     if (checkEmail && pendingEmail) {
       return (
         <CheckEmail
@@ -1380,6 +1421,10 @@ export function App() {
         }}
         onRegister={() => {
           window.location.hash = "#/register";
+        }}
+        onForgot={() => {
+          setForgotPassword(true);
+          window.location.hash = "#/forgot-password";
         }}
       />
     );

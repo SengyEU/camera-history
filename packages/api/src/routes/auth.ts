@@ -12,6 +12,8 @@ const LOGIN_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
 const PASSWORD_RATE_LIMIT = { max: 5, timeWindow: "1 minute" };
 const VERIFY_RATE_LIMIT = { max: 10, timeWindow: "10 minutes" };
 const RESEND_RATE_LIMIT = { max: 3, timeWindow: "10 minutes" };
+const FORGOT_RATE_LIMIT = { max: 3, timeWindow: "10 minutes" };
+const RESET_RATE_LIMIT = { max: 10, timeWindow: "10 minutes" };
 const NAME_MAX = 80;
 const SLUG_MAX = 40;
 const PASSWORD_MIN = 8;
@@ -89,6 +91,26 @@ function welcomeEmail(name: string, signInUrl: string): { subject: string; text:
   };
 }
 
+function passwordResetEmail(name: string, link: string, ttlMinutes: number): { subject: string; text: string } {
+  const company = companyName(name);
+  return {
+    subject: "Reset your Camera History password",
+    text: [
+      `Hi ${company},`,
+      "",
+      "We received a request to reset the password for your Camera History account.",
+      "",
+      link,
+      "",
+      `This link expires in ${ttlMinutes} minutes and can be used once.`,
+      "If you did not request this, you can ignore this email. Your password stays the same.",
+      "",
+      "Camera History",
+      SUPPORT_EMAIL,
+    ].join("\n"),
+  };
+}
+
 function adminUrl(deps: AppDeps, hashPath: string): string {
   return `${deps.cfg.api.publicBaseUrl.replace(/\/+$/, "")}/admin/${hashPath}`;
 }
@@ -153,6 +175,43 @@ async function sendWelcome(
     await deps.repos.markWelcomeSent(user.id, new Date());
   } catch (err) {
     app.log.error({ err, userId: user.id }, "welcome email failed");
+  }
+}
+
+async function sendPasswordReset(
+  app: FastifyInstance,
+  deps: AppDeps,
+  user: { id: string; email: string },
+  name: string,
+): Promise<void> {
+  const token = randomBytes(32).toString("base64url");
+  const ttlMinutes = deps.cfg.auth.passwordResetTtlMinutes;
+  await deps.repos.deletePasswordResetTokensForUser(user.id);
+  await deps.repos.createPasswordResetToken({
+    userId: user.id,
+    tokenHash: hashToken(token),
+    expiresAt: new Date(Date.now() + ttlMinutes * 60 * 1000),
+  });
+
+  if (!deps.mailer) {
+    app.log.error({ userId: user.id }, "password reset email not sent: mailer is not configured");
+    return;
+  }
+
+  const message = passwordResetEmail(
+    name,
+    adminUrl(deps, `#/reset-password?token=${encodeURIComponent(token)}`),
+    ttlMinutes,
+  );
+  try {
+    await deps.mailer.send({
+      to: user.email,
+      subject: message.subject,
+      text: message.text,
+      replyTo: SUPPORT_EMAIL,
+    });
+  } catch (err) {
+    app.log.error({ err, userId: user.id }, "password reset email failed");
   }
 }
 
@@ -340,9 +399,58 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
   );
 
   app.post(
+    "/api/v1/auth/forgot-password",
+    { config: { rateLimit: FORGOT_RATE_LIMIT } },
+    async (req, reply) => {
+      const body = req.body as { email?: string };
+      const email = text(body.email).toLowerCase();
+      if (!VALID_EMAIL.test(email)) {
+        throw new HttpError(400, "bad_request", "invalid email");
+      }
+
+      const user = await deps.repos.getUserByEmail(email);
+      if (user) {
+        const tenant = await deps.repos.getTenantById(user.tenantId);
+        await sendPasswordReset(app, deps, user, tenant?.name ?? "");
+      }
+      return reply.code(202).send({ status: "ok" });
+    },
+  );
+
+  app.post(
+    "/api/v1/auth/reset-password",
+    { config: { rateLimit: RESET_RATE_LIMIT } },
+    async (req, reply) => {
+      const body = req.body as { token?: string; newPassword?: string };
+      const token = typeof body.token === "string" ? body.token.trim() : "";
+      const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+      if (!token || token.length > TOKEN_MAX) {
+        throw new HttpError(400, "bad_request", "reset token is required");
+      }
+      const passwordError = passwordProblem(newPassword);
+      if (passwordError) throw new HttpError(400, "bad_request", passwordError);
+
+      const now = new Date();
+      const consumed = await deps.repos.consumePasswordResetToken(hashToken(token), now);
+      if (!consumed) {
+        throw new HttpError(400, "invalid_token", "reset link is invalid or expired");
+      }
+      const user = await deps.repos.getUserById(consumed.userId);
+      if (!user) {
+        throw new HttpError(400, "invalid_token", "reset link is invalid or expired");
+      }
+
+      await deps.repos.updateUserPassword(user.id, await argon2.hash(newPassword));
+      await deps.repos.deletePasswordResetTokensForUser(user.id);
+      clearCookies(reply);
+      return { status: "ok" };
+    },
+  );
+
+  app.post(
     "/api/v1/auth/password",
     { preHandler: requireAuth(app), config: { rateLimit: PASSWORD_RATE_LIMIT } },
-    async (req) => {
+    async (req, reply) => {
       const body = req.body as { currentPassword?: string; newPassword?: string };
       const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
       const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
@@ -359,6 +467,16 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
         throw new HttpError(400, "bad_request", "new password must be different");
       }
       await deps.repos.updateUserPassword(user.id, await argon2.hash(newPassword));
+
+      const access = app.jwt.sign(
+        { tenantId: user.tenantId, email: user.email, role: user.role, kind: "access" },
+        { expiresIn: deps.cfg.jwt.accessTtlSeconds },
+      );
+      const refresh = app.jwt.sign(
+        { tenantId: user.tenantId, email: user.email, role: user.role, kind: "refresh" },
+        { expiresIn: deps.cfg.jwt.refreshTtlSeconds },
+      );
+      setCookies(reply, deps.cfg, access, refresh);
       return { status: "ok" };
     },
   );
@@ -366,15 +484,32 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
   app.post("/api/v1/auth/refresh", async (req, reply) => {
     const token = getRefreshToken(req);
     if (!token) throw new HttpError(401, "unauthorized", "missing refresh token");
-    let payload: { tenantId: string; email: string; role: string; kind: string };
+    let payload: { tenantId: string; email: string; role: string; kind: string; iat?: number };
     try {
-      payload = app.jwt.verify<{ tenantId: string; email: string; role: string; kind: string }>(token);
+      payload = app.jwt.verify<{
+        tenantId: string;
+        email: string;
+        role: string;
+        kind: string;
+        iat?: number;
+      }>(token);
     } catch {
       throw new HttpError(401, "unauthorized", "invalid refresh token");
     }
     if (payload.kind !== "refresh") throw new HttpError(401, "unauthorized", "invalid refresh token");
+
+    const user = await deps.repos.getUserByEmail(payload.email);
+    if (!user || (deps.cfg.auth.requireEmailVerification && !user.emailVerifiedAt)) {
+      clearCookies(reply);
+      throw new HttpError(401, "unauthorized", "invalid refresh token");
+    }
+    if (user.passwordChangedAt && Math.floor(user.passwordChangedAt.getTime() / 1000) > (payload.iat ?? 0)) {
+      clearCookies(reply);
+      throw new HttpError(401, "unauthorized", "session expired");
+    }
+
     const access = app.jwt.sign(
-      { tenantId: payload.tenantId, email: payload.email, role: payload.role, kind: "access" },
+      { tenantId: user.tenantId, email: user.email, role: user.role, kind: "access" },
       { expiresIn: deps.cfg.jwt.accessTtlSeconds },
     );
     reply.setCookie("ch_access", access, {

@@ -19,7 +19,7 @@ export const testConfig: AppConfig = {
     from: "Camera History <noreply@camera-history.com>",
     contactTo: "marek@camera-history.com",
   },
-  auth: { requireEmailVerification: false, verificationTtlHours: 24 },
+  auth: { requireEmailVerification: false, verificationTtlHours: 24, passwordResetTtlMinutes: 60 },
   worker: { tickMs: 60000, retryBackoffMs: 30000, concurrency: 2 },
   feed: { timeoutMs: 2000, maxBytes: 1_000_000 },
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },

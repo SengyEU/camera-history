@@ -130,6 +130,8 @@ const AUTH_PATHS = [
   "/api/v1/auth/register",
   "/api/v1/auth/verify-email",
   "/api/v1/auth/resend-verification",
+  "/api/v1/auth/forgot-password",
+  "/api/v1/auth/reset-password",
   "/api/v1/auth/refresh",
   "/api/v1/auth/logout",
 ];
@@ -202,6 +204,16 @@ export const api = {
     json<{ status: string }>("/api/v1/auth/resend-verification", {
       method: "POST",
       body: JSON.stringify({ email }),
+    }),
+  forgotPassword: (email: string) =>
+    json<{ status: string }>("/api/v1/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, newPassword: string) =>
+    json<{ status: string }>("/api/v1/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, newPassword }),
     }),
   logout: () => json<{ status?: string }>("/api/v1/auth/logout", { method: "POST" }),
   changePassword: (currentPassword: string, newPassword: string) =>

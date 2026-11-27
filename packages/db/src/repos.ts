@@ -19,7 +19,7 @@ import type {
 } from "@ch/core";
 import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable, slugify } from "@ch/core";
 import type { Db } from "./db.js";
-import { cameraGroupMembers, cameraGroups, cameras, emailVerificationTokens, images, tenants, users } from "./schema.js";
+import { cameraGroupMembers, cameraGroups, cameras, emailVerificationTokens, images, passwordResetTokens, tenants, users } from "./schema.js";
 import type { Repos } from "./repos.types.js";
 
 type TenantRow = typeof tenants.$inferSelect;
@@ -130,7 +130,10 @@ export function createRepos(db: Db): Repos {
       return row ?? null;
     },
     async updateUserPassword(id, passwordHash) {
-      await db.update(users).set({ passwordHash }).where(eq(users.id, id));
+      await db
+        .update(users)
+        .set({ passwordHash, passwordChangedAt: new Date() })
+        .where(eq(users.id, id));
     },
     async markEmailVerified(id, at) {
       const [row] = await db
@@ -167,6 +170,33 @@ export function createRepos(db: Db): Repos {
           .update(emailVerificationTokens)
           .set({ usedAt: now })
           .where(eq(emailVerificationTokens.id, token.id));
+        return { userId: token.userId };
+      });
+    },
+    async deletePasswordResetTokensForUser(userId) {
+      await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId));
+    },
+    async createPasswordResetToken({ userId, tokenHash, expiresAt }) {
+      await db.insert(passwordResetTokens).values({ userId, tokenHash, expiresAt });
+    },
+    async consumePasswordResetToken(tokenHash, now) {
+      return db.transaction(async (tx) => {
+        const [token] = await tx
+          .select()
+          .from(passwordResetTokens)
+          .where(
+            and(
+              eq(passwordResetTokens.tokenHash, tokenHash),
+              isNull(passwordResetTokens.usedAt),
+              gt(passwordResetTokens.expiresAt, now),
+            ),
+          )
+          .for("update");
+        if (!token) return null;
+        await tx
+          .update(passwordResetTokens)
+          .set({ usedAt: now })
+          .where(eq(passwordResetTokens.id, token.id));
         return { userId: token.userId };
       });
     },

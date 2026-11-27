@@ -1621,6 +1621,111 @@ describe("App email verification", () => {
   });
 });
 
+describe("App password reset", () => {
+  it("opens the forgot-password form from login and confirms the request", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        if (u.endsWith("/api/v1/auth/forgot-password")) return jsonResponse({ status: "ok" }, 202);
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByTestId("login-form");
+    await userEvent.click(screen.getByTestId("goto-forgot"));
+
+    await screen.findByTestId("forgot-form");
+    await userEvent.type(screen.getByTestId("forgot-email"), "owner@alpine.dev");
+    await userEvent.click(screen.getByTestId("forgot-submit"));
+
+    expect(await screen.findByTestId("forgot-sent")).toHaveTextContent("we sent a reset link");
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/forgot-password"))).toBe(true);
+    window.location.hash = "";
+  });
+
+  it("resets the password and returns to sign in", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        if (u.endsWith("/api/v1/auth/reset-password")) return jsonResponse({ status: "ok" });
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    window.location.hash = "#/reset-password?token=reset-token-1";
+    render(<App />);
+
+    await screen.findByTestId("reset-form");
+    await userEvent.type(screen.getByTestId("reset-password"), "BrandNew456");
+    await userEvent.type(screen.getByTestId("reset-password-confirm"), "BrandNew456");
+    await userEvent.click(screen.getByTestId("reset-submit"));
+
+    expect(await screen.findByTestId("reset-done")).toHaveTextContent("Password updated");
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/reset-password"))).toBe(true);
+
+    await userEvent.click(screen.getByTestId("reset-signin"));
+    expect(await screen.findByTestId("login-form")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-notice")).toHaveTextContent("Password updated.");
+    window.location.hash = "";
+  });
+
+  it("offers a new link when the reset link is invalid", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        if (u.endsWith("/api/v1/auth/reset-password")) {
+          return jsonResponse({ detail: "reset link is invalid or expired" }, 400);
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    window.location.hash = "#/reset-password?token=reset-token-2";
+    render(<App />);
+
+    await screen.findByTestId("reset-form");
+    await userEvent.type(screen.getByTestId("reset-password"), "BrandNew456");
+    await userEvent.type(screen.getByTestId("reset-password-confirm"), "BrandNew456");
+    await userEvent.click(screen.getByTestId("reset-submit"));
+
+    expect(await screen.findByTestId("reset-error")).toHaveTextContent("This reset link is invalid");
+    await userEvent.click(screen.getByTestId("reset-request-new"));
+    expect(await screen.findByTestId("forgot-form")).toBeInTheDocument();
+    window.location.hash = "";
+  });
+
+  it("shows an error for a reset link without a token", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ detail: "unauthorized" }, 401);
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    window.location.hash = "#/reset-password";
+    render(<App />);
+
+    expect(await screen.findByTestId("reset-error")).toBeInTheDocument();
+    expect(calls.some((u) => u.endsWith("/api/v1/auth/reset-password"))).toBe(false);
+    window.location.hash = "";
+  });
+});
+
 describe("App groups", () => {
   const camera = (over: Partial<Record<string, unknown>> = {}) => ({
     id: "cam-1",
