@@ -20,6 +20,7 @@ describe("email templates", () => {
     expect(message.html).not.toContain("<Resort>");
     expect(message.html).toContain("This link expires in 24 hours");
     expect(message.html).toContain("support@camera-history.com");
+    expect(message.html).not.toContain("Jílovská");
     expect(message.html).not.toContain("<img");
     expect(message.html).not.toContain("marek@");
   });

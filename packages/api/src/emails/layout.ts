@@ -161,7 +161,6 @@ export function renderEmail(input: LayoutInput): string {
               <td class="email-pad" style="padding:0 36px 30px;">
                 <div style="border-top:1px solid ${COLORS.line};padding-top:18px;font-family:${FONT};font-size:12px;line-height:1.65;color:${COLORS.slate500};">
                   <div style="font-weight:600;color:${COLORS.ink};">Camera History</div>
-                  <div>Jílovská 262, 257 41 Týnec nad Sázavou</div>
                   <div><a href="mailto:support@camera-history.com" style="color:${COLORS.glacierDeep};text-decoration:none;">support@camera-history.com</a></div>
                   ${footerNote}
                 </div>
