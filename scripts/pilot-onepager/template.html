@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{PAGE_TITLE}}</title>
+    <style>
+      {{FONT_CSS}}
+    </style>
+    <style>
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      :root {
+        --ink: #101828;
+        --muted: #5b6b7c;
+        --line: #e3e9ef;
+        --snow: #f7f9fb;
+        --night: #0b1220;
+        --glacier: #0e7490;
+        --glacier-deep: #0b5f76;
+        --glacier-weak: #e0f2fe;
+        --pine: #15803d;
+        --pine-weak: #dcfce7;
+        --amber: #b45309;
+        --amber-weak: #fef3c7;
+        --slate-400: #94a3b8;
+        --slate-500: #64748b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+      }
+
+      body {
+        font-family: "Montserrat Variable", Montserrat, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .page {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 210mm;
+        height: 297mm;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      .hero {
+        position: relative;
+        flex: 0 0 64mm;
+        height: 64mm;
+        overflow: hidden;
+        padding: 10mm 15mm 0;
+        background: var(--night);
+        color: #f1f5f9;
+      }
+
+      .hero-ridge {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 22mm;
+        opacity: 0.75;
+      }
+
+      .brand-row {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10mm;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 3.2mm;
+        color: #f1f5f9;
+      }
+
+      .brand-mark {
+        display: block;
+        width: 9mm;
+        height: 9mm;
+        color: #22d3ee;
+      }
+
+      .brand-word {
+        font-size: 12.5pt;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .brand-word span {
+        color: var(--slate-400);
+        font-weight: 500;
+      }
+
+      .proposal-chip {
+        padding: 2.2mm 3.4mm;
+        border: 1px solid rgba(241, 245, 249, 0.28);
+        border-radius: 999px;
+        color: #bae6fd;
+        font-size: 7pt;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .hero-copy {
+        position: relative;
+        z-index: 2;
+        max-width: 160mm;
+        margin-top: 7mm;
+      }
+
+      .eyebrow {
+        margin: 0 0 3mm;
+        color: #67e8f9;
+        font-size: 8pt;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .hero h1 {
+        margin: 0;
+        max-width: 160mm;
+        font-size: 24pt;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        line-height: 1.08;
+      }
+
+      .hero-sub {
+        max-width: 145mm;
+        margin: 3.5mm 0 0;
+        color: #cbd5e1;
+        font-size: 9.4pt;
+        line-height: 1.45;
+      }
+
+      .body {
+        flex: 1 1 auto;
+        padding: 8mm 15mm 0;
+      }
+
+      .intro {
+        margin: 0 0 5mm;
+        color: var(--muted);
+        font-size: 9.3pt;
+        line-height: 1.5;
+      }
+
+      .intro strong {
+        color: var(--ink);
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: 1.12fr 0.88fr;
+        gap: 7mm;
+        align-items: start;
+      }
+
+      .card {
+        padding: 5.4mm 5.8mm;
+        border: 1px solid var(--line);
+        border-radius: 3.5mm;
+        background: #fff;
+      }
+
+      .card + .card {
+        margin-top: 4mm;
+      }
+
+      .card-label {
+        margin: 0 0 3mm;
+        color: var(--slate-500);
+        font-size: 7pt;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .pilot-card {
+        border-top: 1.5mm solid var(--glacier);
+      }
+
+      .pilot-number {
+        display: flex;
+        align-items: baseline;
+        gap: 2mm;
+        margin: 0 0 2mm;
+      }
+
+      .pilot-number strong {
+        font-size: 24pt;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        color: var(--glacier-deep);
+      }
+
+      .pilot-number span {
+        color: var(--muted);
+        font-size: 10pt;
+        font-weight: 600;
+      }
+
+      .pilot-copy {
+        margin: 0 0 4.2mm;
+        color: var(--muted);
+        font-size: 9pt;
+        line-height: 1.5;
+      }
+
+      .checklist {
+        display: grid;
+        gap: 2.2mm;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .checklist li {
+        position: relative;
+        padding-left: 6.4mm;
+        color: var(--ink);
+        font-size: 8.5pt;
+        line-height: 1.4;
+      }
+
+      .checklist li::before {
+        content: "";
+        position: absolute;
+        top: 0.4mm;
+        left: 0;
+        width: 4mm;
+        height: 4mm;
+        border-radius: 50%;
+        background: var(--pine-weak);
+        box-shadow: inset 0 0 0 1.1mm var(--pine);
+      }
+
+      .checklist li span {
+        color: var(--muted);
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .setup-title {
+        margin: 0 0 1.4mm;
+        font-size: 14.5pt;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .setup-sub {
+        margin: 0 0 3.4mm;
+        color: var(--muted);
+        font-size: 8.6pt;
+        line-height: 1.45;
+      }
+
+      .location-list {
+        display: grid;
+        gap: 2mm;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .location-list li {
+        display: flex;
+        align-items: baseline;
+        gap: 2.2mm;
+        color: var(--ink);
+        font-size: 8.7pt;
+        line-height: 1.35;
+      }
+
+      .location-list li::before {
+        content: "";
+        flex: 0 0 auto;
+        width: 1.6mm;
+        height: 1.6mm;
+        border-radius: 50%;
+        background: var(--glacier);
+      }
+
+      .website {
+        display: inline-block;
+        margin-top: 3.5mm;
+        color: var(--glacier-deep);
+        font-size: 8.1pt;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .after-card {
+        border-color: #bae6fd;
+        background: var(--glacier-weak);
+      }
+
+      .after-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 3mm;
+      }
+
+      .after-name {
+        margin: 0;
+        font-size: 16.5pt;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+
+      .after-price {
+        color: var(--glacier-deep);
+        font-size: 11pt;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .after-price span {
+        font-size: 7.5pt;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .after-meta {
+        margin: 2mm 0 0;
+        color: var(--glacier-deep);
+        font-size: 8.2pt;
+        font-weight: 600;
+      }
+
+      .after-note {
+        margin: 2.8mm 0 0;
+        color: var(--muted);
+        font-size: 8pt;
+        line-height: 1.45;
+      }
+
+      .insight {
+        margin: 4.5mm 0 0;
+        padding: 4mm 5mm;
+        border-left: 1.2mm solid var(--glacier);
+        border-radius: 0 2.5mm 2.5mm 0;
+        background: var(--snow);
+        color: var(--muted);
+        font-size: 8.8pt;
+        line-height: 1.5;
+      }
+
+      .insight strong {
+        color: var(--ink);
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5mm;
+        margin-top: 4.5mm;
+      }
+
+      .step {
+        position: relative;
+        padding-top: 2.6mm;
+        border-top: 0.35mm solid var(--line);
+      }
+
+      .step-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 6mm;
+        height: 6mm;
+        margin-bottom: 2mm;
+        border-radius: 50%;
+        background: var(--glacier-weak);
+        color: var(--glacier-deep);
+        font-size: 7.5pt;
+        font-weight: 700;
+      }
+
+      .step h3 {
+        margin: 0 0 1mm;
+        font-size: 9.2pt;
+        font-weight: 700;
+      }
+
+      .step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 8pt;
+        line-height: 1.42;
+      }
+
+      .needs-block {
+        margin-top: 4mm;
+        padding: 0 1mm;
+      }
+
+      .needs-title {
+        margin: 0 0 2.5mm;
+        font-size: 9.5pt;
+        font-weight: 700;
+      }
+
+      .needs {
+        display: grid;
+        gap: 1.8mm;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .needs li {
+        position: relative;
+        padding-left: 5mm;
+        color: var(--muted);
+        font-size: 8.1pt;
+        line-height: 1.42;
+      }
+
+      .needs li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--glacier);
+        font-weight: 700;
+      }
+
+      .next {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8mm;
+        margin-top: 4.5mm;
+        padding: 5mm 6mm;
+        border-radius: 3.5mm;
+        background: var(--night);
+        color: #f1f5f9;
+      }
+
+      .next-copy {
+        max-width: 112mm;
+      }
+
+      .next-label {
+        margin: 0 0 2mm;
+        color: #67e8f9;
+        font-size: 7pt;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .next h3 {
+        margin: 0 0 1.8mm;
+        font-size: 11.5pt;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+      }
+
+      .next p {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 7.8pt;
+        line-height: 1.42;
+      }
+
+      .next a {
+        color: #67e8f9;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .next-contact {
+        margin-top: 0;
+        text-align: right;
+        white-space: nowrap;
+        font-size: 7.8pt;
+        font-weight: 600;
+        color: #fff;
+      }
+
+      .next-contact div {
+        margin-top: 1mm;
+        color: var(--slate-400);
+        font-size: 7pt;
+        font-weight: 500;
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6mm;
+        margin: 5mm 15mm 6mm;
+        padding-top: 3mm;
+        border-top: 0.3mm solid var(--line);
+        color: var(--slate-500);
+        font-size: 7pt;
+      }
+
+      .footer strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .footer span {
+        color: var(--slate-400);
+      }
+
+      .no-break {
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <svg class="hero-ridge" viewBox="0 0 1280 240" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+          <path d="M0 168 L140 96 L280 146 L430 66 L580 134 L730 58 L890 142 L1040 92 L1190 152 L1280 108 L1280 240 L0 240 Z" fill="#155e75" opacity="0.55" />
+          <path d="M0 196 L170 138 L330 180 L510 112 L680 174 L850 102 L1020 168 L1180 132 L1280 176 L1280 240 L0 240 Z" fill="#0e7490" opacity="0.62" />
+          <path d="M0 218 L190 172 L370 208 L560 152 L740 202 L930 146 L1110 196 L1280 164 L1280 240 L0 240 Z" fill="#0891b2" opacity="0.34" />
+        </svg>
+        <div class="brand-row">
+          <div class="brand">
+            <svg class="brand-mark" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+              <rect x="48" y="48" width="32" height="160" rx="16" fill="currentColor" />
+              <rect x="176" y="48" width="32" height="160" rx="16" fill="currentColor" />
+              <path d="M64 140 L128 108 L192 140" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <div class="brand-word">Camera <span>History</span></div>
+          </div>
+          <div class="proposal-chip">Pilot proposal</div>
+        </div>
+        <div class="hero-copy">
+          <p class="eyebrow">{{EYEBROW}}</p>
+          <h1>{{HEADLINE}}</h1>
+          <p class="hero-sub">{{HERO_SUB}}</p>
+        </div>
+      </header>
+
+      <main class="body">
+        <p class="intro">{{INTRO}}</p>
+
+        <div class="columns">
+          <div>
+            <section class="card pilot-card">
+              <p class="card-label">Your pilot</p>
+              <div class="pilot-number"><strong>{{PILOT_MONTHS}}</strong><span>months free</span></div>
+              <p class="pilot-copy">{{PILOT_COPY}}</p>
+              <ul class="checklist">
+                <li>12 months of history <span>— every capture stays browsable.</span></li>
+                <li>Automatic captures <span>on the schedule you choose.</span></li>
+                <li>WordPress block or one iframe <span>for your existing site.</span></li>
+                <li>Email support from a real person <span>— no ticket queue.</span></li>
+              </ul>
+            </section>
+
+            <section class="needs-block">
+              <h3 class="needs-title">What we need from you</h3>
+              <ul class="needs">
+                <li>A short feedback call after a few weeks.</li>
+                <li>Permission to use {{COMPANY}} as a case study if it works well.</li>
+                <li>Your camera URLs so we can set up the workspace.</li>
+              </ul>
+            </section>
+          </div>
+
+          <div>
+            <section class="card">
+              <p class="card-label">Your setup</p>
+              <h2 class="setup-title">{{CAMERA_COUNT}} live {{CAMERA_WORD}}</h2>
+              <p class="setup-sub">{{SETUP_SUB}}</p>
+              <ul class="location-list">
+                {{CAMERA_LOCATIONS}}
+              </ul>
+              <a class="website" href="{{WEBSITE_URL}}">{{WEBSITE_LABEL}}</a>
+            </section>
+
+            <section class="card after-card">
+              <div class="after-head">
+                <h2 class="after-name">{{PACKAGE_NAME}}</h2>
+                <div class="after-price">{{PACKAGE_PRICE_HTML}}</div>
+              </div>
+              <p class="after-meta">{{PACKAGE_META}}</p>
+              <p class="after-note">No automatic charge. We confirm with you before anything starts.</p>
+            </section>
+          </div>
+        </div>
+
+        <p class="insight">{{INSIGHT}}</p>
+
+        <section class="steps" aria-label="How it works">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3>Connect</h3>
+            <p>Point us at your public camera feeds. Any JPEG, MJPEG, HLS or RTSP source works.</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3>Archive</h3>
+            <p>We capture automatically and keep a rolling 12 months of history for you.</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3>Embed</h3>
+            <p>Drop one iframe or the WordPress block into your site. Visitors browse by day.</p>
+          </div>
+        </section>
+
+        <section class="next">
+          <div class="next-copy">
+            <p class="next-label">Next step</p>
+            <h3>Send the camera URLs or book a 20-minute call.</h3>
+            <p>No SLA, no custom development, no commitment. Just a useful archive for your visitors.</p>
+          </div>
+          <div class="next-contact">
+            <a href="mailto:marek@camera-history.com">marek@camera-history.com</a>
+            <div>camera-history.com</div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div><strong>Camera History</strong> · camera-history.com</div>
+        <div>Pilot proposal prepared {{DATE}}</div>
+      </footer>
+    </div>
+  </body>
+</html>

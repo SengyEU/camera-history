@@ -47,3 +47,7 @@ compose.override.yml
 
 # SDD workflow artifacts (local only)
 .superpowers/
+
+# pilot one-pager data and generated PDFs (private)
+/pilots/
+/out/
