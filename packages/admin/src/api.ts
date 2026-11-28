@@ -1,4 +1,4 @@
-export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
+export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom" | "ipcamlive";
 export type CameraStatus = "operational" | "delayed" | "offline";
 
 export interface ThemeColors {
@@ -102,6 +102,7 @@ export const FEED_LABELS: Record<FeedType, string> = {
   hls: "HLS (ffmpeg)",
   rtsp: "RTSP (ffmpeg)",
   custom: "Custom WebSocket",
+  ipcamlive: "IPCamlive (snapshot)",
 };
 
 export const FEED_TYPES = Object.keys(FEED_LABELS) as FeedType[];

@@ -127,6 +127,13 @@
       "when": 1795875250866,
       "tag": "0017_wooden_blockbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795881936972,
+      "tag": "0018_heavy_masked_marvel",
+      "breakpoints": true
     }
   ]
 }

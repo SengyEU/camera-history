@@ -1,7 +1,7 @@
 import type { PackageCode } from "./billing.js";
 import type { ThemeColors } from "./themes.js";
 
-export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom";
+export type FeedType = "static_url" | "mjpeg" | "hls" | "rtsp" | "custom" | "ipcamlive";
 export type UserRole = "owner" | "admin";
 export type CameraStatus = "operational" | "delayed" | "offline";
 export type TimeFormat = "12h" | "24h";

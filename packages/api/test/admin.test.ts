@@ -71,6 +71,37 @@ describe("admin cameras", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("accepts IPCamlive aliases and player URLs", async () => {
+    const { app } = makeApp();
+    const cookie = await registerAndLogin(app);
+    for (const [name, feedUrl] of [
+      ["Alias cam", "hotelpuntascario"],
+      ["Player cam", "https://www.ipcamlive.com/hotelpuntascario"],
+    ] as const) {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/v1/admin/cameras",
+        headers: { cookie },
+        payload: { name, feedType: "ipcamlive", feedUrl, intervalMinutes: 15 },
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.json().camera).toMatchObject({ feedType: "ipcamlive", feedUrl });
+    }
+    const bad = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/cameras",
+      headers: { cookie },
+      payload: {
+        name: "Bad ipcam",
+        feedType: "ipcamlive",
+        feedUrl: "ftp://example.com/cam",
+        intervalMinutes: 15,
+      },
+    });
+    expect(bad.statusCode).toBe(400);
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("does not expose a per-camera retention field", async () => {
     const { app } = makeApp();
     const cookie = await registerAndLogin(app);

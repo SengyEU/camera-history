@@ -20,6 +20,7 @@ export const feedTypeEnum = pgEnum("feed_type", [
   "hls",
   "rtsp",
   "custom",
+  "ipcamlive",
 ]);
 
 export const userRoleEnum = pgEnum("user_role", ["owner", "admin"]);

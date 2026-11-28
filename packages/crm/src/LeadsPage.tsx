@@ -184,7 +184,17 @@ export function LeadsPage({
         return false;
       }
       if (!needle) return true;
-      return [lead.company, lead.website, lead.email, lead.country, lead.segment, lead.notes]
+      return [
+        lead.company,
+        lead.website,
+        lead.email,
+        lead.country,
+        lead.segment,
+        lead.feedType,
+        lead.feedUrl,
+        lead.archiveReason,
+        lead.notes,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(needle);

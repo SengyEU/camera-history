@@ -3,6 +3,7 @@ import { fetchJpeg } from "./staticUrl.js";
 import { captureMjpeg } from "./mjpeg.js";
 import { captureHls, captureRtsp } from "./ffmpeg.js";
 import { captureCustom } from "./custom.js";
+import { captureIpcamlive } from "./ipcamlive.js";
 
 export async function captureBuffer(cam: Camera, cfg: AppConfig): Promise<Buffer> {
   switch (cam.feedType) {
@@ -16,6 +17,11 @@ export async function captureBuffer(cam: Camera, cfg: AppConfig): Promise<Buffer
       return captureRtsp(cam.feedUrl, { timeoutMs: cfg.feed.timeoutMs, maxBytes: cfg.feed.maxBytes });
     case "custom":
       return captureCustom(cam.feedUrl, { timeoutMs: cfg.feed.timeoutMs, maxBytes: cfg.feed.maxBytes });
+    case "ipcamlive":
+      return captureIpcamlive(cam.feedUrl, {
+        timeoutMs: cfg.feed.timeoutMs,
+        maxBytes: cfg.feed.maxBytes,
+      });
     default:
       throw new HttpError(501, "not_implemented", `feed type "${cam.feedType}" is not implemented yet`);
   }

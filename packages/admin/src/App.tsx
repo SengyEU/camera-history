@@ -424,7 +424,8 @@ function CameraForm({
               </select>
               <span className="field-hint">
                 Static image fetches a JPEG URL. MJPEG is a motion-JPEG stream. HLS/RTSP use ffmpeg.
-                Custom is a WebSocket that sends JPEG frames.
+                Custom is a WebSocket that sends JPEG frames. IPCamlive accepts an alias or player
+                URL and resolves the current snapshot automatically.
               </span>
             </label>
             <label>
@@ -432,8 +433,18 @@ function CameraForm({
               <input
                 value={input.feedUrl}
                 onChange={(e) => set("feedUrl", e.target.value)}
+                placeholder={
+                  input.feedType === "ipcamlive"
+                    ? "hotelpuntascario or https://www.ipcamlive.com/hotelpuntascario"
+                    : undefined
+                }
                 data-testid="form-feed-url"
               />
+              {input.feedType === "ipcamlive" && (
+                <span className="field-hint">
+                  Alias or player URL. The worker reads the current snapshot shard on every capture.
+                </span>
+              )}
             </label>
           </section>
 

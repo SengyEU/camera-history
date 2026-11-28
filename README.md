@@ -62,8 +62,9 @@ Podporované feed types (`cameras.feed_type`) a povinné schéma URL (`cameras.f
 | `hls` | `http://` nebo `https://` |
 | `rtsp` | `rtsp://` |
 | `custom` | `wss://` |
+| `ipcamlive` | alias (`hotelpuntascario`) nebo `http(s)` player URL |
 
-Adaptéry pro `hls` a `rtsp` dekódují stream přes nástroj `ffmpeg` (jehož binárka se volá ze sledovacího procesu). Na serveru proto musí být nainstalovaný:
+Adaptér `ipcamlive` si z player stránky při každém capture zjistí aktuální snapshot shard (`sNN.ipcamlive.com`), takže přežije přesun kamery na jiný shard. Adaptéry pro `hls` a `rtsp` dekódují stream přes nástroj `ffmpeg` (jehož binárka se volá ze sledovacího procesu). Na serveru proto musí být nainstalovaný:
 
 ```bash
 sudo apt-get install -y ffmpeg

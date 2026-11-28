@@ -16,7 +16,7 @@ import {
 import type { AppDeps } from "../app.js";
 import { requireAuth } from "../plugins/auth.js";
 
-const FEED_TYPES = ["static_url", "mjpeg", "hls", "rtsp", "custom"];
+const FEED_TYPES = ["static_url", "mjpeg", "hls", "rtsp", "custom", "ipcamlive"];
 const TIME_FORMATS = ["12h", "24h"] as const;
 const RATE_LIMIT = { max: 300, timeWindow: "1 minute" };
 
@@ -28,6 +28,12 @@ function schemeMatches(feedType: string, feedUrl: string): boolean {
       return feedUrl.startsWith("rtsp://");
     case "custom":
       return feedUrl.startsWith("wss://");
+    case "ipcamlive":
+      return (
+        feedUrl.startsWith("http://") ||
+        feedUrl.startsWith("https://") ||
+        /^[A-Za-z0-9_-]+$/.test(feedUrl)
+      );
     default:
       return feedUrl.startsWith("http://") || feedUrl.startsWith("https://");
   }
