@@ -1565,9 +1565,15 @@ export function App() {
                  <p className="empty">
                    Groups need at least one camera. Add your first camera, then create a group.
                  </p>
-                 <a className="link" href="#/cameras/new">
+                 <button
+                   type="button"
+                   onClick={() => {
+                     window.location.hash = "#/cameras/new";
+                   }}
+                   data-testid="group-no-cameras-add"
+                 >
                    Add a camera
-                 </a>
+                 </button>
                </section>
              ) : (
                <GroupEditor

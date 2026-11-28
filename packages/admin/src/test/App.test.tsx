@@ -1875,6 +1875,8 @@ describe("App groups", () => {
 
     expect(await screen.findByTestId("groups-no-cameras")).toHaveTextContent("Add a camera first");
     expect(screen.getByTestId("add-group")).toBeDisabled();
+    await userEvent.click(screen.getByTestId("groups-add-camera"));
+    expect(window.location.hash).toBe("#/cameras/new");
     window.location.hash = "";
   });
 

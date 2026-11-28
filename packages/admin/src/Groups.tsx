@@ -109,9 +109,15 @@ export function GroupsView({
             <div className="empty-state" data-testid="groups-no-cameras">
               <p className="empty-title">Add a camera first</p>
               <p>Groups need at least one camera. Add your first camera, then create a group.</p>
-              <a className="link" href="#/cameras/new" data-testid="groups-add-camera">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.hash = "#/cameras/new";
+                }}
+                data-testid="groups-add-camera"
+              >
                 Add a camera
-              </a>
+              </button>
             </div>
           ) : (
             <div className="empty-state" data-testid="groups-empty">
