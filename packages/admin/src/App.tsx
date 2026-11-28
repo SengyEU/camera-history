@@ -1238,6 +1238,7 @@ export function App() {
   };
 
   const openNewGroup = () => {
+    if (cameras.length === 0) return;
     setGroupSavedNotice(null);
     setGroupRoute({ mode: "new" });
     if (window.location.hash !== "#/groups/new") window.location.hash = "#/groups/new";
@@ -1546,15 +1547,39 @@ export function App() {
        ) : view === "groups" ? (
          groupRoute !== null ? (
            groupRoute.mode === "new" ? (
-             <GroupEditor
-               key={`new-${groupVersion}`}
-               group={null}
-               cameras={cameras}
-               tenantSlug={tenantSlug}
-               onSave={saveGroup}
-               onCancel={closeGroup}
-               onOrderSaved={reloadGroups}
-             />
+             camerasLoading ? (
+               <p className="loading">Loading…</p>
+             ) : cameras.length === 0 ? (
+               <section className="panel camera-editor" data-testid="group-no-cameras">
+                 <div className="panel-head">
+                   <h2>Add a camera first</h2>
+                   <button
+                     type="button"
+                     className="secondary"
+                     onClick={closeGroup}
+                     data-testid="group-no-cameras-back"
+                   >
+                     ← Back to groups
+                   </button>
+                 </div>
+                 <p className="empty">
+                   Groups need at least one camera. Add your first camera, then create a group.
+                 </p>
+                 <a className="link" href="#/cameras/new">
+                   Add a camera
+                 </a>
+               </section>
+             ) : (
+               <GroupEditor
+                 key={`new-${groupVersion}`}
+                 group={null}
+                 cameras={cameras}
+                 tenantSlug={tenantSlug}
+                 onSave={saveGroup}
+                 onCancel={closeGroup}
+                 onOrderSaved={reloadGroups}
+               />
+             )
            ) : groupsLoading ? (
              <p className="loading">Loading…</p>
            ) : (

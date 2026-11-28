@@ -1856,6 +1856,66 @@ describe("App groups", () => {
     expect(screen.queryByTestId("group-form")).not.toBeInTheDocument();
   });
 
+  it("disables group creation when there are no cameras", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ cameras: [] });
+        if (u.endsWith("/api/v1/admin/groups")) return jsonResponse({ groups: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme", packageCode: "starter", cameraLimit: 3, billingStatus: "active", isPilot: false, pilotUntil: null } });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+    render(<App />);
+    await screen.findByTestId("admin-app");
+    await userEvent.click(screen.getByTestId("nav-groups"));
+
+    expect(await screen.findByTestId("groups-no-cameras")).toHaveTextContent("Add a camera first");
+    expect(screen.getByTestId("add-group")).toBeDisabled();
+    window.location.hash = "";
+  });
+
+  it("blocks the direct new-group route when there are no cameras", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/api/v1/admin/cameras")) return jsonResponse({ cameras: [] });
+        if (u.endsWith("/api/v1/admin/tenant")) {
+          return jsonResponse({ tenant: { id: "t1", name: "Acme", slug: "acme", packageCode: "starter", cameraLimit: 3, billingStatus: "active", isPilot: false, pilotUntil: null } });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+    window.location.hash = "#/groups/new";
+    render(<App />);
+
+    expect(await screen.findByTestId("group-no-cameras")).toHaveTextContent("Add a camera first");
+    window.location.hash = "";
+  });
+
+  it("requires at least one camera before saving a group", async () => {
+    const { fn, calls } = groupServer([]);
+    vi.stubGlobal("fetch", fn);
+    await openGroups();
+
+    await userEvent.click(screen.getByTestId("add-group"));
+    await screen.findByTestId("group-editor");
+    await userEvent.type(screen.getByTestId("group-name"), "Summit Ridge");
+    await userEvent.click(screen.getByTestId("group-save"));
+
+    expect(await screen.findByTestId("group-cameras-error")).toHaveTextContent(
+      "Choose at least one camera.",
+    );
+    expect(
+      calls.some((c) => c.u.endsWith("/api/v1/admin/groups") && c.init?.method === "POST"),
+    ).toBe(false);
+    window.location.hash = "";
+  });
+
   it("clears the unsaved state when group edits are reverted", async () => {
     const { fn } = groupServer([seedGroup({ cameraIds: ["cam-1"] })]);
     vi.stubGlobal("fetch", fn);

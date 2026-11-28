@@ -54,6 +54,7 @@ export function GroupsView({
 }) {
   const [deleting, setDeleting] = useState<AdminGroup | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const canCreate = cameras.length > 0;
 
   const remove = async () => {
     if (!deleting) return;
@@ -74,9 +75,12 @@ export function GroupsView({
         title="Groups"
         description="Bundle cameras into one widget with a switcher your visitors can use."
       >
-        <button onClick={onNew} data-testid="add-group">
-          + New group
-        </button>
+        <div className="page-action-stack">
+          <button onClick={onNew} disabled={!canCreate} data-testid="add-group">
+            + New group
+          </button>
+          {!canCreate && <span className="page-action-hint">Add a camera first.</span>}
+        </div>
       </PageHeader>
       <section className="panel" data-testid="groups-view">
         {error && (
@@ -100,6 +104,14 @@ export function GroupsView({
               <p className="empty-title">Groups couldn’t be loaded.</p>
               <p>{loadError}</p>
               <button onClick={onRetry}>Try again</button>
+            </div>
+          ) : cameras.length === 0 ? (
+            <div className="empty-state" data-testid="groups-no-cameras">
+              <p className="empty-title">Add a camera first</p>
+              <p>Groups need at least one camera. Add your first camera, then create a group.</p>
+              <a className="link" href="#/cameras/new" data-testid="groups-add-camera">
+                Add a camera
+              </a>
             </div>
           ) : (
             <div className="empty-state" data-testid="groups-empty">
@@ -241,7 +253,7 @@ export function GroupEditor({
   const [slugTouched, setSlugTouched] = useState(Boolean(group));
   const [cameraIds, setCameraIds] = useState<string[]>(group?.cameraIds ?? []);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; slug?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; slug?: string; cameras?: string }>({});
   const initialSnapshot = useRef({
     name: group?.name ?? "",
     slug: group?.slug ?? "",
@@ -337,6 +349,9 @@ export function GroupEditor({
     }
     if (!SLUG_RE.test(slug) || slug.length > 40) {
       nextErrors.slug = "Slug must be 1–40 lowercase letters, numbers and dashes.";
+    }
+    if (cameraIds.length === 0) {
+      nextErrors.cameras = "Choose at least one camera.";
     }
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
@@ -479,14 +494,20 @@ export function GroupEditor({
                       <SortableCameraRow
                         key={camera.id}
                         camera={camera}
-                        onRemove={() =>
-                          setCameraIds((ids) => ids.filter((id) => id !== camera.id))
-                        }
+                        onRemove={() => {
+                          setCameraIds((ids) => ids.filter((id) => id !== camera.id));
+                          setFieldErrors((current) => ({ ...current, cameras: undefined }));
+                        }}
                       />
                     ))}
                   </div>
                 </SortableContext>
               </DndContext>
+            )}
+            {fieldErrors.cameras && (
+              <span className="field-error" data-testid="group-cameras-error">
+                {fieldErrors.cameras}
+              </span>
             )}
             {group && orderSaveState !== "idle" && (
               <span className="field-hint" data-testid="group-order-save-state">
@@ -511,7 +532,10 @@ export function GroupEditor({
                     <button
                       type="button"
                       className="secondary"
-                      onClick={() => setCameraIds((ids) => [...ids, camera.id])}
+                      onClick={() => {
+                        setCameraIds((ids) => [...ids, camera.id]);
+                        setFieldErrors((current) => ({ ...current, cameras: undefined }));
+                      }}
                       data-testid={`group-camera-add-${camera.id}`}
                     >
                       Add
