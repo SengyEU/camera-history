@@ -210,8 +210,8 @@ describe("CRM app", () => {
 
     render(<App />);
     await screen.findByText("Vogel Ski Resort");
-    expect(screen.getByTestId("archive-vogel")).toHaveTextContent("Yes");
-    expect(screen.getByTestId("archive-marina")).toHaveTextContent("No");
+    expect(screen.getByTestId("archive-vogel")).toHaveValue("yes");
+    expect(screen.getByTestId("archive-marina")).toHaveValue("no");
 
     const companyOrder = () =>
       screen
@@ -224,6 +224,31 @@ describe("CRM app", () => {
     expect(companyOrder()[0]).toContain("Marina");
     await userEvent.click(screen.getByRole("button", { name: /Cams/ }));
     expect(companyOrder()[0]).toContain("Vogel");
+  });
+
+  it("changes archiveable state from the table", async () => {
+    const patches: Array<{ body: string }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/api/v1/internal/me")) return jsonResponse({ email: "marek@example.com" });
+        if (url.endsWith("/api/v1/internal/leads")) {
+          return jsonResponse({ leads: [lead()], summary });
+        }
+        if (url.includes("/api/v1/internal/leads/lead-1") && init?.method === "PATCH") {
+          patches.push({ body: String(init.body) });
+          return jsonResponse({ lead: lead({ archiveable: "no" }) });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await screen.findByText("Vogel Ski Resort");
+    await userEvent.selectOptions(screen.getByTestId("archive-vogel"), "no");
+    await waitFor(() => expect(patches).toHaveLength(1));
+    expect(JSON.parse(patches[0]!.body)).toEqual({ archiveable: "no" });
   });
 
   it("opens the lead detail drawer", async () => {

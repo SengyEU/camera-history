@@ -15,6 +15,8 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
   type Lead,
+  type LeadArchiveable,
+  type LeadPatch,
   type LeadPriority,
   type LeadStatus,
   type LeadSummary,
@@ -29,7 +31,7 @@ interface Props {
   loading: boolean;
   error: string | null;
   onSelect: (id: string) => void;
-  onStatusChange: (id: string, status: LeadStatus) => Promise<void>;
+  onUpdate: (id: string, patch: LeadPatch) => Promise<void>;
 }
 
 const CLOSED = new Set<LeadStatus>(["won", "lost", "not_now"]);
@@ -139,7 +141,7 @@ export function LeadsPage({
   loading,
   error,
   onSelect,
-  onStatusChange,
+  onUpdate,
 }: Props) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | LeadStatus>("all");
@@ -214,12 +216,12 @@ export function LeadsPage({
     );
   };
 
-  const changeStatus = async (id: string, next: LeadStatus) => {
+  const change = async (id: string, patch: LeadPatch) => {
     setStatusError(null);
     try {
-      await onStatusChange(id, next);
+      await onUpdate(id, patch);
     } catch (err) {
-      setStatusError(err instanceof Error ? err.message : "Status change failed");
+      setStatusError(err instanceof Error ? err.message : "Update failed");
     }
   };
 
@@ -231,7 +233,7 @@ export function LeadsPage({
     if (!id) return;
     const lead = leads.find((item) => item.id === id);
     if (!lead || lead.status === next) return;
-    await changeStatus(id, next);
+    await change(id, { status: next });
   };
 
   const dueCount = leads.filter(
@@ -497,21 +499,26 @@ export function LeadsPage({
                     <td>{lead.country || "—"}</td>
                     <td className="num">{lead.cameraCount}</td>
                     <td>{packageLabel(lead.packageCode)}</td>
-                    <td>
+                    <td onClick={(event) => event.stopPropagation()}>
                       <div
                         className="archive-cell"
                         title={lead.archiveReason || "No archive note yet"}
                       >
-                        <span
-                          className={`archive-badge archive-${lead.archiveable}`}
+                        <select
+                          className={`inline-select archive-select archive-${lead.archiveable}`}
+                          value={lead.archiveable}
+                          onChange={(event) =>
+                            void change(lead.id, {
+                              archiveable: event.target.value as LeadArchiveable,
+                            })
+                          }
+                          aria-label={`Archiveable status for ${lead.company}`}
                           data-testid={`archive-${lead.slug}`}
                         >
-                          {lead.archiveable === "yes"
-                            ? "Yes"
-                            : lead.archiveable === "maybe"
-                              ? "Maybe"
-                              : "No"}
-                        </span>
+                          <option value="yes">Yes</option>
+                          <option value="maybe">Maybe</option>
+                          <option value="no">No</option>
+                        </select>
                         <small>{lead.feedType}</small>
                       </div>
                     </td>
@@ -519,7 +526,9 @@ export function LeadsPage({
                       <select
                         className={`inline-select status-select status-${lead.status}`}
                         value={lead.status}
-                        onChange={(event) => void changeStatus(lead.id, event.target.value as LeadStatus)}
+                        onChange={(event) =>
+                          void change(lead.id, { status: event.target.value as LeadStatus })
+                        }
                         aria-label={`Status for ${lead.company}`}
                       >
                         {LEAD_STATUSES.map((value) => (

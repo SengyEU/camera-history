@@ -185,8 +185,8 @@ export function App() {
     setSelected(null);
   };
 
-  const changeStatus = async (id: string, status: LeadStatus) => {
-    await api.updateLead(id, { status });
+  const updateLead = async (id: string, patch: Parameters<typeof api.updateLead>[1]) => {
+    await api.updateLead(id, patch);
     await loadLeads();
   };
 
@@ -280,7 +280,7 @@ export function App() {
         loading={loading}
         error={error}
         onSelect={setSelected}
-        onStatusChange={changeStatus}
+        onUpdate={updateLead}
       />
 
       {selected && (
