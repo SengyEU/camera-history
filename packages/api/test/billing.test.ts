@@ -169,6 +169,29 @@ describe("billing endpoints", () => {
     await (app as { close: () => Promise<void> }).close();
   });
 
+  it("starts checkout before any camera is added", async () => {
+    const gateway = defineFakeStripeGateway({
+      createCheckoutSession: async () => ({
+        url: "https://checkout.stripe.com/no-cameras",
+        customer: "cus_123",
+        subscription: null,
+      }),
+    });
+    const { app } = makeApp({ cfg: stripeConfig(), stripe: gateway });
+    const cookie = await registerAndLogin(app);
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/billing/checkout",
+      headers: { cookie },
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().url).toBe("https://checkout.stripe.com/no-cameras");
+    await (app as { close: () => Promise<void> }).close();
+  });
+
   it("changes the package without Stripe before checkout", async () => {
     const { app, repos } = makeApp({ cfg: stripeConfig(), stripe: defineFakeStripeGateway() });
     const cookie = await registerAndLogin(app);

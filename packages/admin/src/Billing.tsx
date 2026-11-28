@@ -117,8 +117,7 @@ export function BillingPage() {
     );
   }
 
-  const canStart =
-    data.billingEnabled && data.pricesConfigured && data.cameraCount > 0 && !data.isPilot;
+  const canStart = data.billingEnabled && data.pricesConfigured && !data.isPilot;
   const atLimit = data.cameraCount >= data.cameraLimit;
   const usagePercent =
     data.cameraLimit > 0 ? Math.min(100, (data.cameraCount / data.cameraLimit) * 100) : 0;
@@ -136,9 +135,7 @@ export function BillingPage() {
           ? "This is your current package."
           : !data.hasSubscription && data.isPilot
             ? "Billing starts after your pilot ends."
-            : !data.hasSubscription && data.cameraCount === 0
-              ? "Add at least one camera before starting billing."
-              : null;
+            : null;
 
   return (
     <>
@@ -158,7 +155,13 @@ export function BillingPage() {
             {error}
           </p>
         )}
-        {!data.billingEnabled && <p className="notice">Billing is not enabled right now.</p>}
+        {!data.billingEnabled && !data.isPilot && (
+          <p className="notice" data-testid="billing-disabled-notice">
+            Billing is currently turned off. To use Camera History, contact{" "}
+            <a href="mailto:support@camera-history.com">support@camera-history.com</a> and we’ll set
+            you up.
+          </p>
+        )}
         {pilotEnded ? (
           <p className="notice danger" data-testid="pilot-ended-notice">
             Pilot ended — captures are paused.{" "}
@@ -294,7 +297,7 @@ export function BillingPage() {
             className="secondary"
             onClick={openPortal}
             data-testid="open-portal"
-            disabled={!data.stripeCustomerId}
+            disabled={!data.billingEnabled || !data.stripeCustomerId}
           >
             Payments / invoices
           </button>

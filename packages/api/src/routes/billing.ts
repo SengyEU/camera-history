@@ -137,10 +137,6 @@ export function registerBillingRoutes(app: FastifyInstance, deps: AppDeps) {
       if (tenant.stripeSubscriptionId) {
         throw new HttpError(409, "already_subscribed", "subscription already exists; use the package endpoint");
       }
-      if ((await deps.repos.countCameras(tenant.id)) === 0) {
-        throw new HttpError(409, "no_cameras", "add at least one camera before starting billing");
-      }
-
       if (configuredPrices(deps).length !== PACKAGE_TIERS.length) {
         throw new HttpError(409, "billing_not_configured", "all five package prices must be configured");
       }

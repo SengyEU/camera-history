@@ -118,6 +118,40 @@ describe("BillingPage", () => {
     expect(screen.getByTestId("billing-action-hint")).toHaveTextContent(/pilot has ended/i);
   });
 
+  it("allows starting billing before any camera is added", async () => {
+    (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...billing,
+      cameraCount: 0,
+      billingStatus: "none",
+      hasSubscription: false,
+      graceUntil: null,
+    });
+    render(<BillingPage />);
+    await screen.findByTestId("current-plan");
+    expect(screen.getByTestId("change-package")).not.toBeDisabled();
+    expect(screen.queryByTestId("billing-action-hint")).not.toBeInTheDocument();
+  });
+
+  it("shows an actionable notice when billing is turned off", async () => {
+    (api.getBilling as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...billing,
+      billingEnabled: false,
+      billingStatus: "none",
+      hasSubscription: false,
+      graceUntil: null,
+    });
+    render(<BillingPage />);
+    const notice = await screen.findByTestId("billing-disabled-notice");
+    expect(notice).toHaveTextContent("Billing is currently turned off");
+    expect(notice).toHaveTextContent("we’ll set you up");
+    expect(screen.getByRole("link", { name: "support@camera-history.com" })).toHaveAttribute(
+      "href",
+      "mailto:support@camera-history.com",
+    );
+    expect(screen.getByTestId("change-package")).toBeDisabled();
+    expect(screen.getByTestId("open-portal")).toBeDisabled();
+  });
+
   it("starts checkout with the selected package", async () => {
     const assign = vi.fn();
     Object.defineProperty(window, "location", {
