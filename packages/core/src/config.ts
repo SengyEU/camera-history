@@ -74,6 +74,9 @@ const AppConfigSchema = z.object({
     inviteCode: z.string().default(""),
     durationDays: numeric(90),
   }),
+  internal: z.object({
+    emails: z.array(z.string()).default([]),
+  }),
 });
 
 const PACKAGE_PRICE_ENV_KEYS: Record<string, string> = {
@@ -143,6 +146,12 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
     pilot: {
       inviteCode: env.PILOT_INVITE_CODE ?? "",
       durationDays: env.PILOT_DURATION_DAYS,
+    },
+    internal: {
+      emails: (env.INTERNAL_EMAILS ?? "")
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
     },
   });
 }

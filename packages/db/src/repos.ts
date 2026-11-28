@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, gte, inArray, isNull, lt, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, notInArray, sql } from "drizzle-orm";
 import type {
   AdminCameraGroup,
   BillingPatch,
@@ -7,9 +7,12 @@ import type {
   CameraGroup,
   CameraPatch,
   ImageRecord,
+  Lead,
+  LeadActivity,
   NewCamera,
   NewCameraGroup,
   NewImage,
+  NewLead,
   NewTenant,
   NewUser,
   PublicCamera,
@@ -19,11 +22,23 @@ import type {
 } from "@ch/core";
 import { DEFAULT_PACKAGE, RETENTION_MONTHS, isTenantBillable, slugify } from "@ch/core";
 import type { Db } from "./db.js";
-import { cameraGroupMembers, cameraGroups, cameras, emailVerificationTokens, images, passwordResetTokens, tenants, users } from "./schema.js";
+import {
+  cameraGroupMembers,
+  cameraGroups,
+  cameras,
+  emailVerificationTokens,
+  images,
+  leadActivities,
+  leads,
+  passwordResetTokens,
+  tenants,
+  users,
+} from "./schema.js";
 import type { Repos } from "./repos.types.js";
 
 type TenantRow = typeof tenants.$inferSelect;
 type CameraRow = typeof cameras.$inferSelect;
+type LeadRow = typeof leads.$inferSelect;
 
 function toDate(value: unknown): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
@@ -42,6 +57,51 @@ function toCamera(row: CameraRow): Camera {
   return {
     ...row,
     timeFormat: row.timeFormat as "12h" | "24h",
+  };
+}
+
+function toLead(row: LeadRow): Lead {
+  return {
+    ...row,
+    packageCode: row.packageCode as Lead["packageCode"],
+  };
+}
+
+function leadValues(input: NewLead) {
+  return {
+    slug: input.slug,
+    company: input.company,
+    website: input.website,
+    country: input.country ?? "",
+    segment: input.segment ?? "",
+    priority: input.priority ?? "medium",
+    cameraCount: input.cameraCount ?? 1,
+    cameraLocations: input.cameraLocations ?? "",
+    packageCode: input.packageCode ?? "solo",
+    wordpress: input.wordpress ?? true,
+    layout: input.layout ?? "separate-pages",
+    feedType: input.feedType ?? "unknown",
+    feedUrl: input.feedUrl ?? "",
+    archiveable: input.archiveable ?? "maybe",
+    archiveReason: input.archiveReason ?? "",
+    contactName: input.contactName ?? "",
+    email: input.email ?? "",
+    phone: input.phone ?? "",
+    language: input.language ?? "",
+    status: input.status ?? "new",
+    source: input.source ?? "",
+    sourceUrl: input.sourceUrl ?? "",
+    liveCamUrl: input.liveCamUrl ?? "",
+    notes: input.notes ?? "",
+    lastContactAt: input.lastContactAt ?? null,
+    nextFollowUpAt: input.nextFollowUpAt ?? null,
+    proposalStatus: input.proposalStatus ?? "none",
+    pilotStartedAt: input.pilotStartedAt ?? null,
+    pilotEndsAt: input.pilotEndsAt ?? null,
+    feedback: input.feedback ?? "",
+    caseStudyConsent: input.caseStudyConsent ?? false,
+    lostReason: input.lostReason ?? "",
+    tenantId: input.tenantId ?? null,
   };
 }
 
@@ -594,6 +654,64 @@ export function createRepos(db: Db): Repos {
           showNight: r.cshowNight!,
         }));
       return { group, cameras: cams };
+    },
+    async listLeads() {
+      const rows = await db
+        .select()
+        .from(leads)
+        .orderBy(asc(leads.priority), asc(leads.nextFollowUpAt), asc(leads.company));
+      return rows.map(toLead);
+    },
+    async getLead(id) {
+      const [row] = await db.select().from(leads).where(eq(leads.id, id));
+      return row ? toLead(row) : null;
+    },
+    async getLeadBySlug(slug) {
+      const [row] = await db.select().from(leads).where(eq(leads.slug, slug));
+      return row ? toLead(row) : null;
+    },
+    async createLead(input) {
+      const [row] = await db.insert(leads).values(leadValues(input)).returning();
+      return toLead(row!);
+    },
+    async updateLead(id, patch) {
+      const values = Object.fromEntries(
+        Object.entries(patch).filter(([, value]) => value !== undefined),
+      ) as Partial<LeadRow>;
+      if (Object.keys(values).length === 0) {
+        const [row] = await db.select().from(leads).where(eq(leads.id, id));
+        return row ? toLead(row) : null;
+      }
+      const [row] = await db
+        .update(leads)
+        .set({ ...values, updatedAt: new Date() })
+        .where(eq(leads.id, id))
+        .returning();
+      return row ? toLead(row) : null;
+    },
+    async deleteLead(id) {
+      await db.delete(leads).where(eq(leads.id, id));
+    },
+    async listLeadActivities(leadId) {
+      const rows = await db
+        .select()
+        .from(leadActivities)
+        .where(eq(leadActivities.leadId, leadId))
+        .orderBy(desc(leadActivities.occurredAt));
+      return rows.map((row): LeadActivity => ({ ...row }));
+    },
+    async createLeadActivity(input) {
+      const [row] = await db
+        .insert(leadActivities)
+        .values({
+          leadId: input.leadId,
+          type: input.type,
+          body: input.body ?? "",
+          occurredAt: input.occurredAt ?? new Date(),
+          createdBy: input.createdBy ?? "",
+        })
+        .returning();
+      return { ...row! };
     },
   };
 }

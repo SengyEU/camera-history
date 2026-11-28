@@ -6,9 +6,14 @@ import type {
   CameraGroup,
   CameraPatch,
   ImageRecord,
+  Lead,
+  LeadActivity,
+  LeadPatch,
   NewCamera,
   NewCameraGroup,
   NewImage,
+  NewLead,
+  NewLeadActivity,
   NewTenant,
   NewUser,
   PublicCamera,
@@ -100,4 +105,12 @@ export interface Repos {
   deleteGroup(id: string): Promise<void>;
   setGroupCameras(groupId: string, cameraIds: string[]): Promise<void>;
   getGroupBySlug(tenantSlug: string, groupSlug: string): Promise<PublicGroupWithCameras | null>;
+  listLeads(): Promise<Lead[]>;
+  getLead(id: string): Promise<Lead | null>;
+  getLeadBySlug(slug: string): Promise<Lead | null>;
+  createLead(input: NewLead): Promise<Lead>;
+  updateLead(id: string, patch: LeadPatch): Promise<Lead | null>;
+  deleteLead(id: string): Promise<void>;
+  listLeadActivities(leadId: string): Promise<LeadActivity[]>;
+  createLeadActivity(input: NewLeadActivity): Promise<LeadActivity>;
 }

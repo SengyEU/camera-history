@@ -27,6 +27,7 @@ const testConfig = {
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
   billing: { graceDays: 7 },
   pilot: { inviteCode: "", durationDays: 90 },
+  internal: { emails: [] },
 } satisfies AppConfig;
 
 describe("keyFor", () => {

@@ -25,6 +25,7 @@ export const testConfig: AppConfig = {
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
   billing: { graceDays: 7 },
   pilot: { inviteCode: "", durationDays: 90 },
+  internal: { emails: ["marek@example.com"] },
 };
 
 export function defineFakeStripeGateway(over: Partial<StripeGateway> = {}): StripeGateway {

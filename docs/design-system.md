@@ -118,6 +118,7 @@ Deck používá core palette. Siluety hřebene mají `--deck-ridge-1: #0f1a2e`, 
 - **Landing** `/`: Montserrat, core palette, inline ridge s `--color-glacier-bright`, OG/favicony.
 - **Deck** `/deck/`: Montserrat, core palette, deck ridge tokens; noindex.
 - **Admin** `/admin/`: Montserrat, core palette, dense UI, technical text tabular nums.
+- **CRM** `crm.camera-history.com`: Montserrat, core palette, dense internal tool; status/priority pills, table + pipeline board, right-side detail drawer. No new fonts or colours.
 - **Widget** `/widget/`, `/group/`: host font (výjimka), Montserrat fallback; theme palettes; noindex.
 - **Dema** `/demo/`: odstraněna; nginx vrací 410. Nevytvářet nové demo stránky bez rozhodnutí.
 - **Assety:** logo/banner/OG/favicony jsou obrazové; nemění se textovým fontem. OG a bannery generuje `npm run brand:images --workspace @ch/site`.

@@ -12,6 +12,7 @@ import { registerAdminRoutes } from "./routes/admin.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerBillingRoutes } from "./routes/billing.js";
 import { registerContactRoutes } from "./routes/contact.js";
+import { registerInternalRoutes } from "./routes/internal.js";
 import { createSmtpMailer, type Mailer } from "./mailer.js";
 import type { StripeGateway } from "./stripe/gateway.js";
 
@@ -45,6 +46,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.register(registerBillingRoutes, depsWithMail);
   app.register(registerPublicRoutes, depsWithMail);
   app.register(registerContactRoutes, depsWithMail);
+  app.register(registerInternalRoutes, depsWithMail);
 
   return app;
 }

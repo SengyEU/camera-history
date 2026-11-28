@@ -53,6 +53,14 @@ The host is sufficient for the first 20 cameras at 60 minutes, but it is not an 
 - keep no-SLA wording on the pilot/terms page,
 - do not run destructive cleanup without a separate reviewed plan.
 
+### Internal CRM host
+
+- `crm.camera-history.com` serves `packages/crm/dist` from the same host; the wildcard origin cert covers the subdomain.
+- Nginx proxies only `/api/v1/auth/` and `/api/v1/internal/` to the API, so the CRM is same-origin and does not expose the rest of the API.
+- Access is limited by `INTERNAL_EMAILS` (comma-separated); every `/api/v1/internal/*` route returns 404 for other accounts.
+- CRM data lives in the same Postgres in global `leads` and `lead_activities` tables; it is not tenant-scoped and never exposed by public routes.
+- The CRM does not send email and does not generate PDFs. Outreach is sent manually from `marek@`; one-pagers stay on the host CLI (`scripts/pilot-onepager`).
+
 ## 4. Caching policy
 
 Current state: image and JSON responses do not have explicit cache headers; Cloudflare reports `DYNAMIC`. Some 404 responses receive a default cache TTL. This must be fixed before the pilot.

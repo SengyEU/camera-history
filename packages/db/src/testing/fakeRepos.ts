@@ -7,9 +7,14 @@ import type {
   CameraGroup,
   CameraPatch,
   ImageRecord,
+  Lead,
+  LeadActivity,
+  LeadPatch,
   NewCamera,
   NewCameraGroup,
   NewImage,
+  NewLead,
+  NewLeadActivity,
   NewTenant,
   NewUser,
   PublicCamera,
@@ -43,6 +48,8 @@ export interface FakeDb {
     usedAt: Date | null;
     createdAt: Date;
   }[];
+  leads: Lead[];
+  leadActivities: LeadActivity[];
 }
 
 export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeDb } {
@@ -55,6 +62,8 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
     cameraGroupMembers: seed.cameraGroupMembers ?? [],
     emailVerificationTokens: seed.emailVerificationTokens ?? [],
     passwordResetTokens: seed.passwordResetTokens ?? [],
+    leads: seed.leads ?? [],
+    leadActivities: seed.leadActivities ?? [],
   };
 
   const repos: Repos = {
@@ -462,7 +471,111 @@ export function createFakeRepos(seed: Partial<FakeDb> = {}): Repos & { db: FakeD
         }));
       return { group: { id: group.id, name: group.name, slug: group.slug }, cameras: cams };
     },
+    async listLeads() {
+      return db.leads
+        .slice()
+        .sort(
+          (a, b) =>
+            orderForPriority(a.priority) - orderForPriority(b.priority) ||
+            (a.nextFollowUpAt?.getTime() ?? Number.MAX_SAFE_INTEGER) -
+              (b.nextFollowUpAt?.getTime() ?? Number.MAX_SAFE_INTEGER) ||
+            a.company.localeCompare(b.company),
+        )
+        .map((lead) => ({ ...lead }));
+    },
+    async getLead(id) {
+      const lead = db.leads.find((item) => item.id === id);
+      return lead ? { ...lead } : null;
+    },
+    async getLeadBySlug(slug) {
+      const lead = db.leads.find((item) => item.slug === slug);
+      return lead ? { ...lead } : null;
+    },
+    async createLead(input: NewLead) {
+      const now = new Date();
+      const lead: Lead = {
+        id: randomUUID(),
+        slug: input.slug,
+        company: input.company,
+        website: input.website,
+        country: input.country ?? "",
+        segment: input.segment ?? "",
+        priority: input.priority ?? "medium",
+        cameraCount: input.cameraCount ?? 1,
+        cameraLocations: input.cameraLocations ?? "",
+        packageCode: input.packageCode ?? "solo",
+        wordpress: input.wordpress ?? true,
+        layout: input.layout ?? "separate-pages",
+        feedType: input.feedType ?? "unknown",
+        feedUrl: input.feedUrl ?? "",
+        archiveable: input.archiveable ?? "maybe",
+        archiveReason: input.archiveReason ?? "",
+        contactName: input.contactName ?? "",
+        email: input.email ?? "",
+        phone: input.phone ?? "",
+        language: input.language ?? "",
+        status: input.status ?? "new",
+        source: input.source ?? "",
+        sourceUrl: input.sourceUrl ?? "",
+        liveCamUrl: input.liveCamUrl ?? "",
+        notes: input.notes ?? "",
+        lastContactAt: input.lastContactAt ?? null,
+        nextFollowUpAt: input.nextFollowUpAt ?? null,
+        proposalStatus: input.proposalStatus ?? "none",
+        pilotStartedAt: input.pilotStartedAt ?? null,
+        pilotEndsAt: input.pilotEndsAt ?? null,
+        feedback: input.feedback ?? "",
+        caseStudyConsent: input.caseStudyConsent ?? false,
+        lostReason: input.lostReason ?? "",
+        tenantId: input.tenantId ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.leads.push(lead);
+      return { ...lead };
+    },
+    async updateLead(id, patch: LeadPatch) {
+      const index = db.leads.findIndex((lead) => lead.id === id);
+      if (index === -1) return null;
+      const current = db.leads[index]!;
+      const updated: Lead = {
+        ...current,
+        ...patch,
+        id,
+        updatedAt: new Date(),
+      };
+      db.leads[index] = updated;
+      return { ...updated };
+    },
+    async deleteLead(id) {
+      db.leads = db.leads.filter((lead) => lead.id !== id);
+      db.leadActivities = db.leadActivities.filter((activity) => activity.leadId !== id);
+    },
+    async listLeadActivities(leadId) {
+      return db.leadActivities
+        .filter((activity) => activity.leadId === leadId)
+        .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
+        .map((activity) => ({ ...activity }));
+    },
+    async createLeadActivity(input: NewLeadActivity) {
+      const now = new Date();
+      const activity: LeadActivity = {
+        id: randomUUID(),
+        leadId: input.leadId,
+        type: input.type,
+        body: input.body ?? "",
+        occurredAt: input.occurredAt ?? now,
+        createdBy: input.createdBy ?? "",
+        createdAt: now,
+      };
+      db.leadActivities.push(activity);
+      return { ...activity };
+    },
   };
 
   return { ...repos, db };
+}
+
+function orderForPriority(priority: Lead["priority"]): number {
+  return priority === "high" ? 0 : priority === "medium" ? 1 : 2;
 }

@@ -20,6 +20,7 @@
     "dev:worker": "npm run dev --workspace @ch/worker",
     "dev:web": "npm run dev --workspace @ch/web",
     "dev:admin": "npm run dev --workspace @ch/admin",
+    "dev:crm": "npm run dev --workspace @ch/crm",
     "design:check": "node scripts/check-design-system.mjs"
   },
   "devDependencies": {

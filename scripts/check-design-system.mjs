@@ -5,7 +5,12 @@ const root = process.cwd();
 const errors = [];
 const scanned = [];
 
-const scanRoots = ["packages/site/src", "packages/admin/src", "packages/web/src"];
+const scanRoots = [
+  "packages/site/src",
+  "packages/admin/src",
+  "packages/web/src",
+  "packages/crm/src",
+];
 for (const dir of scanRoots) {
   if (!existsSync(join(root, dir))) continue;
   const walk = (current) => {
@@ -76,6 +81,7 @@ const entryImports = {
   "packages/site/src/deck.css": "@ch/design/index.css",
   "packages/admin/src/main.tsx": "@ch/design/index.css",
   "packages/web/src/main.tsx": "@ch/design/index.css",
+  "packages/crm/src/main.tsx": "@ch/design/index.css",
 };
 for (const [file, needle] of Object.entries(entryImports)) {
   if (!readFileSync(join(root, file), "utf8").includes(needle)) {
@@ -83,7 +89,12 @@ for (const [file, needle] of Object.entries(entryImports)) {
   }
 }
 
-for (const pkg of ["packages/site/package.json", "packages/admin/package.json", "packages/web/package.json"]) {
+for (const pkg of [
+  "packages/site/package.json",
+  "packages/admin/package.json",
+  "packages/web/package.json",
+  "packages/crm/package.json",
+]) {
   const json = JSON.parse(readFileSync(join(root, pkg), "utf8"));
   const deps = { ...(json.dependencies ?? {}), ...(json.devDependencies ?? {}) };
   if (!deps["@ch/design"]) errors.push(`${pkg}: missing @ch/design dependency`);

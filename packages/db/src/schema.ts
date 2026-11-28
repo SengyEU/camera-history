@@ -28,6 +28,36 @@ export const cameraStatusEnum = pgEnum("camera_status", ["operational", "delayed
 
 export const billingStatusEnum = pgEnum("billing_status", ["none", "active", "past_due", "unpaid", "canceled"]);
 
+export const leadPriorityEnum = pgEnum("lead_priority", ["high", "medium", "low"]);
+
+export const leadStatusEnum = pgEnum("lead_status", [
+  "new",
+  "reviewed",
+  "contacted",
+  "replied",
+  "demo",
+  "pilot",
+  "won",
+  "lost",
+  "not_now",
+]);
+
+export const leadArchiveableEnum = pgEnum("lead_archiveable", ["yes", "maybe", "no"]);
+
+export const leadProposalStatusEnum = pgEnum("lead_proposal_status", ["none", "drafted", "sent"]);
+
+export const leadActivityTypeEnum = pgEnum("lead_activity_type", [
+  "note",
+  "email_sent",
+  "reply",
+  "call",
+  "meeting",
+  "proposal_sent",
+  "status_change",
+  "pilot_started",
+  "other",
+]);
+
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -176,6 +206,73 @@ export const cameraGroupMembers = pgTable(
   ],
 );
 
+export const leads = pgTable(
+  "leads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull(),
+    company: text("company").notNull(),
+    website: text("website").notNull(),
+    country: text("country").notNull().default(""),
+    segment: text("segment").notNull().default(""),
+    priority: leadPriorityEnum("priority").notNull().default("medium"),
+    cameraCount: integer("camera_count").notNull().default(1),
+    cameraLocations: text("camera_locations").notNull().default(""),
+    packageCode: text("package_code").notNull().default("solo"),
+    wordpress: boolean("wordpress").notNull().default(true),
+    layout: text("layout").notNull().default("separate-pages"),
+    feedType: text("feed_type").notNull().default("unknown"),
+    feedUrl: text("feed_url").notNull().default(""),
+    archiveable: leadArchiveableEnum("archiveable").notNull().default("maybe"),
+    archiveReason: text("archive_reason").notNull().default(""),
+    contactName: text("contact_name").notNull().default(""),
+    email: text("email").notNull().default(""),
+    phone: text("phone").notNull().default(""),
+    language: text("language").notNull().default(""),
+    status: leadStatusEnum("status").notNull().default("new"),
+    source: text("source").notNull().default(""),
+    sourceUrl: text("source_url").notNull().default(""),
+    liveCamUrl: text("live_cam_url").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    lastContactAt: timestamp("last_contact_at", { withTimezone: true }),
+    nextFollowUpAt: timestamp("next_follow_up_at", { withTimezone: true }),
+    proposalStatus: leadProposalStatusEnum("proposal_status").notNull().default("none"),
+    pilotStartedAt: timestamp("pilot_started_at", { withTimezone: true }),
+    pilotEndsAt: timestamp("pilot_ends_at", { withTimezone: true }),
+    feedback: text("feedback").notNull().default(""),
+    caseStudyConsent: boolean("case_study_consent").notNull().default(false),
+    lostReason: text("lost_reason").notNull().default(""),
+    tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("leads_slug_unique").on(t.slug),
+    index("leads_status_idx").on(t.status),
+    index("leads_priority_idx").on(t.priority),
+    index("leads_next_follow_up_idx").on(t.nextFollowUpAt),
+  ],
+);
+
+export const leadActivities = pgTable(
+  "lead_activities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    type: leadActivityTypeEnum("type").notNull(),
+    body: text("body").notNull().default(""),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: text("created_by").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("lead_activities_lead_idx").on(t.leadId, t.occurredAt.desc()),
+    index("lead_activities_occurred_idx").on(t.occurredAt),
+  ],
+);
+
 export const tables = {
   tenants,
   users,
@@ -185,4 +282,6 @@ export const tables = {
   cameraGroupMembers,
   emailVerificationTokens,
   passwordResetTokens,
+  leads,
+  leadActivities,
 };

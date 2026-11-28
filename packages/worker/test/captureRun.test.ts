@@ -22,6 +22,7 @@ const cfg: AppConfig = {
   stripe: { enabled: false, secretKey: "", webhookSecret: "", portalConfigId: "", prices: {} },
   billing: { graceDays: 7 },
   pilot: { inviteCode: "", durationDays: 90 },
+  internal: { emails: [] },
 };
 
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);

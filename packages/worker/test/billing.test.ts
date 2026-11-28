@@ -25,6 +25,7 @@ const cfg: AppConfig = {
   },
   billing: { graceDays: 7 },
   pilot: { inviteCode: "", durationDays: 90 },
+  internal: { emails: [] },
 };
 
 function createFakeSync(): SubscriptionSyncGateway {
