@@ -168,7 +168,7 @@ export function LeadsPage({
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    let rows = leads.filter((lead) => {
+    const rows = leads.filter((lead) => {
       if (status !== "all" && lead.status !== status) return false;
       if (priority !== "all" && lead.priority !== priority) return false;
       if (country !== "all" && lead.country !== country) return false;
