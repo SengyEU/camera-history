@@ -6,15 +6,16 @@ import {
   dateInputValue,
   formatDateTime,
   hostLabel,
+  packageLabel,
 } from "./format";
 import {
   ACTIVITY_LABELS,
   LEAD_ARCHIVEABLE,
   LEAD_PRIORITIES,
   LEAD_STATUSES,
-  PACKAGE_LABELS,
   PRIORITY_LABELS,
   STATUS_LABELS,
+  packageForCameraCount,
   type ActivityType,
   type Lead,
   type LeadActivity,
@@ -50,7 +51,7 @@ function formFromLead(lead: Lead): LeadPatch {
     status: lead.status,
     cameraCount: lead.cameraCount,
     cameraLocations: lead.cameraLocations,
-    packageCode: lead.packageCode,
+    packageCode: packageForCameraCount(lead.cameraCount),
     wordpress: lead.wordpress,
     layout: lead.layout,
     feedType: lead.feedType,
@@ -128,7 +129,10 @@ export function LeadDetail({ leadId, onClose, onChanged }: Props) {
     setError(null);
     setSaved(false);
     try {
-      const result = await api.updateLead(lead.id, form);
+      const result = await api.updateLead(lead.id, {
+        ...form,
+        packageCode: packageForCameraCount(form.cameraCount ?? lead.cameraCount),
+      });
       setLead(result.lead);
       setForm(formFromLead(result.lead));
       setSaved(true);
@@ -390,28 +394,27 @@ export function LeadDetail({ leadId, onClose, onChanged }: Props) {
                     type="number"
                     min={1}
                     value={form.cameraCount ?? lead.cameraCount}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const cameraCount = Math.max(1, Number(event.target.value) || 1);
                       setForm((current) => ({
                         ...current,
-                        cameraCount: Math.max(1, Number(event.target.value) || 1),
-                      }))
-                    }
+                        cameraCount,
+                        packageCode: packageForCameraCount(cameraCount),
+                      }));
+                    }}
                   />
                 </label>
                 <label>
                   Package
-                  <select
-                    value={form.packageCode ?? lead.packageCode}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, packageCode: event.target.value }))
-                    }
-                  >
-                    {Object.entries(PACKAGE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    readOnly
+                    className="auto-input"
+                    value={packageLabel(
+                      packageForCameraCount(form.cameraCount ?? lead.cameraCount),
+                    )}
+                    aria-label="Package"
+                  />
+                  <span className="field-hint">Auto from camera count</span>
                 </label>
                 <label>
                   Feed type

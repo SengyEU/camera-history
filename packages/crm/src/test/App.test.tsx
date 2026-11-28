@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
@@ -249,6 +249,38 @@ describe("CRM app", () => {
     await userEvent.selectOptions(screen.getByTestId("archive-vogel"), "no");
     await waitFor(() => expect(patches).toHaveLength(1));
     expect(JSON.parse(patches[0]!.body)).toEqual({ archiveable: "no" });
+  });
+
+  it("derives the package from the camera count in the detail", async () => {
+    const patches: Array<{ body: string }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/api/v1/internal/me")) return jsonResponse({ email: "marek@example.com" });
+        if (url.endsWith("/api/v1/internal/leads")) {
+          return jsonResponse({ leads: [lead()], summary });
+        }
+        if (url.endsWith("/api/v1/internal/leads/lead-1") && init?.method === "PATCH") {
+          patches.push({ body: String(init.body) });
+          return jsonResponse({ lead: lead({ cameraCount: 6, packageCode: "pro" }) });
+        }
+        if (url.endsWith("/api/v1/internal/leads/lead-1")) {
+          return jsonResponse({ lead: lead(), activities: [] });
+        }
+        return jsonResponse({ detail: "not found" }, 404);
+      }),
+    );
+
+    render(<App />);
+    await userEvent.click(await screen.findByText("Vogel Ski Resort"));
+    const cameras = await screen.findByLabelText("Cameras");
+    expect(screen.getByLabelText("Package")).toHaveValue("Plus");
+    fireEvent.change(cameras, { target: { value: "6" } });
+    expect(screen.getByLabelText("Package")).toHaveValue("Pro");
+    await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(patches).toHaveLength(1));
+    expect(JSON.parse(patches[0]!.body).packageCode).toBe("pro");
   });
 
   it("opens the lead detail drawer", async () => {

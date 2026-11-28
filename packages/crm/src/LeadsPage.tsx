@@ -14,6 +14,7 @@ import {
   PIPELINE_STATUSES,
   PRIORITY_LABELS,
   STATUS_LABELS,
+  packageForCameraCount,
   type Lead,
   type LeadArchiveable,
   type LeadPatch,
@@ -498,7 +499,7 @@ export function LeadsPage({
                     </td>
                     <td>{lead.country || "—"}</td>
                     <td className="num">{lead.cameraCount}</td>
-                    <td>{packageLabel(lead.packageCode)}</td>
+                    <td>{packageLabel(packageForCameraCount(lead.cameraCount))}</td>
                     <td onClick={(event) => event.stopPropagation()}>
                       <div
                         className="archive-cell"

@@ -126,6 +126,54 @@ describe("internal leads", () => {
     await app.close();
   });
 
+  it("derives the package from the camera count and ignores stale values", async () => {
+    const { app, cookie } = await internalApp();
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/internal/leads",
+      headers: { cookie },
+      payload: {
+        company: "Package Test",
+        website: "https://package.example/",
+        cameraCount: 6,
+        packageCode: "solo",
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const id = created.json().lead.id as string;
+    expect(created.json().lead.packageCode).toBe("pro");
+
+    const patched = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/internal/leads/${id}`,
+      headers: { cookie },
+      payload: { cameraCount: 12, packageCode: "solo" },
+    });
+    expect(patched.statusCode).toBe(200);
+    expect(patched.json().lead.packageCode).toBe("network");
+
+    const csv =
+      "slug,company,website,camera_count,package\npackage-import,Package Import,https://package-import.example/,2,Solo";
+    const imported = await app.inject({
+      method: "POST",
+      url: "/api/v1/internal/leads/import",
+      headers: { cookie, "content-type": "text/plain" },
+      payload: csv,
+    });
+    expect(imported.statusCode).toBe(200);
+    const list = await app.inject({
+      method: "GET",
+      url: "/api/v1/internal/leads",
+      headers: { cookie },
+    });
+    expect(
+      list
+        .json()
+        .leads.find((lead: { slug: string }) => lead.slug === "package-import").packageCode,
+    ).toBe("starter");
+    await app.close();
+  });
+
   it("records a reply and clears the follow-up", async () => {
     const { app, cookie } = await internalApp();
     const created = await app.inject({

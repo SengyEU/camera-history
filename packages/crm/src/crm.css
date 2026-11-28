@@ -951,6 +951,12 @@ code {
   font-weight: 400;
 }
 
+.form-grid label .auto-input {
+  background: var(--color-snow);
+  color: var(--color-muted);
+  cursor: default;
+}
+
 .span-2 {
   grid-column: span 2;
 }

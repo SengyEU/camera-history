@@ -246,7 +246,8 @@ function buildPatch(body: Body): LeadPatch {
     patch.packageCode = packageCode as LeadPatch["packageCode"];
   }
 
-  if (patch.cameraCount !== undefined && patch.packageCode === undefined) {
+  // The package always follows the camera count; a stale client value never wins.
+  if (patch.cameraCount !== undefined) {
     patch.packageCode = leadPackageForCameraCount(patch.cameraCount);
   }
 
@@ -342,7 +343,7 @@ export function registerInternalRoutes(app: FastifyInstance, deps: AppDeps) {
           lead.cameraLocations,
           lead.wordpress ? "yes" : "no",
           lead.layout,
-          lead.packageCode,
+          leadPackageForCameraCount(lead.cameraCount),
           lead.feedType,
           lead.feedUrl,
           lead.archiveable,
@@ -401,7 +402,7 @@ export function registerInternalRoutes(app: FastifyInstance, deps: AppDeps) {
         company,
         website,
         cameraCount,
-        packageCode: patch.packageCode ?? leadPackageForCameraCount(cameraCount),
+        packageCode: leadPackageForCameraCount(cameraCount),
       } as NewLead);
       return reply.code(201).send({ lead });
     },
@@ -419,9 +420,6 @@ export function registerInternalRoutes(app: FastifyInstance, deps: AppDeps) {
       if (patch.slug && patch.slug !== existing.slug) {
         const clash = await deps.repos.getLeadBySlug(patch.slug);
         if (clash && clash.id !== id) throw new HttpError(409, "conflict", "slug is already used");
-      }
-      if (patch.cameraCount !== undefined && patch.packageCode === undefined) {
-        patch = { ...patch, packageCode: leadPackageForCameraCount(patch.cameraCount) };
       }
       if (patch.status && patch.status !== "pilot") {
         // keep existing pilot dates when moving out of pilot
@@ -538,13 +536,7 @@ export function registerInternalRoutes(app: FastifyInstance, deps: AppDeps) {
           const priority: LeadPriority = isLeadPriority(priorityRaw) ? priorityRaw : "medium";
           const archiveRaw = cell(row, "archiveable").toLowerCase();
           const archiveable = isLeadArchiveable(archiveRaw) ? archiveRaw : "maybe";
-          const packageRaw = cell(row, "package").toLowerCase();
-          const packageCode =
-            packageRaw === "custom"
-              ? "custom"
-              : ["solo", "starter", "plus", "pro", "network"].includes(packageRaw)
-                ? (packageRaw as "solo" | "starter" | "plus" | "pro" | "network")
-                : leadPackageForCameraCount(cameraCount);
+          const packageCode = leadPackageForCameraCount(cameraCount);
           const slug = (cell(row, "slug") || slugify(company)).slice(0, 120);
           if (!/^[a-z0-9-]+$/.test(slug)) throw new Error("slug contains invalid characters");
           const wordpress = !["no", "false", "0"].includes(cell(row, "wordpress").toLowerCase());

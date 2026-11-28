@@ -162,6 +162,16 @@ export const PACKAGE_LABELS: Record<string, string> = {
   custom: "Custom",
 };
 
+/** The package is derived from the camera count, never picked by hand. */
+export function packageForCameraCount(count: number): string {
+  if (count <= 1) return "solo";
+  if (count <= 3) return "starter";
+  if (count <= 5) return "plus";
+  if (count <= 10) return "pro";
+  if (count <= 25) return "network";
+  return "custom";
+}
+
 export const PIPELINE_STATUSES: LeadStatus[] = [
   "new",
   "reviewed",
