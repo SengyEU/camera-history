@@ -1300,6 +1300,9 @@ button:focus-visible {
 
 .contact-form .btn {
   justify-self: start;
+  padding: 9px 16px;
+  font-size: 0.82rem;
+  line-height: 1.1;
 }
 
 .contact-honeypot {
@@ -1310,20 +1313,28 @@ button:focus-visible {
   overflow: hidden;
 }
 
-.contact-consent {
+.contact-form label.contact-consent {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  font-size: var(--text-sm);
+  gap: 8px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
   font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
-.contact-consent input[type="checkbox"] {
-  width: auto;
+.contact-form label.contact-consent input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
   min-height: 0;
-  margin-top: 3px;
+  margin: 2px 0 0;
+  padding: 0;
   accent-color: var(--color-glacier);
+}
+
+.contact-form label.contact-consent span {
+  display: block;
 }
 
 .contact-status.is-success {
