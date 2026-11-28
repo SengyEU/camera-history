@@ -90,6 +90,14 @@ describe("CRM app", () => {
 
     render(<App />);
     expect(await screen.findByText("Vogel Ski Resort")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /vogel\.si/ })).toHaveAttribute(
+      "href",
+      "https://vogel.si/",
+    );
+    expect(screen.getByRole("link", { name: /Live cam/ })).toHaveAttribute(
+      "href",
+      "https://vogel.si/live",
+    );
     expect(screen.getByText("marek@example.com")).toBeInTheDocument();
   });
 

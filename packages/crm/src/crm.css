@@ -550,12 +550,21 @@ code {
   white-space: nowrap;
 }
 
-.company-text small {
-  overflow: hidden;
-  color: var(--color-muted);
+.company-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: var(--text-2xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.company-links a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.company-links a:hover {
+  color: var(--color-glacier);
+  text-decoration: underline;
 }
 
 .muted-cell {

@@ -469,7 +469,28 @@ export function LeadsPage({
                         </span>
                         <span className="company-text">
                           <strong>{lead.company}</strong>
-                          <small>{hostLabel(lead.website)}</small>
+                          <span className="company-links">
+                            <a
+                              href={lead.website}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(event) => event.stopPropagation()}
+                              title={`Open ${lead.website}`}
+                            >
+                              {hostLabel(lead.website)} ↗
+                            </a>
+                            {lead.liveCamUrl && lead.liveCamUrl !== lead.website && (
+                              <a
+                                href={lead.liveCamUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(event) => event.stopPropagation()}
+                                title="Open the live camera page"
+                              >
+                                Live cam ↗
+                              </a>
+                            )}
+                          </span>
                         </span>
                       </div>
                     </td>
