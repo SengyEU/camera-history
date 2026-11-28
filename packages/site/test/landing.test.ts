@@ -15,11 +15,11 @@ describe("landing page", () => {
     const heroEnd = html.indexOf("</section>", heroStart);
     const hero = html.slice(heroStart, heroEnd);
 
-    expect(html).toContain('href="#hero-demo"');
+    expect(html).toContain('href="#live-demo"');
     expect(hero).toMatch(/src="\/group\/alpine-summit\/summit[^"]*"/);
     expect(hero).toContain("theme=midnight");
     expect(hero).not.toContain("date=2026-11-13");
-    expect(hero).toContain('id="hero-demo"');
+    expect(hero).toContain('id="live-demo"');
     expect(hero).not.toMatch(/href="\/group\/alpine-summit\/summit/);
   });
 

@@ -6,7 +6,7 @@ import { pilotStories, type PilotStory } from "./pilots";
  * Paint the hero demo canvas with the same midnight token as its card so the
  * landing showcase stays one blue panel; the widget itself is not touched.
  */
-const heroDemo = document.querySelector<HTMLIFrameElement>("#hero-demo iframe");
+const heroDemo = document.querySelector<HTMLIFrameElement>("#live-demo iframe");
 
 function paintHeroDemoBackdrop(): void {
   if (!heroDemo) return;
