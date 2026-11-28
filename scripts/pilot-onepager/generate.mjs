@@ -30,11 +30,11 @@ const USAGE = `Usage: node scripts/pilot-onepager/generate.mjs <lead.json> [outp
 Example:
   node scripts/pilot-onepager/generate.mjs pilots/kitesportcentre.json
 
-Output defaults to out/pilots/<slug>/:
-  one-pager.html
-  camera-history-pilot-<slug>.pdf
-  preview.png
-  email.txt
+Output defaults to out/proposals/<slug>/:
+  one-pager-wordpress.html or one-pager-iframe.html
+  camera-history-proposal-<slug>-wordpress.pdf or ...-iframe.pdf
+  preview-wordpress.png or preview-iframe.png
+  email-wordpress.txt or email-iframe.txt
 `;
 
 function escapeHtml(value) {
@@ -100,6 +100,15 @@ function validateLead(lead) {
   if (lead.cameraLocations !== undefined && !Array.isArray(lead.cameraLocations)) {
     throw new Error('Lead "cameraLocations" must be an array of strings.');
   }
+  if (lead.wordpress !== undefined && typeof lead.wordpress !== "boolean") {
+    throw new Error('Lead "wordpress" must be true or false.');
+  }
+  if (lead.layout !== undefined && !["separate-pages", "one-page"].includes(lead.layout)) {
+    throw new Error('Lead "layout" must be "separate-pages" or "one-page".');
+  }
+  if (lead.signupUrl !== undefined && (typeof lead.signupUrl !== "string" || !lead.signupUrl.startsWith("https://"))) {
+    throw new Error('Lead "signupUrl" must be an https:// URL.');
+  }
 }
 
 function resolvePackage(lead) {
@@ -136,36 +145,50 @@ function listFormat(items) {
   return new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(items);
 }
 
-function buildEmail(lead, pkg, emailLocations, websiteLabel) {
+function buildEmail(lead, pkg, emailLocations, websiteLabel, wordpress) {
   const greeting = lead.contactName ? `Hi ${lead.contactName},` : "Hi there,";
   const number = numberWord(lead.cameraCount);
   const cameras = `${number} live ${lead.cameraCount === 1 ? "camera" : "cameras"}`;
   const locationLine = emailLocations ? ` — ${emailLocations}` : "";
-  const coverage =
-    pkg.custom === false && lead.cameraCount <= pkg.limit
-      ? lead.cameraCount === 1
-        ? "so your camera is covered"
-        : `so all ${number} of your cameras are covered`
-      : "and we'll confirm the camera limit with you";
-  const packageLimit = pkg.custom
-    ? ""
-    : ` up to ${pkg.limit} ${pkg.limit === 1 ? "camera" : "cameras"} (${coverage}),`;
-  const packageLine = pkg.custom
-    ? `For ${lead.company} I'd shape a custom pilot around your ${lead.cameraCount} cameras: ${lead.pilotMonths ?? 3} months free, ${RETENTION_MONTHS} months of history, and one embed for WordPress or any site.`
-    : `For ${lead.company} I'd suggest the ${pkg.name} pilot: ${lead.pilotMonths ?? 3} months free,${packageLimit} ${RETENTION_MONTHS} months of history, and one embed for WordPress or any site.`;
+  const onePage = lead.layout === "one-page";
+  const coverage = pkg.custom
+    ? `We'll shape the plan around your ${lead.cameraCount} cameras.`
+    : lead.cameraCount === 1
+      ? `The ${pkg.name} plan covers your camera.`
+      : `The ${pkg.name} plan covers up to ${pkg.limit} cameras, so all ${number} of your cameras are covered.`;
+  const widgetSentence = wordpress
+    ? onePage
+      ? "You will just embed the WordPress group widget on your live cam page."
+      : "You will just embed the WordPress widget on each camera's page."
+    : onePage
+      ? "You will just embed the group widget on your live cam page."
+      : "You will just embed the widget on each camera's page.";
+  const priceLine = pkg.custom
+    ? "If you like it, we can agree a custom monthly price after that."
+    : `If you like it, you can keep it for €${pkg.eurPerMonth.toFixed(2)} a month after that.`;
+
+  const signupUrl = lead.signupUrl ?? "https://camera-history.com/admin/#/register";
+  const setupPhrase = lead.cameraCount === 1 ? "add your camera" : `add all ${number} cameras`;
+  const selfSetup = lead.signupUrl
+    ? `If you'd rather set it up yourself, register here:\n${signupUrl}\n\nThat link gives you the ${pkg.custom ? "right plan" : `${pkg.name} plan`} and three months free. After registering, add your cameras in the dashboard — you can use the URLs from your site.`
+    : `If you'd rather set it up yourself, register at ${signupUrl} and I'll activate your three free months.`;
 
   return `To: ${lead.email}
-Subject: Camera History pilot for ${lead.company}
+Subject: A ${RETENTION_MONTHS}-month archive for ${lead.company}'s live cameras
 
 ${greeting}
 
-I had a look at ${websiteLabel} and your ${cameras}${locationLine}. The live view is great, but visitors only see the current moment. Camera History keeps a ${RETENTION_MONTHS}-month archive and lets people browse the history by day, right from your site.
+I had a look at ${websiteLabel} and your ${cameras}${locationLine}. The live view is great, but visitors only see the current moment. I'd like to show you our service, Camera History — it keeps a ${RETENTION_MONTHS}-month archive of your cameras and lets visitors browse the history by day, right from your site.
 
-${packageLine}
+As one of our first users, you will get three months for free, with no commitment. For ${lead.company}, ${coverage.charAt(0).toLowerCase() + coverage.slice(1)} ${widgetSentence} ${priceLine} If not, we simply switch it off.
 
-In return, I'd love a short feedback call after a few weeks and, if it works well, permission to use ${lead.company} as a case study. No SLA, no custom development, no commitment.
+In return, I'd love your feedback after a few weeks and, if it works well, permission to feature ${lead.company} on our website in the "Who is using Camera History?" section.
 
-I've attached a one-page overview. If it looks right, send me the camera URLs and I'll set up the workspace.
+I've attached a one-page overview. You can find even more at https://camera-history.com.
+
+If you'd like us to set it up, just reply with the email address you want to use for signing in. We'll take the camera URLs from your site, create the workspace, ${setupPhrase}, and send you a temporary password you can change after your first sign-in.
+
+${selfSetup}
 
 Marek
 Camera History
@@ -183,7 +206,8 @@ async function main() {
   const leadPath = resolve(process.cwd(), args[0]);
   const lead = JSON.parse(readFileSync(leadPath, "utf8"));
   validateLead(lead);
-  lead.pilotMonths = lead.pilotMonths ?? 3;
+  lead.freeMonths = lead.freeMonths ?? 3;
+  lead.layout = lead.layout ?? "separate-pages";
 
   const pkg = resolvePackage(lead);
   const locations = (lead.cameraLocations ?? []).map((item) => String(item).trim()).filter(Boolean);
@@ -199,9 +223,24 @@ async function main() {
   const headline = lead.headline ?? "Your cameras, beyond the live moment.";
   const heroSub = `A ${RETENTION_MONTHS}-month visual archive for ${lead.company}'s ${numberWord(lead.cameraCount)} live ${cameraWord} — embedded on your site.`;
   const intro = `<strong>${company}</strong> already gives visitors a live view. Camera History adds the part they miss: a browsable archive of every day, week and season.`;
+  const onePage = lead.layout === "one-page";
   const setupSub = lead.location
-    ? `Your live ${cameraWord} across ${lead.location}. One archive, one embed.`
-    : `Your live ${cameraWord}. One archive, one embed.`;
+    ? `Your live ${cameraWord} across ${lead.location}${lead.wordpress ? " on your WordPress site" : ""}. One archive, one ${onePage ? "group " : ""}${lead.wordpress ? "widget" : "embed"}${onePage ? "" : " per camera"}.`
+    : `Your live ${cameraWord}${lead.wordpress ? " on your WordPress site" : ""}. One archive, one ${onePage ? "group " : ""}${lead.wordpress ? "widget" : "embed"}${onePage ? "" : " per camera"}.`;
+  const embedChecklist = lead.wordpress
+    ? onePage
+      ? "One WordPress group widget <span>— paste it on your live cam page.</span>"
+      : "One WordPress widget <span>— paste it on each camera page.</span>"
+    : onePage
+      ? "One group embed <span>— all cameras in one place.</span>"
+      : "One iframe snippet <span>— one per camera page.</span>";
+  const embedStep = lead.wordpress
+    ? onePage
+      ? "Drop the WordPress group widget on your live cam page. Visitors browse by day."
+      : "Drop the WordPress widget on each camera page. Visitors browse by day."
+    : onePage
+      ? "Drop one group embed on your live cam page. Visitors browse by day."
+      : "Drop one iframe on each camera page. Visitors browse by day.";
   const insight = lead.insight
     ? escapeHtml(lead.insight)
     : "<strong>Your live cameras already bring people in.</strong> The archive gives them a reason to come back tomorrow — and next season.";
@@ -211,21 +250,60 @@ async function main() {
       ? locations.map((item) => `<li>${escapeHtml(item)}</li>`).join("\n                ")
       : "<li>Camera locations to confirm</li>";
 
-  const pilotCopy = pkg.custom
-    ? `We'll shape the pilot around your ${lead.cameraCount} cameras.`
+  const offerCopy = pkg.custom
+    ? `We'll shape the plan around your ${lead.cameraCount} cameras.`
     : lead.cameraCount === 1
-      ? `The ${pkg.name} pilot covers your camera for ${lead.pilotMonths} months, free.`
-      : `The ${pkg.name} pilot covers up to ${pkg.limit} cameras, so all ${numberWord(lead.cameraCount)} of your cameras are covered.`;
+      ? `The ${pkg.name} plan covers your camera for ${lead.freeMonths} months, free.`
+      : `The ${pkg.name} plan covers up to ${pkg.limit} cameras, so all ${numberWord(lead.cameraCount)} of your cameras are covered.`;
   const packagePriceHtml = pkg.custom
     ? 'Custom <span>quote</span>'
     : `€${pkg.eurPerMonth.toFixed(2)} <span>/ month</span>`;
   const packageLimitWord = pkg.limit === 1 ? "camera" : "cameras";
   const packageMeta = pkg.custom
     ? `${lead.cameraCount} cameras · let's talk`
-    : `Up to ${pkg.limit} ${packageLimitWord} · VAT included`;
+    : `Up to ${pkg.limit} ${packageLimitWord}`;
+
+  const cameraLocationsText = locations.length
+    ? locations.map((item) => escapeHtml(item)).join(" · ")
+    : "Camera locations to confirm";
+  const packageStatPrice = pkg.custom
+    ? "custom quote"
+    : `€${pkg.eurPerMonth.toFixed(2)} / month after`;
+  const widgetPlanLine = lead.wordpress
+    ? onePage
+      ? "WordPress group widget on your live cam page."
+      : "WordPress widget on each camera page."
+    : onePage
+      ? "One group embed on your live cam page."
+      : "One iframe on each camera page.";
+
+  const embedStatTitle = lead.wordpress ? "WordPress" : "Iframe";
+  const embedStatLabel = lead.wordpress
+    ? onePage
+      ? "group widget on one page"
+      : "widget on each camera page"
+    : onePage
+      ? "one group embed"
+      : "one on each camera page";
+  const cameraCoverage = lead.cameraCount === 1
+    ? "your camera"
+    : `all ${numberWord(lead.cameraCount)} of your cameras`;
+  const packagePriceLabel = pkg.custom
+    ? "Custom pricing"
+    : `€${pkg.eurPerMonth.toFixed(2)} / month`;
+  const afterPilot = pkg.custom
+    ? "Custom pricing"
+    : `${pkg.name} · €${pkg.eurPerMonth.toFixed(2)}/month`;
+
+  const widgetFile = onePage ? "widget-group.png" : "widget-single.png";
+  const widgetImage = `data:image/png;base64,${readFileSync(join(ROOT, "scripts/pilot-onepager/assets", widgetFile)).toString("base64")}`;
+  const widgetAlt = onePage
+    ? "Demo group widget with a day of camera captures"
+    : "Demo single-camera widget with a day of captures";
+  const widgetCaption = onePage ? "Demo group widget" : "Demo single-camera widget";
 
   const replacements = {
-    "{{PAGE_TITLE}}": escapeHtml(`Camera History — pilot proposal for ${lead.company}`),
+    "{{PAGE_TITLE}}": escapeHtml(`Camera History — proposal for ${lead.company}`),
     "{{FONT_CSS}}": fontCss(),
     "{{COMPANY}}": company,
     "{{EYEBROW}}": eyebrow,
@@ -233,14 +311,27 @@ async function main() {
     "{{HERO_SUB}}": escapeHtml(heroSub),
     "{{CAMERA_COUNT}}": String(lead.cameraCount),
     "{{CAMERA_WORD}}": cameraWord,
-    "{{PILOT_MONTHS}}": String(lead.pilotMonths),
+    "{{CAMERA_LOCATIONS_TEXT}}": cameraLocationsText,
+    "{{FREE_MONTHS}}": String(lead.freeMonths),
     "{{INTRO}}": intro,
-    "{{PILOT_COPY}}": escapeHtml(pilotCopy),
+    "{{OFFER_COPY}}": escapeHtml(offerCopy),
     "{{SETUP_SUB}}": escapeHtml(setupSub),
+    "{{EMBED_CHECKLIST}}": embedChecklist,
+    "{{EMBED_STEP}}": escapeHtml(embedStep),
+    "{{WIDGET_IMAGE}}": widgetImage,
+    "{{WIDGET_ALT}}": escapeHtml(widgetAlt),
+    "{{WIDGET_CAPTION}}": escapeHtml(widgetCaption),
     "{{CAMERA_LOCATIONS}}": cameraLocationsHtml,
     "{{WEBSITE_URL}}": websiteUrl,
     "{{WEBSITE_LABEL}}": websiteLabel,
     "{{PACKAGE_NAME}}": escapeHtml(pkg.name),
+    "{{EMBED_STAT_TITLE}}": escapeHtml(embedStatTitle),
+    "{{EMBED_STAT_LABEL}}": escapeHtml(embedStatLabel),
+    "{{AFTER_PILOT}}": escapeHtml(afterPilot),
+    "{{CAMERA_COVERAGE}}": escapeHtml(cameraCoverage),
+    "{{PACKAGE_PRICE_LABEL}}": escapeHtml(packagePriceLabel),
+    "{{PACKAGE_STAT_PRICE}}": escapeHtml(packageStatPrice),
+    "{{WIDGET_PLAN_LINE}}": escapeHtml(widgetPlanLine),
     "{{PACKAGE_PRICE_HTML}}": packagePriceHtml,
     "{{PACKAGE_META}}": escapeHtml(packageMeta),
     "{{INSIGHT}}": insight,
@@ -256,15 +347,16 @@ async function main() {
 
   const outputDir = args[1]
     ? resolve(process.cwd(), args[1])
-    : join(ROOT, "out/pilots", lead.slug);
+    : join(ROOT, "out/proposals", lead.slug);
   mkdirSync(outputDir, { recursive: true });
 
-  const htmlPath = join(outputDir, "one-pager.html");
-  const pdfPath = join(outputDir, `camera-history-pilot-${lead.slug}.pdf`);
-  const previewPath = join(outputDir, "preview.png");
-  const emailPath = join(outputDir, "email.txt");
+  const variant = lead.wordpress ? "wordpress" : "iframe";
+  const htmlPath = join(outputDir, `one-pager-${variant}.html`);
+  const pdfPath = join(outputDir, `camera-history-proposal-${lead.slug}-${variant}.pdf`);
+  const previewPath = join(outputDir, `preview-${variant}.png`);
+  const emailPath = join(outputDir, `email-${variant}.txt`);
   writeFileSync(htmlPath, html);
-  writeFileSync(emailPath, buildEmail(lead, pkg, listFormat(locations), websiteLabel));
+  writeFileSync(emailPath, buildEmail(lead, pkg, listFormat(locations), websiteLabel, lead.wordpress));
 
   const browser = await chromium.launch();
   try {
@@ -292,6 +384,7 @@ async function main() {
         : ` (${pkg.limit} ${pkg.limit === 1 ? "camera" : "cameras"}, €${pkg.eurPerMonth.toFixed(2)}/month)`
     }`,
   );
+  console.log(`Variant: ${lead.wordpress ? "WordPress" : "iframe"}`);
 }
 
 main().catch((error) => {

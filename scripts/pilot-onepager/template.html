@@ -23,8 +23,6 @@
         --glacier-weak: #e0f2fe;
         --pine: #15803d;
         --pine-weak: #dcfce7;
-        --amber: #b45309;
-        --amber-weak: #fef3c7;
         --slate-400: #94a3b8;
         --slate-500: #64748b;
       }
@@ -49,7 +47,6 @@
       }
 
       .page {
-        position: relative;
         display: flex;
         flex-direction: column;
         width: 210mm;
@@ -60,8 +57,8 @@
 
       .hero {
         position: relative;
-        flex: 0 0 64mm;
-        height: 64mm;
+        flex: 0 0 58mm;
+        height: 58mm;
         overflow: hidden;
         padding: 10mm 15mm 0;
         background: var(--night);
@@ -112,7 +109,7 @@
         font-weight: 500;
       }
 
-      .proposal-chip {
+      .early-chip {
         padding: 2.2mm 3.4mm;
         border: 1px solid rgba(241, 245, 249, 0.28);
         border-radius: 999px;
@@ -126,12 +123,12 @@
       .hero-copy {
         position: relative;
         z-index: 2;
-        max-width: 160mm;
+        max-width: 165mm;
         margin-top: 7mm;
       }
 
       .eyebrow {
-        margin: 0 0 3mm;
+        margin: 0 0 2.6mm;
         color: #67e8f9;
         font-size: 8pt;
         font-weight: 700;
@@ -141,18 +138,18 @@
 
       .hero h1 {
         margin: 0;
-        max-width: 160mm;
-        font-size: 24pt;
+        max-width: 165mm;
+        font-size: 23pt;
         font-weight: 700;
         letter-spacing: -0.035em;
         line-height: 1.08;
       }
 
       .hero-sub {
-        max-width: 145mm;
-        margin: 3.5mm 0 0;
+        max-width: 150mm;
+        margin: 3.2mm 0 0;
         color: #cbd5e1;
-        font-size: 9.4pt;
+        font-size: 9.2pt;
         line-height: 1.45;
       }
 
@@ -161,356 +158,166 @@
         padding: 8mm 15mm 0;
       }
 
-      .intro {
-        margin: 0 0 5mm;
-        color: var(--muted);
-        font-size: 9.3pt;
-        line-height: 1.5;
-      }
-
-      .intro strong {
-        color: var(--ink);
-      }
-
-      .columns {
+      .stats {
         display: grid;
-        grid-template-columns: 1.12fr 0.88fr;
-        gap: 7mm;
-        align-items: start;
-      }
-
-      .card {
-        padding: 5.4mm 5.8mm;
-        border: 1px solid var(--line);
-        border-radius: 3.5mm;
-        background: #fff;
-      }
-
-      .card + .card {
-        margin-top: 4mm;
-      }
-
-      .card-label {
-        margin: 0 0 3mm;
-        color: var(--slate-500);
-        font-size: 7pt;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-      }
-
-      .pilot-card {
-        border-top: 1.5mm solid var(--glacier);
-      }
-
-      .pilot-number {
-        display: flex;
-        align-items: baseline;
-        gap: 2mm;
-        margin: 0 0 2mm;
-      }
-
-      .pilot-number strong {
-        font-size: 24pt;
-        font-weight: 700;
-        letter-spacing: -0.04em;
-        line-height: 1;
-        color: var(--glacier-deep);
-      }
-
-      .pilot-number span {
-        color: var(--muted);
-        font-size: 10pt;
-        font-weight: 600;
-      }
-
-      .pilot-copy {
-        margin: 0 0 4.2mm;
-        color: var(--muted);
-        font-size: 9pt;
-        line-height: 1.5;
-      }
-
-      .checklist {
-        display: grid;
-        gap: 2.2mm;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      .checklist li {
-        position: relative;
-        padding-left: 6.4mm;
-        color: var(--ink);
-        font-size: 8.5pt;
-        line-height: 1.4;
-      }
-
-      .checklist li::before {
-        content: "";
-        position: absolute;
-        top: 0.4mm;
-        left: 0;
-        width: 4mm;
-        height: 4mm;
-        border-radius: 50%;
-        background: var(--pine-weak);
-        box-shadow: inset 0 0 0 1.1mm var(--pine);
-      }
-
-      .checklist li span {
-        color: var(--muted);
-      }
-
-      .muted {
-        color: var(--muted);
-      }
-
-      .setup-title {
-        margin: 0 0 1.4mm;
-        font-size: 14.5pt;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-      }
-
-      .setup-sub {
-        margin: 0 0 3.4mm;
-        color: var(--muted);
-        font-size: 8.6pt;
-        line-height: 1.45;
-      }
-
-      .location-list {
-        display: grid;
-        gap: 2mm;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      .location-list li {
-        display: flex;
-        align-items: baseline;
-        gap: 2.2mm;
-        color: var(--ink);
-        font-size: 8.7pt;
-        line-height: 1.35;
-      }
-
-      .location-list li::before {
-        content: "";
-        flex: 0 0 auto;
-        width: 1.6mm;
-        height: 1.6mm;
-        border-radius: 50%;
-        background: var(--glacier);
-      }
-
-      .website {
-        display: inline-block;
-        margin-top: 3.5mm;
-        color: var(--glacier-deep);
-        font-size: 8.1pt;
-        font-weight: 600;
-        text-decoration: none;
-      }
-
-      .after-card {
-        border-color: #bae6fd;
-        background: var(--glacier-weak);
-      }
-
-      .after-head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
+        grid-template-columns: repeat(3, 1fr);
         gap: 3mm;
       }
 
-      .after-name {
-        margin: 0;
-        font-size: 16.5pt;
-        font-weight: 700;
+      .stat {
+        padding: 3.4mm 3.6mm;
+        border: 1px solid var(--line);
+        border-radius: 3mm;
+        background: var(--snow);
+      }
+
+      .stat strong {
+        display: block;
+        color: var(--ink);
+        font-size: 16pt;
+        line-height: 1;
         letter-spacing: -0.03em;
       }
 
-      .after-price {
-        color: var(--glacier-deep);
-        font-size: 11pt;
-        font-weight: 700;
-        white-space: nowrap;
-      }
-
-      .after-price span {
-        font-size: 7.5pt;
-        font-weight: 600;
+      .stat span {
+        display: block;
+        margin-top: 1.6mm;
         color: var(--muted);
+        font-size: 7.2pt;
+        line-height: 1.35;
       }
 
-      .after-meta {
-        margin: 2mm 0 0;
-        color: var(--glacier-deep);
-        font-size: 8.2pt;
-        font-weight: 600;
-      }
-
-      .after-note {
+      .locations {
         margin: 2.8mm 0 0;
-        color: var(--muted);
-        font-size: 8pt;
-        line-height: 1.45;
+        color: var(--slate-500);
+        font-size: 7.8pt;
+        line-height: 1.4;
       }
 
-      .insight {
-        margin: 4.5mm 0 0;
-        padding: 4mm 5mm;
-        border-left: 1.2mm solid var(--glacier);
-        border-radius: 0 2.5mm 2.5mm 0;
-        background: var(--snow);
-        color: var(--muted);
-        font-size: 8.8pt;
-        line-height: 1.5;
-      }
-
-      .insight strong {
-        color: var(--ink);
-      }
-
-      .steps {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 5mm;
-        margin-top: 4.5mm;
-      }
-
-      .step {
-        position: relative;
-        padding-top: 2.6mm;
-        border-top: 0.35mm solid var(--line);
-      }
-
-      .step-num {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 6mm;
-        height: 6mm;
-        margin-bottom: 2mm;
-        border-radius: 50%;
-        background: var(--glacier-weak);
-        color: var(--glacier-deep);
-        font-size: 7.5pt;
-        font-weight: 700;
-      }
-
-      .step h3 {
-        margin: 0 0 1mm;
-        font-size: 9.2pt;
-        font-weight: 700;
-      }
-
-      .step p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 8pt;
-        line-height: 1.42;
-      }
-
-      .needs-block {
-        margin-top: 4mm;
-        padding: 0 1mm;
-      }
-
-      .needs-title {
-        margin: 0 0 2.5mm;
-        font-size: 9.5pt;
-        font-weight: 700;
-      }
-
-      .needs {
-        display: grid;
-        gap: 1.8mm;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      .needs li {
-        position: relative;
-        padding-left: 5mm;
-        color: var(--muted);
-        font-size: 8.1pt;
-        line-height: 1.42;
-      }
-
-      .needs li::before {
-        content: "→";
-        position: absolute;
-        left: 0;
-        color: var(--glacier);
-        font-weight: 700;
-      }
-
-      .next {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8mm;
-        margin-top: 4.5mm;
-        padding: 5mm 6mm;
+      .showcase {
+        margin-top: 5mm;
+        overflow: hidden;
+        border: 1px solid var(--line);
         border-radius: 3.5mm;
-        background: var(--night);
-        color: #f1f5f9;
+        background: var(--snow);
       }
 
-      .next-copy {
-        max-width: 112mm;
+      .showcase img {
+        display: block;
+        width: 100%;
+        height: auto;
       }
 
-      .next-label {
+      .caption a {
+        color: var(--glacier-deep);
+        text-decoration: underline;
+      }
+
+      .caption {
+        padding: 2.4mm 3.2mm;
+        border-top: 1px solid var(--line);
+        background: #fff;
+        color: var(--slate-500);
+        font-size: 7.2pt;
+        line-height: 1.4;
+      }
+
+      .offer-band {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        margin-top: 5mm;
+        padding: 5mm 5.5mm;
+        border: 1px solid #c7e7f5;
+        border-radius: 3.5mm;
+        background: #f2fbff;
+      }
+
+      .offer-cell {
+        padding: 0 5mm;
+      }
+
+      .offer-cell:first-child {
+        padding-left: 0;
+      }
+
+      .offer-cell + .offer-cell {
+        border-left: 1px solid #d9eef8;
+      }
+
+      .offer-label {
         margin: 0 0 2mm;
-        color: #67e8f9;
+        color: var(--glacier-deep);
         font-size: 7pt;
         font-weight: 700;
         letter-spacing: 0.14em;
         text-transform: uppercase;
       }
 
-      .next h3 {
-        margin: 0 0 1.8mm;
-        font-size: 11.5pt;
-        line-height: 1.25;
-        letter-spacing: -0.02em;
-      }
-
-      .next p {
+      .offer-big {
+        display: flex;
+        align-items: baseline;
+        gap: 2mm;
         margin: 0;
-        color: #cbd5e1;
-        font-size: 7.8pt;
-        line-height: 1.42;
-      }
-
-      .next a {
-        color: #67e8f9;
+        color: var(--ink);
+        font-size: 9pt;
         font-weight: 600;
-        text-decoration: none;
+        line-height: 1;
       }
 
-      .next-contact {
-        margin-top: 0;
-        text-align: right;
-        white-space: nowrap;
+      .offer-big strong {
+        color: var(--glacier-deep);
+        font-size: 24pt;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 0.9;
+      }
+
+      .offer-small {
+        margin: 1.8mm 0 0;
+        color: var(--muted);
         font-size: 7.8pt;
-        font-weight: 600;
-        color: #fff;
+        line-height: 1.45;
       }
 
-      .next-contact div {
-        margin-top: 1mm;
-        color: var(--slate-400);
-        font-size: 7pt;
+      .offer-plan {
+        margin: 0;
+        color: var(--ink);
+        font-size: 14pt;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      .offer-price {
+        margin: 1.2mm 0 0;
+        color: var(--muted);
+        font-size: 9.5pt;
         font-weight: 500;
+        line-height: 1.2;
+      }
+
+      .return-note {
+        margin-top: 4mm;
+        padding: 4mm 5mm;
+        border-left: 1.5mm solid var(--pine);
+        border-radius: 0 3mm 3mm 0;
+        background: var(--pine-weak);
+      }
+
+      .return-label {
+        margin: 0 0 1mm;
+        color: var(--pine);
+        font-size: 7pt;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .return-copy {
+        margin: 0;
+        color: var(--ink);
+        font-size: 8.6pt;
+        line-height: 1.5;
       }
 
       .footer {
@@ -518,7 +325,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 6mm;
-        margin: 5mm 15mm 6mm;
+        margin: 4mm 15mm 6mm;
         padding-top: 3mm;
         border-top: 0.3mm solid var(--line);
         color: var(--slate-500);
@@ -528,14 +335,6 @@
       .footer strong {
         color: var(--ink);
         font-weight: 700;
-      }
-
-      .footer span {
-        color: var(--slate-400);
-      }
-
-      .no-break {
-        white-space: nowrap;
       }
     </style>
   </head>
@@ -556,7 +355,7 @@
             </svg>
             <div class="brand-word">Camera <span>History</span></div>
           </div>
-          <div class="proposal-chip">Pilot proposal</div>
+          <div class="early-chip">Early access</div>
         </div>
         <div class="hero-copy">
           <p class="eyebrow">{{EYEBROW}}</p>
@@ -566,90 +365,39 @@
       </header>
 
       <main class="body">
-        <p class="intro">{{INTRO}}</p>
+        <section class="stats">
+          <div class="stat"><strong>{{CAMERA_COUNT}}</strong><span>live {{CAMERA_WORD}}</span></div>
+          <div class="stat"><strong>12</strong><span>months of history</span></div>
+          <div class="stat"><strong>{{EMBED_STAT_TITLE}}</strong><span>{{EMBED_STAT_LABEL}}</span></div>
+        </section>
+        <p class="locations">{{CAMERA_LOCATIONS_TEXT}}</p>
 
-        <div class="columns">
-          <div>
-            <section class="card pilot-card">
-              <p class="card-label">Your pilot</p>
-              <div class="pilot-number"><strong>{{PILOT_MONTHS}}</strong><span>months free</span></div>
-              <p class="pilot-copy">{{PILOT_COPY}}</p>
-              <ul class="checklist">
-                <li>12 months of history <span>— every capture stays browsable.</span></li>
-                <li>Automatic captures <span>on the schedule you choose.</span></li>
-                <li>WordPress block or one iframe <span>for your existing site.</span></li>
-                <li>Email support from a real person <span>— no ticket queue.</span></li>
-              </ul>
-            </section>
-
-            <section class="needs-block">
-              <h3 class="needs-title">What we need from you</h3>
-              <ul class="needs">
-                <li>A short feedback call after a few weeks.</li>
-                <li>Permission to use {{COMPANY}} as a case study if it works well.</li>
-                <li>Your camera URLs so we can set up the workspace.</li>
-              </ul>
-            </section>
-          </div>
-
-          <div>
-            <section class="card">
-              <p class="card-label">Your setup</p>
-              <h2 class="setup-title">{{CAMERA_COUNT}} live {{CAMERA_WORD}}</h2>
-              <p class="setup-sub">{{SETUP_SUB}}</p>
-              <ul class="location-list">
-                {{CAMERA_LOCATIONS}}
-              </ul>
-              <a class="website" href="{{WEBSITE_URL}}">{{WEBSITE_LABEL}}</a>
-            </section>
-
-            <section class="card after-card">
-              <div class="after-head">
-                <h2 class="after-name">{{PACKAGE_NAME}}</h2>
-                <div class="after-price">{{PACKAGE_PRICE_HTML}}</div>
-              </div>
-              <p class="after-meta">{{PACKAGE_META}}</p>
-              <p class="after-note">No automatic charge. We confirm with you before anything starts.</p>
-            </section>
-          </div>
-        </div>
-
-        <p class="insight">{{INSIGHT}}</p>
-
-        <section class="steps" aria-label="How it works">
-          <div class="step">
-            <div class="step-num">1</div>
-            <h3>Connect</h3>
-            <p>Point us at your public camera feeds. Any JPEG, MJPEG, HLS or RTSP source works.</p>
-          </div>
-          <div class="step">
-            <div class="step-num">2</div>
-            <h3>Archive</h3>
-            <p>We capture automatically and keep a rolling 12 months of history for you.</p>
-          </div>
-          <div class="step">
-            <div class="step-num">3</div>
-            <h3>Embed</h3>
-            <p>Drop one iframe or the WordPress block into your site. Visitors browse by day.</p>
-          </div>
+        <section class="showcase">
+          <img src="{{WIDGET_IMAGE}}" alt="{{WIDGET_ALT}}" />
+          <div class="caption">{{WIDGET_CAPTION}}. Try the demo interactively at <a href="https://camera-history.com/#live-demo">camera-history.com/#live-demo</a>.</div>
         </section>
 
-        <section class="next">
-          <div class="next-copy">
-            <p class="next-label">Next step</p>
-            <h3>Send the camera URLs or book a 20-minute call.</h3>
-            <p>No SLA, no custom development, no commitment. Just a useful archive for your visitors.</p>
+        <section class="offer-band">
+          <div class="offer-cell">
+            <p class="offer-label">The offer</p>
+            <p class="offer-big"><strong>{{FREE_MONTHS}}</strong> months free</p>
+            <p class="offer-small">For {{CAMERA_COVERAGE}}</p>
           </div>
-          <div class="next-contact">
-            <a href="mailto:marek@camera-history.com">marek@camera-history.com</a>
-            <div>camera-history.com</div>
-          </div>
+          <div class="offer-cell">
+            <p class="offer-label">After that</p>
+            <p class="offer-plan">{{PACKAGE_NAME}}</p>
+            <p class="offer-price">{{PACKAGE_PRICE_LABEL}}</p>
+          </div>        </section>
+
+        <section class="return-note">
+          <p class="return-label">In return</p>
+          <p class="return-copy">Your feedback after a few weeks, and permission to feature <strong>{{COMPANY}}</strong> in the “Who is using Camera History?” section on our website.</p>
         </section>
       </main>
 
       <footer class="footer">
-        <div><strong>Camera History</strong> · camera-history.com</div>
-        <div>Pilot proposal prepared {{DATE}}</div>
+        <div><strong>Camera History</strong> · camera-history.com · marek@camera-history.com</div>
+        <div>Proposal · {{DATE}}</div>
       </footer>
     </div>
   </body>
