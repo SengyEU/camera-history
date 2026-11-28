@@ -359,7 +359,7 @@ export function Register({
   const passwordRef = useRef<HTMLInputElement>(null);
   const confirmRef = useRef<HTMLInputElement>(null);
   const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
-  const pilotCode = params.get("pilot") ?? undefined;
+  const pilotCode = params.get("invite") ?? params.get("pilot") ?? undefined;
   const packageCode = params.get("package") ?? undefined;
 
   useEffect(() => {
@@ -444,7 +444,7 @@ export function Register({
       </div>
       {pilotCode && (
         <p className="auth-note" data-testid="pilot-note">
-          Pilot access — free for 90 days.
+          Early access — 3 months free.
         </p>
       )}
       {packageCode && (

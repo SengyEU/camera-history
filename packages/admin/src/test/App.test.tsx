@@ -1351,6 +1351,34 @@ describe("App registration", () => {
     window.location.hash = "";
   });
 
+  it("accepts an invite link and forwards it as the pilot code", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const server = registerServer();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+        calls.push({ url: String(url), init });
+        return server(url);
+      }),
+    );
+    window.location.hash = "#/register?invite=invite-secret&package=plus";
+    render(<App />);
+
+    await screen.findByTestId("register-form");
+    expect(screen.getByTestId("pilot-note")).toHaveTextContent("Early access — 3 months free.");
+    await userEvent.type(screen.getByTestId("register-name"), "Alpine Resort");
+    await userEvent.type(screen.getByTestId("register-email"), "owner@alpine.dev");
+    await userEvent.type(screen.getByTestId("register-password"), "Supersecret1");
+    await userEvent.type(screen.getByTestId("register-password-confirm"), "Supersecret1");
+    await userEvent.click(screen.getByTestId("register-submit"));
+
+    await screen.findByTestId("check-email");
+    const registerCall = calls.find((call) => call.url.endsWith("/api/v1/auth/register"));
+    const body = JSON.parse(String(registerCall?.init?.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({ pilotCode: "invite-secret", packageCode: "plus" });
+    window.location.hash = "";
+  });
+
   it("resends the verification email from the check-email screen", async () => {
     const server = registerServer();
     vi.stubGlobal("fetch", server);
