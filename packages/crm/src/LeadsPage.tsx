@@ -430,7 +430,7 @@ export function LeadsPage({
                   />
                   <SortHeader label="Package" column="packageCode" sort={sort} onSort={toggleSort} />
                   <SortHeader
-                    label="Archive"
+                    label="Archiveable"
                     column="archiveable"
                     sort={sort}
                     onSort={toggleSort}
